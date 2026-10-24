@@ -162,6 +162,7 @@ function save(){
   state.updatedAt = Date.now();
   lsSave();
   if (store.mode === 'db') { clearTimeout(store.timer); setSync('Saving…'); store.timer = setTimeout(flush, 700); }
+  else if (store.mode === 'cloud') { clearTimeout(acct.timer); setSync('Saving…'); acct.timer = setTimeout(cloudFlush, 800); }
 }
 const FATAL = ['invalid_argument', 'quota_exceeded', 'not_granted', 'revoked', 'capability_disabled'];
 function flush(attempt){
@@ -192,6 +193,98 @@ async function initStore(){
     } else if (state.updatedAt) flush();
     setSync('Saved to your account');
   } catch (e) { store.mode = 'local'; setSync('Saved in this browser'); }
+}
+
+// Combines two progress records so nothing is lost when a second device or a backup file joins.
+function mergeStates(a, b){
+  const m = normalize(JSON.parse(JSON.stringify(a))), o = normalize(b);
+  Object.keys(o.q).forEach(id => {
+    const x = m.q[id], y = o.q[id];
+    m.q[id] = !x ? y : {n:Math.max(x.n, y.n), c:Math.max(x.c, y.c), ok:y.at > x.at ? y.ok : x.ok, at:Math.max(x.at, y.at)};
+  });
+  Object.keys(o.weeks).forEach(k => {
+    const x = m.weeks[k], y = o.weeks[k], size = w => Object.keys(w.ans || {}).length;
+    if (!x || (!x.done && (y.done || size(y) > size(x)))) m.weeks[k] = y;
+  });
+  const seen = new Set();
+  m.hist = [...m.hist, ...o.hist].sort((h1, h2) => h2.at - h1.at).filter(h => { const k = h.at + '|' + h.label; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 60);
+  Object.keys(o.learn.cards).forEach(k => { if (!m.learn.cards[k]) m.learn.cards[k] = o.learn.cards[k]; });
+  Object.keys(o.learn.mux).forEach(k => { if (!m.learn.mux[k]) m.learn.mux[k] = o.learn.mux[k]; });
+  Object.keys(o.learn.units).forEach(k => {
+    const x = m.learn.units[k] || {}, y = o.learn.units[k];
+    m.learn.units[k] = {best:Math.max(x.best || 0, y.best || 0), passed:x.passed || y.passed || 0};
+  });
+  m.updatedAt = Math.max(m.updatedAt, o.updatedAt);
+  return m;
+}
+
+// ---------- accounts on the standalone site (optional Google sign-in through Firebase) ----------
+// Turned on by docs/firebase-config.js; the Claude-hosted version saves to the Claude account instead.
+const STANDALONE = !window.claude;
+const FB_VERSION = '10.12.2';
+const acct = {ready:false, user:null, ref:null, timer:null, chain:Promise.resolve()};
+function loadScript(src){ return new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = () => reject(new Error('Could not load ' + src)); document.head.appendChild(s); }); }
+async function initAccounts(){
+  if (!STANDALONE || !window.FIREBASE_CONFIG) return;
+  try {
+    if (!window.firebase) for (const m of ['app', 'auth', 'firestore']) await loadScript(`https://www.gstatic.com/firebasejs/${FB_VERSION}/firebase-${m}-compat.js`);
+    firebase.initializeApp(window.FIREBASE_CONFIG);
+    acct.ready = true;
+    firebase.auth().onAuthStateChanged(onAuth);
+  } catch (e) { acct.ready = false; }
+  renderAccount();
+}
+async function onAuth(user){
+  acct.user = user || null; acct.ref = null;
+  if (!user) { store.mode = 'local'; setSync('Saved in this browser'); renderAccount(); if (ui.tab === 'weekly' && ui.view === 'tab') render(); return; }
+  setSync('Syncing…');
+  try {
+    const ref = firebase.firestore().collection('users').doc(user.uid);
+    const snap = await ref.get();
+    if (snap.exists && snap.data().state) state = mergeStates(state, JSON.parse(snap.data().state));
+    acct.ref = ref; store.mode = 'cloud';
+    lsSave(); render(); cloudFlush();
+  } catch (e) { store.mode = 'local'; setSync('Could not reach your account; saved in this browser'); }
+  renderAccount();
+}
+function cloudFlush(){
+  if (store.mode !== 'cloud' || !acct.ref) return;
+  const body = {state:JSON.stringify(state), updatedAt:state.updatedAt || Date.now()};
+  acct.chain = acct.chain.then(() => acct.ref.set(body)).then(() => setSync('Saved to your account'))
+    .catch(() => { setSync('Saving failed; will retry'); clearTimeout(acct.timer); acct.timer = setTimeout(cloudFlush, 5000); });
+}
+function signIn(){
+  firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => {
+    const code = (e && e.code) || '';
+    if (code === 'auth/unauthorized-domain') toast('Sign-in is not allowed on this address yet. Add it under Authentication → Settings → Authorized domains in Firebase.');
+    else if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') toast('Sign-in failed: ' + (e.message || code));
+  });
+}
+function renderAccount(){
+  const el = $('#acct'); if (!el) return;
+  if (!acct.ready) { el.innerHTML = ''; return; }
+  const u = acct.user;
+  el.innerHTML = u ? `<button type="button" class="avatar" data-act="to-progress" title="Signed in as ${esc(u.email || u.displayName || 'you')}" aria-label="Your account">${esc(((u.displayName || u.email || '?')[0] || '?').toUpperCase())}</button>`
+    : '<button type="button" class="acctbtn" data-act="signin">Sign in</button>';
+}
+
+// ---------- backup file ----------
+function exportProgress(){
+  const blob = new Blob([JSON.stringify(state, null, 1)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ground-up-progress-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+async function importProgress(file){
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data || typeof data !== 'object' || !data.q) throw new Error('not a progress file');
+    state = mergeStates(state, data);
+    save(); render();
+    toast('Progress imported and merged');
+  } catch (e) { toast('That file is not a Ground Up progress file.'); }
 }
 
 // ---------- progress ----------
@@ -629,8 +722,11 @@ function viewWeekly(){
         <button type="button" class="slist" data-act="review-oa"><span>Your OA + variants (20 at random)</span><span class="mono">${solvedIn(oavIds)}/${oavIds.length}</span></button></div></section>
     </div>
     <section class="card"><h2>Past weeks</h2>${weeks.length ? `<div class="hist">${weeks.map(k => `<div><span>${k.replace('-W', ' · week ')}</span><span class="mono">${state.weeks[k].score}/${state.weeks[k].ids.length}</span></div>`).join('')}</div>` : '<p class="muted">Finished weekly sets show up here.</p>'}</section>
-    <section class="card"><div class="row between"><div><h2>Your progress</h2><p class="muted">${esc(store.status)}.</p></div>
-      ${ui.confirmReset ? '<div class="row"><span>Erase all progress?</span><button type="button" class="btn small" data-act="reset-yes">Erase everything</button><button type="button" class="btn small primary" data-act="reset-no">Keep my progress</button></div>' : '<button type="button" class="btn small ghost" data-act="reset">Reset progress</button>'}</div></section>`;
+    <section class="card" id="progress-card"><div class="row between"><div><h2>Your progress</h2><p class="muted">${esc(store.status)}.</p></div>
+      ${ui.confirmReset ? '<div class="row"><span>Erase all progress?</span><button type="button" class="btn small" data-act="reset-yes">Erase everything</button><button type="button" class="btn small primary" data-act="reset-no">Keep my progress</button></div>' : '<button type="button" class="btn small ghost" data-act="reset">Reset progress</button>'}</div>
+      ${acct.ready ? (acct.user ? `<div class="row between acctrow"><span>Signed in as <b>${esc(acct.user.email || acct.user.displayName || 'you')}</b>. Progress syncs to every device where you sign in.</span><button type="button" class="btn small" data-act="signout">Sign out</button></div>`
+        : '<div class="row between acctrow"><span>Sign in with Google to keep your progress on every device.</span><button type="button" class="btn small primary" data-act="signin">Sign in with Google</button></div>') : ''}
+      ${STANDALONE ? '<div class="row between acctrow"><span class="muted">Backup: download your progress as a file, or load one from another device (it merges, nothing is lost).</span><div class="row"><button type="button" class="btn small" data-act="export">Export progress</button><button type="button" class="btn small" data-act="import">Import progress</button><input type="file" id="import-file" accept=".json,application/json" hidden></div></div>' : ''}</section>`;
 }
 function topicIds(ch){
   const ids = CH_IDS[ch];
@@ -757,6 +853,11 @@ function act(a){
     case 'reset': ui.confirmReset = true; render(); break;
     case 'reset-no': ui.confirmReset = false; render(); break;
     case 'reset-yes': state = emptyState(); ui.confirmReset = false; save(); toast('Progress erased'); render(); break;
+    case 'signin': signIn(); break;
+    case 'signout': firebase.auth().signOut(); break;
+    case 'to-progress': goTab('weekly'); { const c = $('#progress-card'); if (c) c.scrollIntoView(); } break;
+    case 'export': exportProgress(); break;
+    case 'import': $('#import-file').click(); break;
   }
 }
 function returnFrom(from){
@@ -764,6 +865,7 @@ function returnFrom(from){
   goTab(from && from.tab ? from.tab : 'quest');
 }
 document.addEventListener('input', e => { if (e.target.closest('.fbar')) readFilters(); });
+document.addEventListener('change', e => { if (e.target.id === 'import-file' && e.target.files[0]) importProgress(e.target.files[0]); });
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.target.matches('input, select, textarea, button, summary, a')) return;
@@ -799,4 +901,5 @@ if (local) state = normalize(local);
 render();
 setSync(store.status);
 initStore();
+initAccounts();
 })();

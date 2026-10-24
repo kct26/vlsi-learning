@@ -9,7 +9,7 @@ rm -rf "$OUT"; mkdir -p "$OUT"
 node build.js --fragment "$OUT/fragment.html"
 node tests/make-tests.js "$OUT/fragment.html" "$OUT"
 status=0
-for p in 1 2 3 4; do
+for p in 1 2 3 4 5; do
   url="file://$OUT/test$p.html"
   [ "$p" = 3 ] && url="$url#p100"
   [ "$p" = 4 ] && url="file://$OUT/phone.html?src=test4.html"

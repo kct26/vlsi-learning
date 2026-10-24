@@ -21,6 +21,9 @@ book/
   chapters/                         one .tex file per chapter and appendix
 docs/
   index.html                        the built trainer (served by GitHub Pages)
+  firebase-config.js                optional Google sign-in settings (null = off)
+firestore.rules                     database rules: each account sees only its own progress
+FIREBASE_SETUP.md                   how to turn on Google sign-in
 trainer/
   build.js                          checks the data and builds docs/index.html
   src/
@@ -34,7 +37,12 @@ trainer/
 
 ## Use the trainer
 
-Open `docs/index.html` in any browser. It is one self-contained file: no server, no install, works offline. Progress is saved in that browser's local storage.
+Open `docs/index.html` in any browser. It is one self-contained file: no server, no install, works offline.
+
+**Saving progress:**
+- By default, progress is saved in that browser.
+- To keep one record across all your devices, turn on Google sign-in once by following [FIREBASE_SETUP.md](FIREBASE_SETUP.md). After that, a **Sign in** button appears in the top bar.
+- Either way, **Export progress** and **Import progress** on the Weekly page make a backup file, and importing merges instead of overwriting.
 
 To put it online with **GitHub Pages**: push this repository, then in the repository's **Settings → Pages**, set **Source** to "Deploy from a branch", the branch to `main`, and the folder to `/docs`. The trainer will be at `https://<your-username>.github.io/<repository-name>/`.
 
@@ -79,7 +87,8 @@ This builds the page and clicks through it in headless Google Chrome:
 - the problem list filters, and submitting and retrying problems;
 - weekly sets, resuming them, and the timed mock;
 - the job-match review;
-- deep links and phone-width layout.
+- deep links and phone-width layout;
+- importing a backup, and Google sign-in and sync (against a simulated Firebase).
 
 Set `CHROME=/path/to/chrome` if Chrome is not at the macOS default location.
 

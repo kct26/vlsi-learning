@@ -237,8 +237,44 @@ function phase4(){
   click('#card-next'); over('quest page with widget');
 }
 
-setTimeout(() => {
-  try { [null, phase1, phase2, phase3, phase4][PHASE](); } catch (e) { errors.push('THROW ' + e.message + ' ' + (e.stack || '').split('\n')[1]); }
+const wait = ms => new Promise(r => setTimeout(r, ms));
+async function phase3b(){
+  phase3();
+  // Import a backup file: it must merge with (not replace) the progress already here.
+  const before = solvedHeader();
+  click('[data-act="pv-back"]'); tab('weekly');
+  ok($('[data-act="export"]') && $('[data-act="import"]'), 'export and import buttons on the progress card');
+  const file = new File([JSON.stringify({v:2, updatedAt:9, q:{'03-01':{n:1, c:1, ok:true, at:9}, '03-02':{n:2, c:1, ok:true, at:9}}, weeks:{}, hist:[], learn:{cards:{}, units:{}, mux:{}}})], 'backup.json', {type:'application/json'});
+  const dt = new DataTransfer(); dt.items.add(file);
+  const inp = $('#import-file'); inp.files = dt.files; inp.dispatchEvent(new Event('change', {bubbles:true}));
+  await wait(300);
+  ok(solvedHeader() === before + 2, 'import merged 2 solved problems (' + before + ' -> ' + solvedHeader() + ')');
+  ok(st().q['03-01'] && st().q['03-01'].c === 1, 'imported progress saved locally');
+}
+async function phase5(){
+  // Sign-in and sync, against a simulated Firebase (defined before the app loads).
+  await wait(300);
+  ok($('#acct .acctbtn'), 'Sign in button in the top bar');
+  ok(solvedHeader() === 1, 'starts with 1 problem solved in this browser');
+  click('#acct .acctbtn');
+  await wait(400);
+  ok($('#acct .avatar'), 'avatar shown after signing in');
+  ok(solvedHeader() === 3, 'account progress merged with this browser (' + solvedHeader() + ' solved)');
+  const saved = JSON.parse(window.__fb.users.u1.state);
+  ok(saved.q['01-01'] && saved.q['01-05'] && saved.q['02-03'], 'merged progress written back to the account');
+  ok(/Saved to your account/.test($('#sync').textContent), 'sync label: ' + $('#sync').textContent);
+  tab('problems'); click($$('#prows a[data-open]')[9]);
+  const r = pvRaw(); click(`[data-pv="${code(r, true)}"]`); click('[data-act="pv-submit"]');
+  await wait(1300);
+  ok(JSON.parse(window.__fb.users.u1.state).q[r[0]], 'a new answer syncs to the account');
+  click('[data-act="pv-back"]'); tab('weekly');
+  ok(/Signed in as/.test($('#progress-card').textContent), 'progress card shows the signed-in account');
+  click('[data-act="signout"]');
+  await wait(200);
+  ok($('#acct .acctbtn') && /Saved in this browser/.test($('#sync').textContent), 'signing out returns to browser-only saving');
+}
+setTimeout(async () => {
+  try { await [null, phase1, phase2, phase3b, phase4, phase5][PHASE](); } catch (e) { errors.push('THROW ' + e.message + ' ' + (e.stack || '').split('\n')[1]); }
   const fails = log.filter(l => l.startsWith('FAIL')).length;
   const pre = document.createElement('pre'); pre.id = 'testlog';
   pre.textContent = `PHASE ${PHASE}: ${log.length - fails} passed, ${fails} failed, ${errors.length} errors\n` + errors.join('\n') + '\n' + log.filter(l => l.startsWith('FAIL')).join('\n') + '\n===\n' + log.join('\n');

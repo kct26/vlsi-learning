@@ -67,8 +67,16 @@ if (fragment) {
   html = '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n' +
     '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n' +
     '<meta name="description" content="A hardware OA trainer: a 22-quest learning path and a multiple-choice problem list built on Hardware from the Ground Up.">\n' +
+    '<script src="firebase-config.js"></script>\n' +
     body.slice(0, split) + '</head>\n<body>\n' + body.slice(split) + '\n</body>\n</html>\n';
 }
 fs.mkdirSync(path.dirname(out), {recursive: true});
 fs.writeFileSync(out, html);
+// The standalone page reads optional Google sign-in settings from firebase-config.js next to it; create a blank one once.
+const cfg = path.join(path.dirname(out), 'firebase-config.js');
+if (!fragment && !fs.existsSync(cfg)) fs.writeFileSync(cfg, `// Google sign-in settings for the trainer (see FIREBASE_SETUP.md).
+// Leave as null to keep progress in the browser only. To turn accounts on, replace null with the
+// firebaseConfig object from your Firebase project (it is safe to publish; access is controlled by firestore.rules).
+window.FIREBASE_CONFIG = null;
+`);
 console.log('wrote ' + path.relative(process.cwd(), out) + ' (' + Math.round(html.length / 1024) + ' KB)');

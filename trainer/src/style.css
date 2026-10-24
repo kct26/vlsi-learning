@@ -78,6 +78,10 @@ button, select, input { font: inherit; color: inherit; }
 .topbar .muted { color: var(--nav-ink); }
 .topbar .ring .ring-bg { stroke: #4A4A4A; }
 .topbar .ring .ring-fg { stroke: var(--nav-feature); }
+.acctbtn { background: none; border: 1px solid #4A4A4A; color: var(--nav-ink-strong); padding: 5px 12px; border-radius: 3px; cursor: pointer; font-size: 0.92rem; }
+.acctbtn:hover { border-color: var(--nav-ink); }
+.avatar { width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--nav-feature); color: #1A1A1A; font-weight: 700; cursor: pointer; }
+.acctrow { border-top: 1px solid var(--line); padding-top: 12px; }
 .sync { font-size: 0.78rem; color: var(--nav-ink); white-space: nowrap; max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
 .ring .ring-bg { fill: none; stroke: var(--line); }
 .ring .ring-fg { fill: none; stroke: var(--accent); stroke-linecap: round; transition: stroke-dasharray .4s ease; }
