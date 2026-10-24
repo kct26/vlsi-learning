@@ -4,12 +4,14 @@ A study kit for hardware engineering online assessments (built while preparing f
 
 - **Hardware from the Ground Up**: a 233-page beginner's book, written in LaTeX, that builds hardware from electricity to GPUs: transistors, CMOS gates, timing, power, PVT, manufacturing, memory, Verilog and verification, architecture, GPUs and computer arithmetic. Every chapter ends with exercises and answers.
 - **Ground Up Hardware Trainer**: a single-page web app for practicing it:
+  - a home page with interactive try-it widgets, and a sign-in screen (Google or email) when accounts are turned on;
   - a 23-quest learning path with interactive widgets;
-  - a 682-problem multiple-choice and true/false list with solved/total progress, covering hardware theory plus Linux, git, scripting, DFT, physical-design flow and signal integrity;
+  - **Theory**: a 682-problem multiple-choice and true/false list with solved/total progress, covering hardware theory plus Linux, git, scripting, DFT, physical-design flow and signal integrity;
   - a Coding tab with 64 hands-on problems (RTL in Verilog, SystemVerilog and cocotb verification, C and C++, Python, Bash, Tcl and SDC, Perl, CUDA, MATLAB) in Easy, Medium and Hard, with hints and reference solutions;
   - a LeetCode-style judge for 42 of them, running entirely in the browser: **Run** tries the example cases, **Submit** runs every hidden test and records the verdict (Accepted, Wrong Answer, Compile Error, Runtime Error, Time Limit Exceeded). Python runs in Pyodide; C and C++ compile with Clang built for WebAssembly; Verilog is synthesized by Yosys and simulated gate by gate;
-  - weekly sets and timed mock assessments;
-  - a review of how the material maps to the job posting.
+  - **Companies**: every theory and coding problem tagged with the companies whose hardware roles test it, LeetCode style, with a page per company (NVIDIA's includes your OA and reported topics);
+  - **Roles**: what hardware postings ask for, how well this kit covers it, and the roles to aim for;
+  - weekly sets and timed mock assessments.
 
 > Unofficial study material. Not produced, reviewed or endorsed by NVIDIA. Topics marked "reported" come from anonymous candidate reports (see the book's Appendix E) and are hints about the *kind* of question to expect, not real assessment content.
 
@@ -33,6 +35,7 @@ trainer/
     coding.js                       the coding problems, solutions and Python tests
     hidden-tests.js                 hidden tests for the C, C++ and Verilog problems
     judge.js                        the in-browser judge (C/C++ harness, Verilog simulator, checkers)
+    companies.js                    companies and which problems carry their tags
     lessons.js                      quests and lesson cards
     widgets.js                      interactive lesson widgets
     app.js                          the app
@@ -81,6 +84,15 @@ Hidden tests for C, C++ and Verilog live in `trainer/src/hidden-tests.js`, keyed
 
 The compilers download from the jsDelivr CDN the first time you run that language (Clang about 25 MB, Yosys about 15 MB, Pyodide about 10 MB), then stay cached.
 
+### Company tags
+
+`trainer/src/companies.js` lists the companies. A problem gets a company's tag when:
+- it comes from one of the company's `chapters` (theory) or `areas` (coding);
+- it carries one of the company's source `tags` (NVIDIA uses `ovr`: your OA, variants, reported);
+- or its id is in the company's `ids` list.
+
+To add questions for a company, write them in `questions.js` or `coding.js` as usual, then add their ids to that company's `ids`. Also add them to `reported` if they really came from that company's interviews. To add a company, copy an entry. The build checks that every id exists.
+
 Then rebuild (needs [Node.js](https://nodejs.org)):
 
 ```bash
@@ -102,9 +114,9 @@ This builds the page and clicks through it in headless Google Chrome:
 - every lesson and widget;
 - the problem list filters, and submitting and retrying problems;
 - weekly sets, resuming them, and the timed mock;
-- the job-match review;
+- the home page, the Companies and Roles pages, and the company filters;
 - deep links and phone-width layout;
-- importing a backup, and Google sign-in and sync (against a simulated Firebase);
+- importing a backup, and the sign-in screen and sync (against a simulated Firebase);
 - the Coding tab: filters, hints, the solution and submissions tabs, saving your code, and real Run and Submit verdicts for Python, C, C++ and Verilog (this phase waits in real time, because the compilers download in the background).
 
 To check the hidden tests themselves (every reference solution passes, broken versions fail, and the Verilog simulator agrees with Icarus Verilog cycle by cycle):

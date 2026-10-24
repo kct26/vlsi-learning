@@ -55,6 +55,18 @@ const solvedHeader = () => +(($('#solved b') || {}).textContent || 0);
 
 function phase1(){
   const visible = () => $('.topbar').innerText + ' ' + $('#main').innerText;
+  // Home page
+  ok($('.hhero h1') && /from the ground up/.test($('.hhero h1').textContent), 'home page opens first');
+  ok($$('.hptabs button').length === 5 && $$('.htopic').length === 6 && $$('.faqlist button').length >= 5, 'home: platform tabs, topic cards and FAQ');
+  click('[data-act="home-tab"][data-v="2"]');
+  ok(/reverse\.c/.test($('.hpcard .hbar').textContent), 'home platform tab switches its preview');
+  click('[data-act="try-tab"][data-v="2"]');
+  const rng = $('#trywid input[data-try="l"]'); rng.value = '1.8'; rng.dispatchEvent(new Event('input', {bubbles:true}));
+  ok(/violated/.test($('#trywid .tryout').textContent) && $('#trywid input[data-try="l"]') === rng, 'try-it widget updates without replacing the slider');
+  click('[data-act="faq"][data-v="4"]');
+  ok(/WebAssembly/.test($('.faqans').textContent), 'FAQ answer switches');
+  ok(!/NaN|undefined/.test($('#main').textContent), 'home has no NaN or undefined');
+  tab('quest');
   ok(!/\bXP\b|\bLV\b|Level \d|[Bb]adge|Achievement|streak/.test(visible()), 'no XP, levels, badges, streaks or achievements on the quest map');
   ok($$('.path > .node').length === UNITS.length, UNITS.length + ' quest nodes on the map');
   ok($$('.path > .node.locked').length === UNITS.length - 1, 'only quest 1 is open at the start');
@@ -78,7 +90,7 @@ function phase1(){
   ok(sh >= 5, 'header solved count went up to ' + sh);
 
   // Problem list
-  tab('problems');
+  tab('theory');
   ok($$('#prows tr').length === RAW.length, 'problem list shows all ' + RAW.length);
   ok($('.progcard .ringlabel b').textContent === String(sh), 'progress ring matches header');
   const q = $('#f-q'); q.value = 'antenna'; q.dispatchEvent(new Event('input', {bubbles:true}));
@@ -171,17 +183,42 @@ function phase1(){
   click('[data-act="done-results"]');
 
   ok(!/\bXP\b|\bLV\b|Level \d|[Bb]adge|Achievement|streak/.test(visible()), 'no XP, levels, badges or streaks on the weekly page');
-  // Job match review
-  tab('jobs');
-  ok($$('.review').length === 14 + 11, '14 job-posting requirements and 11 other NVIDIA roles reviewed');
-  ok($$('.rtable')[0].tBodies[0].rows.length === 6, 'OA topic table: 6 topics');
-  ok($$('.rtable')[1].tBodies[0].rows.length === 21, 'reported-topics table: 21 topics');
-  ok($$('.rtable')[1].textContent.match(/\d+ problems/g).every(t => parseInt(t, 10) >= 4), 'every reported topic has at least 4 problems');
-  const arithRev = $$('.review').find(r => /Understanding of computer arithmetic/.test(r.querySelector('.rhead b').textContent));
-  ok(arithRev && arithRev.querySelector('.vpill').textContent === 'Strong match', 'computer arithmetic now a strong match');
+  // Roles: what postings ask for, and hardware roles
+  tab('roles');
+  ok($$('.review').length === 14 + 12, '14 posting requirements and 12 hardware roles reviewed');
+  const arithRev = $$('.review').find(r => /Computer arithmetic/.test(r.querySelector('.rhead b').textContent));
+  ok(arithRev && arithRev.querySelector('.vpill').textContent === 'Strong match', 'computer arithmetic is a strong match');
   ok($$('.vpill.bad').length === 1 && /CAD/.test($('.vpill.bad').closest('.review').textContent), 'mechanical CAD flagged as not covered');
+  ok(!/NVIDIA asks|JR2027047/.test($('#main').textContent), 'roles page is general, not one job posting');
+  ok($$('.review .cochip').length > 20, 'each role lists companies that hire for it');
   click('[data-act="f-list-go"][data-v="sk-arith"]');
   ok($$('#prows tr').length === RAW.filter(r => (r[5] || '').includes('a')).length, 'skill link opens the arithmetic list (' + $$('#prows tr').length + ')');
+
+  // Companies
+  tab('companies');
+  ok($$('.cocard').length === COMPANIES.length, COMPANIES.length + ' company cards');
+  const cq = $('#co-q'); cq.value = 'memory'; cq.dispatchEvent(new Event('input', {bubbles:true}));
+  ok($$('.cocard').length === 1 && /Micron/.test($('.cocard').textContent), 'company search finds Micron');
+  cq.value = ''; cq.dispatchEvent(new Event('input', {bubbles:true}));
+  click('[data-act="co-open"][data-v="nvidia"]');
+  ok(/NVIDIA/.test(h1()) && $('.seg [aria-selected="true"]') && /Reported/.test($('.seg [aria-selected="true"]').textContent), 'NVIDIA opens on its Reported tab');
+  ok($$('.rtable')[0].tBodies[0].rows.length === 6, 'NVIDIA page: your 6 OA topics');
+  ok($$('.rtable')[1].tBodies[0].rows.length === 21, 'NVIDIA page: 21 reported topics');
+  ok($$('.rtable')[1].textContent.match(/\d+ problems/g).every(t => parseInt(t, 10) >= 4), 'every reported topic has at least 4 problems');
+  ok($$('.ctable tbody tr[data-copen]').length === 5, '5 reported NVIDIA coding problems');
+  click('[data-act="co-tab"][data-v="theory"]');
+  const nvN = $$('#corows tr').length;
+  click('[data-act="co-d"][data-v="H"]');
+  ok($$('#corows .c-df').every(c => c.textContent === 'Hard') && $$('#corows tr').length < nvN, 'company list filters by difficulty');
+  click($$('#corows a[data-open]')[0]);
+  ok(/Back to NVIDIA/.test($('[data-act="pv-back"]').textContent) && $('.cochips .cochip'), 'problem from a company list shows its company tags');
+  click('[data-act="pv-back"]');
+  ok(/NVIDIA/.test(h1()), 'back returns to the company page');
+  tab('theory'); click('[data-act="f-reset"]');
+  const fco = $('#f-co'); fco.value = 'micron'; fco.dispatchEvent(new Event('input', {bubbles:true}));
+  const mN = $$('#prows tr').length;
+  ok(mN > 20 && mN < RAW.length && $$('#prows .c-co').every(c => /Micron/.test(c.querySelector('.comini').title)), 'theory list filters by company (' + mN + ' Micron)');
+  click('[data-act="f-reset"]');
 
   // Test out of a locked quest
   tab('quest');
@@ -230,9 +267,10 @@ function phase3(){
 
 function phase4(){
   const over = name => { const w = document.documentElement.scrollWidth, v = window.innerWidth; ok(w <= v + 1, `no horizontal scroll on ${name} at ${v}px (scrollWidth ${w})`); };
-  over('quest map');
-  ['problems', 'weekly', 'jobs'].forEach(t => { tab(t); over(t); });
-  tab('problems'); click($$('#prows a[data-open]')[3]); over('problem page');
+  over('home page');
+  ['quest', 'theory', 'weekly', 'roles', 'companies'].forEach(t => { tab(t); over(t); });
+  click('[data-act="co-open"][data-v="nvidia"]'); over('company page');
+  tab('theory'); click($$('#prows a[data-open]')[3]); over('problem page');
   tab('quest'); click('[data-act="open-unit"][data-u="1"]'); over('quest page');
   click('#card-next'); over('quest page with widget');
 }
@@ -342,13 +380,19 @@ async function phase5(){
   ok($('#acct .acctbtn'), 'Sign in button in the top bar');
   ok(solvedHeader() === 1, 'starts with 1 problem solved in this browser');
   click('#acct .acctbtn');
+  ok($('#authpage') && /Sign in to Ground Up/.test($('#authpage').textContent) && $('#au-email') && $('#au-pw'), 'sign-in screen with Google and email');
+  click('[data-act="auth-mode"]');
+  ok(/Create your account/.test($('#authpage h1').textContent), 'switches to create account');
+  click('[data-act="auth-mode"]');
+  click('[data-act="auth-google"]');
   await wait(400);
+  ok(!$('#authpage'), 'sign-in screen closes after signing in');
   ok($('#acct .avatar'), 'avatar shown after signing in');
   ok(solvedHeader() === 3, 'account progress merged with this browser (' + solvedHeader() + ' solved)');
   const saved = JSON.parse(window.__fb.users.u1.state);
   ok(saved.q['01-01'] && saved.q['01-05'] && saved.q['02-03'], 'merged progress written back to the account');
   ok(/Saved to your account/.test($('#sync').textContent), 'sync label: ' + $('#sync').textContent);
-  tab('problems'); click($$('#prows a[data-open]')[9]);
+  tab('theory'); click($$('#prows a[data-open]')[9]);
   const r = pvRaw(); click(`[data-pv="${code(r, true)}"]`); click('[data-act="pv-submit"]');
   await wait(1300);
   ok(JSON.parse(window.__fb.users.u1.state).q[r[0]], 'a new answer syncs to the account');

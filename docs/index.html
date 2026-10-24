@@ -134,7 +134,10 @@ button, select, input { font: inherit; color: inherit; }
 .tchip:hover { border-color: var(--muted); }
 .tchip.on { background: var(--ink); color: var(--surface); border-color: var(--ink); }
 .tchip.on span { color: inherit; opacity: .7; }
-.fbar { display: grid; gap: 8px; grid-template-columns: minmax(180px, 1.6fr) repeat(4, minmax(0, 1fr)) auto; align-items: center; }
+.fbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.fbar input[type="search"] { flex: 2 1 200px; }
+.fbar select { flex: 1 1 118px; }
+.fbar .fbtns { flex: none; margin-left: auto; }
 .fbar input, .fbar select { background: var(--surface); border: 1px solid var(--line); border-radius: 3px; padding: 7px 10px; min-width: 0; width: 100%; }
 .fbtns { display: flex; gap: 6px; }
 .fcount { font-size: 0.86rem; color: var(--muted); }
@@ -264,24 +267,33 @@ pre.code.err { color: var(--bad); }
 .realm { display: flex; flex-direction: column; gap: 6px; }
 .realmhead { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; padding: 8px 2px; }
 .realmhead .eyebrow { color: var(--accent); }
-.path { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.path > .node { position: relative; padding: 6px 0; }
-.path > .node:nth-child(4n+2) { margin-left: 56px; } .path > .node:nth-child(4n+3) { margin-left: 112px; } .path > .node:nth-child(4n+4) { margin-left: 56px; }
-.path > .node + .node::before { content: ""; position: absolute; top: -10px; left: 30px; width: 2px; height: 22px; background: var(--line); }
-.nodebtn { display: flex; align-items: center; gap: 14px; width: min(100%, 560px); text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 3px; padding: 8px 16px 8px 8px; cursor: pointer; }
-.nodebtn:hover { border-color: var(--muted); }
-.orb { width: 50px; height: 50px; border-radius: 50%; flex: none; display: grid; place-items: center; font-weight: 700; font-size: 1.05rem; background: var(--surface-2); color: var(--muted); border: 2px solid var(--line); }
-.orb svg { width: 22px; height: 22px; }
-.path > .node.done .orb { background: var(--ok); color: var(--go-ink); border-color: var(--ok); }
-.path > .node.current .orb { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); box-shadow: 0 0 0 5px var(--accent-soft); }
-.path > .node.open .orb { color: var(--ink); border-color: var(--accent); }
-.path > .node.current .nodebtn { border-color: var(--accent); }
-.path > .node.locked .nodebtn { background: var(--surface-2); }
-.path > .node.locked b { color: var(--muted); }
-.nlabel { display: flex; flex-direction: column; min-width: 0; }
-.nnum { font-size: 0.72rem; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
-.path > .node.current .nnum { color: var(--accent); }
-.nlabel small { color: var(--muted); font-size: 0.8rem; }
+/* Quest map: a grid of quest cards, no staircase */
+.path.qgrid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.qgrid > .node { display: flex; }
+.qgrid .nodebtn { position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 10px; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; cursor: pointer; box-shadow: var(--shadow-sm); transition: border-color .15s, box-shadow .15s, transform .15s; }
+.qgrid .nodebtn:hover { border-color: var(--accent-line); box-shadow: var(--shadow); transform: translateY(-1px); }
+.qtop { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.qnum { font: 600 1.5rem/1 var(--font-mono); color: var(--line); letter-spacing: -0.02em; }
+.qst { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.qst svg { width: 12px; height: 12px; }
+.qst.ok { background: var(--ok-soft); color: var(--ok); }
+.qst.cur { background: var(--accent); color: var(--accent-ink); }
+.qtitle { font-size: 1rem; line-height: 1.3; }
+.qbar { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.qbar i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.qgrid small { color: var(--muted); font-size: 0.78rem; }
+.qgo { font-size: 0.85rem; font-weight: 600; color: var(--accent); }
+.qgrid .node.done .qnum { color: var(--accent-line); }
+.qgrid .node.done .qbar i { background: var(--ok); }
+.qgrid .node.current .nodebtn { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow); }
+.qgrid .node.current .qnum { color: var(--accent); }
+.qgrid .node.locked .nodebtn { background: var(--surface-2); box-shadow: none; }
+.qgrid .node.locked .qtitle { color: var(--muted); }
+.hero { flex-wrap: wrap; }
+.roadmap { flex-basis: 100%; display: grid; grid-template-columns: repeat(23, 1fr); gap: 4px; }
+.roadmap i { height: 6px; border-radius: 999px; background: var(--surface-2); }
+.roadmap i.done { background: var(--ok); }
+.roadmap i.cur { background: var(--accent-line); }
 
 /* Quest page */
 .unitv { display: flex; flex-direction: column; gap: 16px; }
@@ -425,8 +437,7 @@ table.wave td.hi.q2 { background: var(--ok); }
   .progcard h2, .progcard > p { grid-column: 1 / 3; }
   .progcard .progring { width: 104px; height: 104px; margin: 0; }
   .progcard .progring .ring { width: 104px; height: 104px; }
-  .fbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .fbar input[type="search"] { grid-column: 1 / 3; }
+  .fbar input[type="search"] { flex-basis: 100%; }
   .fbtns { grid-column: 1 / 3; justify-content: flex-end; }
 }
 @media (max-width: 720px) {
@@ -437,7 +448,7 @@ table.wave td.hi.q2 { background: var(--ok); }
   .studycard { display: none; }
   .chiprow { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px 2px; }
   .navlinks button { padding: 0 7px; min-height: 44px; font-size: 0.95rem; }
-  .ptable .c-tp, .ptable .c-ty { display: none; }
+  .ptable .c-tp, .ptable .c-ty, .ptable .c-co { display: none; }
   .ptable .c-st { width: 40px; }
   .ptable th.c-st { font-size: 0; }
   .codecount { display: none; }
@@ -446,9 +457,7 @@ table.wave td.hi.q2 { background: var(--ok); }
   .ptable td, .ptable th { padding-left: 8px; padding-right: 8px; }
   .ptable .c-ti .tags { display: none; }
   .hero { flex-direction: column; align-items: flex-start; }
-  .path > .node:nth-child(4n+2) { margin-left: 20px; } .path > .node:nth-child(4n+3) { margin-left: 40px; } .path > .node:nth-child(4n+4) { margin-left: 20px; }
-  .orb { width: 42px; height: 42px; }
-  .path > .node + .node::before { left: 26px; }
+  .path.qgrid { grid-template-columns: 1fr; }
   .wrow { grid-template-columns: 1fr auto; }
   .wrow .wl { grid-column: 1 / 3; }
   .wrow select, .wrow input[type="text"] { grid-column: 1 / 3; }
@@ -513,7 +522,7 @@ body { -webkit-font-smoothing: antialiased; }
 .slist { border-radius: 8px; }
 .opt { border-radius: 10px; }
 .opt .key { border-radius: 6px; }
-.timer, .ustats div, .nodebtn { border-radius: 10px; }
+.timer, .ustats div { border-radius: 10px; }
 .qnav button { border-radius: 8px; }
 .widget { border-radius: var(--radius); }
 code { border-radius: 5px; border-color: transparent; background: var(--surface-2); }
@@ -551,20 +560,219 @@ pre.code { border-radius: 10px; border-color: transparent; }
 .fbtns .btn, .eacts .btn { white-space: nowrap; }
 @media (max-width: 720px) { .topbar { padding-left: 10px; padding-right: 10px; } .topbar .wrap { padding-left: 14px; } }
 
+/* Page headers (Companies, Roles) */
+.pagehead { display: flex; flex-direction: column; gap: 10px; padding: 18px 0 6px; }
+.pagehead h1, .cohead h1 { font-size: clamp(1.8rem, 3.2vw, 2.4rem); letter-spacing: -0.03em; line-height: 1.1; }
+.pagehead h1 em { color: var(--accent); font-style: italic; font-weight: 600; }
+.bigsearch { max-width: 440px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; background: var(--surface); }
+.bigsearch:focus { outline: none; border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+/* Company tags */
+.comini { display: inline-flex; gap: 4px; margin-left: 4px; vertical-align: 1px; }
+.cotag { display: inline-block; font-size: 0.68rem; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); white-space: nowrap; }
+.cotag.rep { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-line); }
+.comore { font-size: 0.68rem; color: var(--muted); align-self: center; }
+.cochips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; border-top: 1px solid var(--line); padding-top: 12px; }
+.cochips .eyebrow { margin-right: 4px; }
+.cochip { font-size: 0.78rem; font-weight: 500; padding: 3px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; }
+.cochip:hover { border-color: var(--accent-line); color: var(--accent); }
+.cochip.rep { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-line); }
+.coav { width: 40px; height: 40px; flex: none; border-radius: 10px; display: grid; place-items: center; background: var(--ink); color: var(--surface); font: 700 0.85rem/1 var(--font-body); letter-spacing: 0.02em; }
+.coav.lg { width: 64px; height: 64px; border-radius: 16px; font-size: 1.2rem; }
+.cogrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.cocard { display: flex; gap: 14px; align-items: flex-start; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; cursor: pointer; box-shadow: var(--shadow-sm); transition: border-color .15s, box-shadow .15s, transform .15s; }
+.cocard:hover { border-color: var(--accent-line); box-shadow: var(--shadow); transform: translateY(-1px); }
+.cobody { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.cobody b { font-size: 1rem; }
+.cobody small { color: var(--muted); font-size: 0.8rem; }
+.costats { display: flex; flex-wrap: wrap; gap: 6px; font-size: 0.78rem; color: var(--ink); }
+.costats > span:not(.cotag) { background: var(--surface-2); border-radius: 999px; padding: 1px 8px; }
+.cobar { height: 5px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.cobar i { display: block; height: 100%; background: var(--accent); }
+.conote { max-width: 80ch; }
+.cohead { flex-direction: row; align-items: center; gap: 18px; flex-wrap: wrap; }
+.cohtext { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 4px; }
+.cotabs { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center; }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: none; padding: 6px 14px; border-radius: 8px; font-size: 0.86rem; font-weight: 500; color: var(--muted); cursor: pointer; }
+.seg button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+.subh { font-size: 0.95rem; margin: 6px 2px -4px; }
+
+/* Home */
+.main.home { padding-top: 0; gap: 0; max-width: none; }
+.btn.big { padding: 11px 22px; font-size: 0.98rem; }
+.hhero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: 44px; align-items: center; padding-top: 64px; padding-bottom: 56px; }
+.hcopy { display: flex; flex-direction: column; gap: 22px; }
+.hhero h1 { font-size: clamp(2.4rem, 5vw, 3.9rem); line-height: 1.02; letter-spacing: -0.045em; font-weight: 700; }
+.hhero h1 em { color: var(--accent); font-style: italic; font-weight: 600; display: inline-block; }
+.hhero h1 em.in { animation: wordin .5s ease; }
+@keyframes wordin { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.hsub { font-size: 1.08rem; color: var(--muted); max-width: 46ch; border-top: 1px solid var(--line); padding-top: 18px; }
+.hsub b { color: var(--ink); font-weight: 600; }
+.langs { display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.8rem; color: var(--muted); }
+.langs i { font-style: normal; opacity: .5; }
+.hcard { background: var(--editor-bg); color: var(--editor-ink); border-radius: 16px; box-shadow: 0 24px 60px rgba(34, 40, 32, 0.18); overflow: hidden; border: 1px solid #2C332D; }
+.hbar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #2C332D; font-size: 0.8rem; color: #AEB5AA; }
+.dots { display: inline-flex; gap: 6px; } .dots i { width: 10px; height: 10px; border-radius: 50%; background: #E5534B; } .dots i:nth-child(2) { background: #DFA43A; } .dots i:nth-child(3) { background: #5FB35F; }
+.hrun { margin-left: auto; color: #86E2AA; font-weight: 600; }
+.hrun.busy { animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity: .4; } }
+.hbody { display: grid; grid-template-columns: 1fr 1fr; min-height: 250px; }
+.hvis { padding: 16px; display: flex; flex-direction: column; gap: 8px; border-right: 1px solid #2C332D; }
+.hlab { font-size: 0.7rem; letter-spacing: 0.08em; color: #8C9488; }
+.hstat { font-size: 0.75rem; color: #AEB5AA; margin-top: auto; }
+.hcode { margin: 0; padding: 16px; font: 0.8rem/1.65 var(--font-mono); white-space: pre; overflow: auto; color: var(--editor-ink); background: #262C27; }
+.hcode .t-k { color: #FF7AB2; font-style: normal; } .hcode .t-s { color: #8BD79B; font-style: normal; }
+.hchecks { list-style: none; margin: 0; padding: 12px 16px; border-top: 1px solid #2C332D; display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; color: #8C9488; }
+.hchecks li::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid #5F685B; margin-right: 10px; vertical-align: -2px; transition: all .3s; }
+.hchecks li.ok { color: #E6E9E3; } .hchecks li.ok::before { background: #5FD38D; border-color: #5FD38D; }
+.wavesvg, .hvis svg { width: 100%; height: auto; }
+.hvis svg text { fill: #AEB5AA; font: 11px var(--font-mono); }
+.hvis .wclk, .hvis .wsig { fill: none; stroke: #86E2AA; stroke-width: 1.6; }
+.hvis .wbus path { fill: none; stroke: #4A534A; stroke-width: 1.4; transition: stroke .3s, fill .3s; }
+.hvis .wbus text { fill: #5F685B; text-anchor: middle; font-size: 9px; transition: fill .3s; }
+.hvis .wbus.on path { stroke: #F6C177; fill: rgba(246, 193, 119, 0.12); } .hvis .wbus.on text { fill: #F6C177; }
+.hvis .axis, .hvis .vth { fill: none; stroke: #4A534A; stroke-width: 1.2; } .hvis .vth { stroke-dasharray: 4 4; }
+.hvis .curve { fill: none; stroke: #F6C177; stroke-width: 2; } .hvis .dot { fill: #fff; }
+.hvis .lnode rect { fill: #2C332D; stroke: #86E2AA; } .hvis .lnode text { fill: #E6E9E3; text-anchor: middle; } .hvis .larr { stroke: #86E2AA; stroke-width: 1.5; fill: none; marker-end: none; }
+.hvis .lab.mid { text-anchor: middle; }
+.hvis .tring { fill: none; stroke: #2C332D; stroke-width: 8; } .hvis .tarc { fill: none; stroke: #86E2AA; stroke-width: 8; stroke-dasharray: 327; stroke-dashoffset: 80; transform: rotate(-90deg); transform-origin: 150px 75px; }
+.hvis .ttxt { fill: #E6E9E3; font-size: 20px; text-anchor: middle; }
+.viscos { display: flex; flex-wrap: wrap; gap: 6px; } .viscos .cotag { background: #2C332D; border-color: #3A423A; color: #CFD6CB; }
+.hstrip { padding-top: 8px; padding-bottom: 40px; text-align: center; }
+.hstrip p { font-size: 0.82rem; color: var(--muted); margin-bottom: 14px; }
+.hcos { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 28px; }
+.hcos button { border: 0; background: none; font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; color: #8E938A; cursor: pointer; }
+.hcos button:hover { color: var(--ink); }
+.hsec { padding-top: 48px; padding-bottom: 24px; display: flex; flex-direction: column; gap: 22px; }
+.hh2 { font-size: clamp(1.6rem, 3vw, 2.2rem); letter-spacing: -0.03em; text-align: center; }
+.hh2.left { text-align: left; }
+.hplat { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 20px; align-items: start; }
+.hptabs { display: flex; flex-direction: column; gap: 8px; }
+.hptabs button { display: flex; align-items: center; gap: 12px; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 13px 14px; font-size: 0.88rem; font-weight: 500; cursor: pointer; transition: all .15s; }
+.hptabs button:hover { border-color: var(--accent-line); }
+.hptabs button[aria-selected="true"] { border-color: var(--accent-line); background: var(--accent-soft); box-shadow: inset 0 -2px 0 var(--accent); }
+.hpi { width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; background: var(--surface-2); font-size: 0.8rem; color: var(--muted); flex: none; }
+.hpcard .hbody { min-height: 280px; }
+.hmore { text-align: right; font-size: 0.88rem; }
+.htopics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.htopic { display: flex; flex-direction: column; gap: 6px; text-align: left; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); padding: 0 0 16px; overflow: hidden; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.htopic:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.htopic b, .htopic small { padding: 0 18px; } .htopic b { font-size: 1.02rem; margin-top: 8px; } .htopic small { color: var(--muted); font-size: 0.8rem; }
+.hart { display: grid; place-items: center; height: 170px; }
+.htopic.t0 .hart { background: #E8EEF6; } .htopic.t1 .hart { background: #E3F1EA; } .htopic.t2 .hart { background: #F6EFE2; }
+.htopic.t3 .hart { background: #EEEAF6; } .htopic.t4 .hart { background: #E5F0EF; } .htopic.t5 .hart { background: #F5E8E6; }
+.art { width: 78%; height: auto; fill: none; stroke: #33402F; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.art text { stroke: none; fill: #33402F; font: 600 12px var(--font-mono); }
+.art .soft { stroke: #86A88F; }
+.art-gpu rect { fill: rgba(0, 117, 62, 0.08); }
+.htry { padding: 0; gap: 0; overflow: hidden; }
+.htrytabs { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--line); }
+.htrytabs button { border: 0; background: none; padding: 14px; font-size: 0.86rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
+.htrytabs button .mono { margin-right: 6px; opacity: .6; }
+.htrytabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.htrybody { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 28px; padding: 26px; }
+.htrybody h3 { font-size: 1.3rem; letter-spacing: -0.02em; }
+.teq { margin-top: 10px; color: var(--accent); font-size: 0.95rem; }
+.trywid { display: flex; flex-direction: column; gap: 14px; }
+.trywid label { display: grid; grid-template-columns: 110px 1fr 90px; align-items: center; gap: 12px; font-size: 0.86rem; color: var(--muted); }
+.trywid label b { color: var(--ink); text-align: right; font-family: var(--font-mono); font-weight: 500; }
+.trywid input[type="range"] { accent-color: var(--accent); width: 100%; }
+.tryout { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; background: var(--accent-soft); border-radius: 12px; padding: 14px 16px; }
+.tryout span { font-size: 0.82rem; color: var(--muted); } .tryout b { font: 600 1.25rem var(--font-mono); color: var(--accent); }
+.tryout.neg { background: var(--bad-soft); } .tryout.neg b { color: var(--bad); }
+.bits { display: flex; gap: 6px; flex-wrap: wrap; }
+.bit { width: 44px; height: 52px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font: 600 1.2rem var(--font-mono); cursor: pointer; }
+.bit.on { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.hstats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; text-align: center; padding-top: 56px; }
+.hstats div { display: flex; flex-direction: column; gap: 4px; }
+.hstats b { font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -0.04em; }
+.hstats span { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.faqgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 20px; align-items: start; }
+.faqlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.faqlist button { display: flex; gap: 14px; width: 100%; text-align: left; border: 0; border-top: 1px solid var(--line); background: none; padding: 16px 4px; font-size: 0.98rem; font-weight: 500; cursor: pointer; color: var(--muted); }
+.faqlist button .mono { color: var(--line); font-size: 0.85rem; }
+.faqlist button[aria-selected="true"] { color: var(--ink); } .faqlist button[aria-selected="true"] .mono { color: var(--accent); }
+.faqans { padding: 26px; } .faqans h3 { font-size: 1.15rem; } .faqans p { color: var(--muted); }
+.hcta { position: relative; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 20px; align-items: center; border-radius: 20px; padding: 44px; overflow: hidden;
+  background: radial-gradient(90% 120% at 100% 100%, rgba(0, 117, 62, 0.14), transparent 60%), linear-gradient(180deg, #F3FBF6, #FFFFFF); border: 1px solid var(--accent-line); }
+.hcta > div:first-child { display: flex; flex-direction: column; gap: 16px; }
+.hcta h2 { font-size: clamp(2rem, 4.5vw, 3.2rem); line-height: 1.02; letter-spacing: -0.04em; }
+.hcta h2 em { color: var(--accent); font-style: italic; }
+.hcta p { color: var(--muted); max-width: 46ch; }
+.ctaart { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; transform: perspective(600px) rotateX(28deg) rotateZ(-14deg); }
+.ctaart i { aspect-ratio: 1; border-radius: 6px; background: var(--accent); opacity: calc(0.12 + var(--d) * 0.06); animation: diepulse 3.2s ease-in-out infinite; animation-delay: calc(var(--d) * 0.25s); }
+@keyframes diepulse { 50% { opacity: .9; } }
+@media (prefers-reduced-motion: reduce) { .ctaart i, .hrun.busy, .hhero h1 em.in { animation: none; } }
+.hfoot { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 24px; padding-top: 56px; padding-bottom: 40px; margin-top: 48px; border-top: 1px solid var(--line); }
+.hfoot > div { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.hfoot b { font-size: 0.85rem; }
+.linkbtn.plain { color: var(--muted); font-weight: 400; font-size: 0.88rem; }
+.linkbtn.plain:hover { color: var(--ink); }
+.hcopy2 { grid-column: 1 / -1; }
+@media (max-width: 900px) {
+  .hhero { grid-template-columns: 1fr; padding-top: 36px; gap: 28px; }
+  .hplat, .faqgrid, .htrybody, .hcta { grid-template-columns: 1fr; }
+  .hptabs { flex-direction: row; overflow-x: auto; } .hptabs button { white-space: nowrap; }
+  .htopics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hstats { grid-template-columns: repeat(2, 1fr); }
+  .ctaart { display: none; }
+  .hfoot { grid-template-columns: 1fr 1fr; } .hfoot > div:first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .hbody { grid-template-columns: 1fr; } .hvis { border-right: 0; border-bottom: 1px solid #2C332D; }
+  .htopics { grid-template-columns: 1fr; }
+  .htrytabs { grid-template-columns: 1fr 1fr; }
+  .trywid label { grid-template-columns: 90px 1fr 74px; }
+  .hcta { padding: 26px; }
+}
+
+/* Sign-in screen */
+body.authopen { overflow: hidden; }
+#authpage { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 16px; padding: 16px; }
+.authl { display: flex; flex-direction: column; padding: 8px 8px 8px 16px; overflow: auto; }
+.authtop { display: flex; justify-content: space-between; align-items: center; }
+.authtop .brand { color: var(--ink); }
+.authform { width: min(100%, 360px); margin: auto; display: flex; flex-direction: column; gap: 14px; padding: 24px 0; }
+.authform h1 { font-size: 1.75rem; letter-spacing: -0.03em; }
+.authbtn { width: 100%; padding: 10px; border-radius: 10px; font-weight: 500; gap: 10px; }
+.author { display: flex; align-items: center; gap: 12px; font-size: 0.78rem; color: var(--muted); }
+.author::before, .author::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+#authemail { display: flex; flex-direction: column; gap: 12px; }
+#authemail label { display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; color: var(--muted); font-weight: 500; }
+#authemail input { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 0.92rem; background: var(--surface); color: var(--ink); }
+#authemail input:focus { outline: none; border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }
+.authsubmit { width: 100%; padding: 11px; border-radius: 10px !important; }
+.autherr { color: var(--bad); font-size: 0.84rem; background: var(--bad-soft); padding: 8px 12px; border-radius: 8px; }
+.authinfo { color: var(--ok); font-size: 0.84rem; background: var(--ok-soft); padding: 8px 12px; border-radius: 8px; }
+.authfine { text-align: center; }
+.authr { position: relative; border-radius: 20px; background: radial-gradient(60% 60% at 50% 50%, #18221A, #0B0E0B); overflow: hidden; }
+#authcanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.authquote { position: absolute; left: 32px; bottom: 28px; display: flex; flex-direction: column; color: #E6E9E3; font-size: 1.05rem; }
+.authquote span { color: #8C9488; }
+@media (max-width: 860px) { #authpage { grid-template-columns: 1fr; } .authr { display: none; } }
+
+code, pre, .code-editor, .editor, .hcode, .mono { font-variant-ligatures: none; }
+
+.ptable .c-co { width: 170px; white-space: nowrap; overflow: hidden; } .ptable .c-co .comini { margin-left: 0; }
+.ctable .c-co { width: 170px; }
+@media (max-width: 1240px) { .ptable:not(.ctable) .c-ty { display: none; } }
+
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="wrap">
-    <a class="brand" href="#quest" data-home aria-label="Ground Up Hardware Trainer, home">
+    <a class="brand" href="#home" data-home aria-label="Ground Up Hardware Trainer, home">
       <svg class="logo" viewBox="0 0 30 30" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="7" width="16" height="16" rx="1.5"/><path d="M11 7V3M15 7V3M19 7V3M11 27v-4M15 27v-4M19 27v-4M7 11H3M7 15H3M7 19H3M27 11h-4M27 15h-4M27 19h-4"/></g><rect x="11.5" y="11.5" width="7" height="7" style="fill:var(--accent)"/></svg>
       <span class="bname">Ground Up</span></a>
     <nav class="navlinks" aria-label="Sections">
       <button type="button" data-tab="quest">Quest</button>
-      <button type="button" data-tab="problems">Problems</button>
+      <button type="button" data-tab="theory">Theory</button>
       <button type="button" data-tab="coding">Coding</button>
+      <button type="button" data-tab="companies">Companies</button>
+      <button type="button" data-tab="roles">Roles</button>
       <button type="button" data-tab="weekly">Weekly</button>
-      <button type="button" class="feature" data-tab="jobs">Job match</button>
     </nav>
     <div class="topright"><span id="acct"></span><div class="solved" id="solved"></div><span class="sync" id="sync" aria-live="polite">Saved in this browser</span></div>
   </div>
@@ -3803,6 +4011,57 @@ function vJudge(p, user, ref){
 }
 const vTops = p => [...new Set((p.run.benches || []).map(b => b.top).concat(p.run.top ? [p.run.top] : []))];
 
+// Company tags, like LeetCode's company lists. Every theory and coding problem can carry company tags.
+//
+// Each company: id, short (2–3 letters for its badge), name, label (optional shorter name for tags), focus, then its tags.
+//
+// How a problem gets a company's tag (any one is enough):
+//   chapters: theory problems from these book chapters (most central first; the order ranks the tags shown on a problem)
+//   areas:    coding problems in these Coding areas
+//   tags:     theory problems carrying these source tags from questions.js (o = your OA, v = OA variant, r = reported)
+//   ids:      exact problems, theory ('14-03') or coding ('rtl-07'). Use this for questions reported for one company.
+//
+// To add questions for a company: write them in questions.js or coding.js as usual, then list their ids under that
+// company's `ids` (and `reported` if they came from that company's interviews or assessments). To add a company,
+// copy an entry. The build checks that every id exists.
+//
+// Tags from chapters and areas mean "this topic is core to the company's hardware roles" (from public job postings
+// and widely reported interview topics). Only `reported` ids and the `tags` sources claim a question was actually seen.
+const COMPANIES = [
+  {id:'nvidia', short:'NV', name:'NVIDIA', focus:'GPUs, AI systems and networking',
+    chapters:[21, 19, 20, 22, 11, 14, 8, 10, 9, 13], areas:['RTL design', 'Verification', 'GPU and CUDA', 'C and C++', 'Physical design'],
+    tags:'ovr', ids:['c-03', 'c-04', 'c-05', 'cpp-01', 'rtl-07'], reported:['c-03', 'c-04', 'c-05', 'cpp-01', 'rtl-07'],
+    note:'Includes every question from your Ignite OA, their variants, and topics other candidates reported.'},
+  {id:'amd', short:'AMD', name:'AMD', focus:'CPUs, GPUs and adaptive SoCs',
+    chapters:[20, 11, 19, 10, 14, 13, 21], areas:['RTL design', 'Verification', 'Physical design'], ids:[]},
+  {id:'intel', short:'IN', name:'Intel', focus:'CPUs, foundry and process technology',
+    chapters:[17, 4, 5, 15, 11, 20], areas:['RTL design', 'Verification', 'Physical design'], ids:[]},
+  {id:'apple', short:'AP', name:'Apple', focus:'Custom SoCs for phones and Macs',
+    chapters:[14, 18, 11, 19, 20, 6, 15], areas:['RTL design', 'Verification', 'C and C++'], ids:[]},
+  {id:'qualcomm', short:'QC', name:'Qualcomm', focus:'Mobile SoCs, modems and DSPs',
+    chapters:[22, 14, 9, 19, 7, 16], areas:['RTL design', 'Verification', 'Python and MATLAB'], ids:[]},
+  {id:'google', short:'GO', name:'Google', focus:'TPUs and data-center silicon',
+    chapters:[21, 22, 20, 19], areas:['RTL design', 'Verification', 'C and C++', 'Python and MATLAB'], ids:[]},
+  {id:'amazon', short:'AZ', name:'Amazon (Annapurna Labs)', label:'Amazon', focus:'Graviton CPUs, Trainium and Inferentia',
+    chapters:[20, 21, 19, 22], areas:['RTL design', 'Verification', 'Linux and scripting'], ids:[]},
+  {id:'arm', short:'ARM', name:'Arm', focus:'CPU and GPU IP',
+    chapters:[20, 12, 10, 9, 22], areas:['RTL design', 'Verification', 'C and C++'], ids:[]},
+  {id:'broadcom', short:'BR', name:'Broadcom', focus:'Networking, SerDes and custom ASICs',
+    chapters:[16, 6, 2, 11, 17], areas:['RTL design', 'Physical design'], ids:[]},
+  {id:'marvell', short:'MV', name:'Marvell', focus:'Data-infrastructure and storage silicon',
+    chapters:[16, 18, 19, 11], areas:['RTL design', 'Verification'], ids:[]},
+  {id:'micron', short:'MU', name:'Micron', focus:'DRAM, NAND and memory systems',
+    chapters:[18, 17, 4, 15], areas:['Python and MATLAB', 'Linux and scripting'], ids:[]},
+  {id:'ti', short:'TI', name:'Texas Instruments', label:'TI', focus:'Analog, power and embedded processors',
+    chapters:[6, 5, 1, 2, 3, 14], areas:['C and C++'], ids:[]},
+  {id:'tesla', short:'TS', name:'Tesla', focus:'Vehicle AI chips and power electronics',
+    chapters:[21, 14, 3, 1], areas:['C and C++', 'RTL design'], ids:[]},
+  {id:'synopsys', short:'SN', name:'Synopsys', focus:'EDA tools: synthesis, timing and verification',
+    chapters:[11, 13, 17, 23], areas:['Physical design', 'Linux and scripting', 'C and C++'], ids:[]},
+  {id:'cadence', short:'CD', name:'Cadence', focus:'EDA tools: implementation and simulation',
+    chapters:[13, 11, 16, 19, 23], areas:['Physical design', 'Verification', 'Linux and scripting'], ids:[]},
+];
+
 (function(){
 'use strict';
 
@@ -3881,43 +4140,40 @@ SKILLS.forEach(s => { LISTS[s.key] = {name:'Skill: ' + s.name, test:Q => s.tag ?
 REPORTED.forEach((r, i) => { r.key = 'rp-' + i; LISTS[r.key] = {name:'Reported: ' + r.name, test:Q => Q.ch === r.ch && r.kw.test(Q.hay)}; });
 const listIds = key => BANK.filter(LISTS[key].test).map(Q => Q.id);
 
-// Review of the book and this trainer against NVIDIA's posting (read October 24, 2026).
-const JD = {title:'NVIDIA 2027 Ignite Internships: Hardware Engineering', req:'JR2027047', url:'https://jobs.nvidia.com/careers/job/893397961094'};
+// What hardware internship and new-grad postings ask for, checked against the book and this trainer.
 const VERDICT = {strong:['Strong match', 'ok'], good:['Good match', 'ok'], partial:['Partial', 'warn'], none:['Not covered', 'bad'], na:['Not study material', '']};
-const REVIEW = [
-  {group:'What they need to see', items:[
-    {req:'First- or second-year undergrad in EE, CE, CS, math or a related field, with the graduation month and year on the resume', v:'na', book:'Not applicable', list:null, todo:'This is eligibility and resume formatting. Put your expected graduation month and year near the top of your resume.'},
-    {req:'Passion shown through clubs, leadership roles and projects', v:'partial', book:'Appendix D gives resume projects matched to the NVIDIA teams in this posting', list:null, todo:'Study material cannot show this on your resume. Finish one Appendix D project before applications open.'},
-    {req:'Courses geared toward hardware basics', v:'strong', book:'Chapters 1–12 build hardware from zero; the Drexel course list maps them to classes', list:'sk-basics', todo:'Do Quests 1–12 in order, then keep up the weekly sets.'},
-    {req:'Basic C, C++, Python, Perl or MATLAB', v:'good', book:'Chapter 23 covers C and Python basics. Linux, git, make, Tcl, Perl and MATLAB are taught here as beyond-the-book problems', list:'sk-prog', code:['C and C++', 'Python and MATLAB', 'Linux and scripting'], todo:'Do Quest 23 and the Coding tab. Keep solving one LeetCode-style linked-list or bit problem a week; your OA coding question was a linked list.'},
-    {req:'Problem solving, adaptability, and the desire to learn new concepts and tools', v:'good', book:'Chapter 24 (aptitude and puzzles) and Chapter 25 (a full practice assessment)', list:null, todo:'Weekly sets and the timed mock build this habit.'}
-  ]},
-  {group:'Ways to stand out', items:[
-    {req:'Understanding of CMOS transistors and circuits', v:'strong', book:'Chapters 4, 5, 6 and 8', list:'sk-cmos', todo:'Most of your OA questions came from here. Keep the swapped-inverter and pass-transistor sets at 100%.'},
-    {req:'Understanding of VLSI design', v:'strong', book:'Chapters 8, 13, 16, 17 and 18 (gates, delay, wires, manufacturing, memory)', list:'sk-vlsi', todo:'Deeper topics (DIBL, subthreshold slope, CRPR, keepers) are in the trainer as beyond-the-book problems.'},
-    {req:'Understanding of computer architecture', v:'good', book:'Chapters 18, 20 and 21 (memory, pipelines, caches, GPUs)', list:'sk-arch', todo:'Out-of-order execution and register renaming appear only as beyond-the-book problems.'},
-    {req:'Understanding of computer arithmetic', v:'strong', book:'Chapter 22: overflow and saturation, shifters, fast and carry-save adders, multipliers and Booth recoding, division, fixed point, floating-point addition, multiplication and rounding. Number formats in Chapters 7 and 21', list:'sk-arith', todo:'Do Quest 22, then build the BF16 processing element of Appendix D Project 2 and check it against a reference model.'},
-    {req:'Basic Verilog, SystemVerilog or VHDL', v:'good', book:'Chapter 19: Verilog, SystemVerilog, CDC, FIFOs, and a verification section (self-checking testbenches, constrained-random tests, assertions, coverage, formal, UVM). VHDL is not taught', list:'sk-hdl', code:['RTL design', 'Verification'], todo:'Solve the Coding tab\'s RTL problems (judged in the browser) and its verification problems (run them in Icarus Verilog or EDA Playground). VHDL is easy to pick up once Verilog is solid.'},
-    {req:'Background in CUDA or OpenCL', v:'good', book:'Chapter 21 (CUDA model, warps, memory hierarchy); OpenCL is only named', list:'sk-gpu', code:['GPU and CUDA'], todo:'Do the Coding tab\'s CUDA problems on a real GPU (Google Colab works), then the Appendix D CUDA project.'},
-    {req:'Initiative in AI, machine learning, computer vision, robotics or parallel computing', v:'partial', book:'Chapters 20–21 cover parallelism and AI hardware (tensor cores, low-precision formats, roofline). Machine learning itself, vision and robotics are not covered', list:'sk-gpu', todo:'Show this with a project rather than a quiz.'},
-    {req:'Basic mechanical CAD (CATIA, Siemens NX, SolidWorks, Creo)', v:'none', book:'Not taught. Appendix D Project 7 suggests a heat-sink design in SolidWorks or Onshape, sized with Chapter 3', list:null, todo:'This matters for mechanical and thermal teams, not for the OA. Do Project 7 only if those teams interest you.'},
-    {req:'Looking for a first industry internship', v:'na', book:'Not applicable', list:null, todo:'Eligibility, not study material.'}
-  ]}
+const SKILL_REVIEW = [
+  {req:'Hardware basics: circuits and digital logic', v:'strong', book:'Chapters 1–12 build hardware from zero', list:'sk-basics', todo:'Do Quests 1–12 in order, then keep up the weekly sets.'},
+  {req:'CMOS transistors and circuits', v:'strong', book:'Chapters 4, 5, 6 and 8', list:'sk-cmos', todo:'The most common screening questions live here: inverters, pass transistors, sizing. Keep these sets near 100%.'},
+  {req:'VLSI design', v:'strong', book:'Chapters 8, 13, 16, 17 and 18 (gates, delay, wires, manufacturing, memory)', list:'sk-vlsi', todo:'Deeper topics (DIBL, subthreshold slope, CRPR, keepers) are practiced as beyond-the-book problems.'},
+  {req:'Static timing and physical design', v:'strong', book:'Chapters 11, 13, 15, 16 and 17', list:'sk-pd', code:['Physical design'], todo:'Run an open flow (OpenLane or Tiny Tapeout) and read its timing reports.'},
+  {req:'Power and thermal', v:'strong', book:'Chapters 3, 14 and 15', list:'sk-power', todo:'Know dynamic and leakage power cold, and how voltage, frequency and temperature move them.'},
+  {req:'Computer architecture', v:'good', book:'Chapters 18, 20 and 21 (memory, pipelines, caches, GPUs)', list:'sk-arch', todo:'Out-of-order execution and register renaming appear only as beyond-the-book problems.'},
+  {req:'Computer arithmetic', v:'strong', book:'Chapter 22: adders, multipliers and Booth recoding, division, fixed and floating point, rounding', list:'sk-arith', todo:'Pair it with the RTL problems: an ALU, a leading-zero counter, a multiplier.'},
+  {req:'Verilog, SystemVerilog or VHDL', v:'good', book:'Chapter 19: Verilog, SystemVerilog, CDC, FIFOs and verification. VHDL is not taught', list:'sk-hdl', code:['RTL design', 'Verification'], todo:'Solve the judged RTL problems here. VHDL is quick to pick up once Verilog is solid.'},
+  {req:'Programming: C, C++, Python, Perl or MATLAB', v:'good', book:'Chapter 23 covers C and Python basics; the rest are taught as beyond-the-book problems', list:'sk-prog', code:['C and C++', 'Python and MATLAB'], todo:'Keep solving one linked-list or bit-manipulation problem a week.'},
+  {req:'Linux, scripting and version control', v:'good', book:'Chapter 23 and beyond-the-book problems (shell, git, make, Tcl, Perl)', list:'sk-prog', code:['Linux and scripting'], todo:'Live in a Linux terminal for a week; script one real task in Python or Tcl.'},
+  {req:'GPU programming: CUDA or OpenCL', v:'good', book:'Chapter 21 (CUDA model, warps, memory hierarchy); OpenCL is only named', list:'sk-gpu', code:['GPU and CUDA'], todo:'Run the CUDA problems on a real GPU (Google Colab works).'},
+  {req:'Problem solving and aptitude', v:'good', book:'Chapter 24 (aptitude and puzzles) and Chapter 25 (a full practice assessment)', list:null, todo:'Weekly sets and the timed mock build this habit.'},
+  {req:'Projects, clubs and leadership', v:'partial', book:'Appendix D gives resume projects matched to hardware teams', list:null, todo:'Study material cannot show this on a resume. Finish one Appendix D project and write it up.'},
+  {req:'Mechanical CAD (CATIA, NX, SolidWorks, Creo)', v:'none', book:'Not taught. Appendix D Project 7 suggests a heat-sink design', list:null, todo:'Only matters for mechanical and thermal roles; take a CAD course if you aim there.'}
 ];
-// NVIDIA hardware roles beyond Ignite, with the quests and coding track that prepare for each.
+// Hardware roles across the industry, with the quests and coding track that prepare for each.
 const ROLES = [
-  {name:'ASIC Design (RTL)', fit:'Strong', ch:[9, 10, 11, 12, 19, 22], code:'RTL design', add:'Write RTL every week and build the Appendix D processor and systolic-array projects.'},
-  {name:'ASIC / GPU Verification', fit:'Good', ch:[19, 12, 10], code:'Verification', add:'Real SystemVerilog testbenches, assertions and coverage, then UVM or cocotb; verify your own projects.'},
-  {name:'Physical Design and Timing', fit:'Good', ch:[11, 13, 15, 16, 17], code:'Physical design', add:'Run an open flow (OpenLane/OpenROAD or Tiny Tapeout) and read its timing reports; script in Tcl.'},
-  {name:'Power Architect / Power and Thermal', fit:'Strong', ch:[3, 14, 15], code:'Python and MATLAB', add:'Measure GPU power and fit it to the power model (Appendix D Project 6); analyze data in Python.'},
-  {name:'GPU / Hardware Architecture and Performance', fit:'Good', ch:[18, 20, 21], code:'GPU and CUDA', add:'Build performance models in C++ or Python and optimize CUDA kernels (Appendix D Project 4).'},
-  {name:'Hardware / CPU Infrastructure', fit:'Good', ch:[20, 23], code:'Linux and scripting', add:'Automate flows with Python, Perl and Linux tools; learn job schedulers and regression systems.'},
-  {name:'Firmware and Embedded C', fit:'Good', ch:[7, 20, 23], code:'C and C++', add:'Write drivers for a microcontroller or FPGA soft core: registers, interrupts and ring buffers.'},
-  {name:'Circuit Design (custom, SRAM, SerDes)', fit:'Medium', ch:[5, 6, 8, 18], code:null, add:'Deeper analog design (Razavi) and SPICE simulation (Appendix D Project 5).'},
-  {name:'DFT (Design for Test)', fit:'Medium', ch:[17, 10], code:'RTL design', add:'Scan insertion, ATPG and memory BIST in depth.'},
-  {name:'Signal / Power Integrity and Boards', fit:'Medium', ch:[2, 16], code:'Python and MATLAB', add:'PCB design (KiCad), SI/PI simulation and lab measurements with an oscilloscope.'},
-  {name:'Mechanical / Thermal', fit:'Light', ch:[3], code:null, add:'CAD and thermal simulation (Appendix D Project 7).'}
+  {name:'ASIC Design (RTL)', fit:'Strong', ch:[9, 10, 11, 12, 19, 22], code:'RTL design', what:'Write the Verilog or SystemVerilog that becomes the chip: datapaths, control, FIFOs and clock-domain crossings.', add:'Write RTL every week and build the Appendix D processor and systolic-array projects.'},
+  {name:'Design Verification', fit:'Good', ch:[19, 12, 10], code:'Verification', what:'Prove the RTL works before tape-out with testbenches, constrained-random tests, assertions and coverage.', add:'Real SystemVerilog testbenches, assertions and coverage, then UVM or cocotb; verify your own projects.'},
+  {name:'Physical Design and Timing', fit:'Good', ch:[11, 13, 15, 16, 17], code:'Physical design', what:'Turn the netlist into layout: floorplan, placement, clock trees, routing, and closing timing at every corner.', add:'Run an open flow (OpenLane/OpenROAD or Tiny Tapeout) and read its timing reports; script in Tcl.'},
+  {name:'Power and Thermal', fit:'Strong', ch:[3, 14, 15], code:'Python and MATLAB', what:'Model, measure and reduce power across voltage, frequency and temperature.', add:'Measure a real chip\'s power and fit it to the power model (Appendix D Project 6); analyze data in Python.'},
+  {name:'Architecture and Performance', fit:'Good', ch:[18, 20, 21], code:'GPU and CUDA', what:'Decide what the next chip should be, using performance models, simulators and benchmarks.', add:'Build performance models in C++ or Python and optimize CUDA kernels (Appendix D Project 4).'},
+  {name:'Post-silicon Validation', fit:'Good', ch:[10, 11, 16, 17, 23], code:'Linux and scripting', what:'Bring up first silicon in the lab and find the bugs that escaped verification.', add:'Get comfortable with lab tools (oscilloscope, logic analyzer) and scripting test automation.'},
+  {name:'CAD and Hardware Infrastructure', fit:'Good', ch:[20, 23], code:'Linux and scripting', what:'Build the flows, scripts and regression systems that design teams run every day.', add:'Automate flows with Python, Perl and Linux tools; learn job schedulers and regression systems.'},
+  {name:'Firmware and Embedded C', fit:'Good', ch:[7, 20, 23], code:'C and C++', what:'Write the low-level software that boots and controls the hardware: drivers, registers and interrupts.', add:'Write drivers for a microcontroller or FPGA soft core: registers, interrupts and ring buffers.'},
+  {name:'Custom Circuit Design (SRAM, analog, SerDes)', fit:'Medium', ch:[5, 6, 8, 18], code:null, what:'Design transistor-level circuits where standard cells are not enough.', add:'Deeper analog design (Razavi) and SPICE simulation (Appendix D Project 5).'},
+  {name:'DFT (Design for Test)', fit:'Medium', ch:[17, 10], code:'RTL design', what:'Add scan chains, BIST and compression so every manufactured chip can be tested.', add:'Scan insertion, ATPG and memory BIST in depth.'},
+  {name:'Signal and Power Integrity, Boards', fit:'Medium', ch:[2, 16], code:'Python and MATLAB', what:'Make sure fast signals and power arrive clean across packages and boards.', add:'PCB design (KiCad), SI/PI simulation and lab measurements with an oscilloscope.'},
+  {name:'Mechanical and Thermal', fit:'Light', ch:[3], code:null, what:'Design heat sinks, enclosures and cooling for chips and systems.', add:'CAD and thermal simulation (Appendix D Project 7).'}
 ];
+// NVIDIA's internship teams (shown on NVIDIA's company page), with the quests that matter most for each.
 const AREAS = [
   {name:'AI Developer Technology', ch:[20, 21, 22]},
   {name:'ASIC Physical Design and Timing', ch:[11, 13, 15, 16, 17]},
@@ -4060,11 +4316,13 @@ async function initAccounts(){
     firebase.initializeApp(window.FIREBASE_CONFIG);
     acct.ready = true;
     firebase.auth().onAuthStateChanged(onAuth);
+    if (ui.view === 'tab' && ui.tab === 'home') render();
   } catch (e) { acct.ready = false; }
   renderAccount();
 }
 async function onAuth(user){
   acct.user = user || null; acct.ref = null;
+  if (user && ui.auth) closeAuth();
   if (!user) { store.mode = 'local'; setSync('Saved in this browser'); renderAccount(); if (ui.tab === 'weekly' && ui.view === 'tab') render(); return; }
   setSync('Syncing…');
   try {
@@ -4081,13 +4339,6 @@ function cloudFlush(){
   const body = {state:JSON.stringify(state), updatedAt:state.updatedAt || Date.now()};
   acct.chain = acct.chain.then(() => acct.ref.set(body)).then(() => setSync('Saved to your account'))
     .catch(() => { setSync('Saving failed; will retry'); clearTimeout(acct.timer); acct.timer = setTimeout(cloudFlush, 5000); });
-}
-function signIn(){
-  firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => {
-    const code = (e && e.code) || '';
-    if (code === 'auth/unauthorized-domain') toast('Sign-in is not allowed on this address yet. Add it under Authentication → Settings → Authorized domains in Firebase.');
-    else if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') toast('Sign-in failed: ' + (e.message || code));
-  });
 }
 function renderAccount(){
   const el = $('#acct'); if (!el) return;
@@ -4139,9 +4390,9 @@ function toast(text){
 }
 
 // ---------- UI state ----------
-const TABS = ['quest', 'problems', 'coding', 'weekly', 'jobs'];
-const blankFilters = () => ({q:'', ch:'all', d:'all', status:'all', type:'all', list:'all'});
-const ui = {tab:'quest', view:'tab', session:null, unit:null, pv:null, back:null, cardPick:{}, cardPerm:{}, f:blankFilters(), confirmReset:false, timer:null, cf:null, cp:null, cback:null, codeTimer:null};
+const TABS = ['home', 'quest', 'theory', 'coding', 'companies', 'roles', 'weekly'];
+const blankFilters = () => ({q:'', ch:'all', d:'all', status:'all', type:'all', list:'all', co:'all'});
+const ui = {tab:'home', co:null, coq:'', auth:null, home:{word:0, tab:1, tryi:0, faq:0, tryv:{v:0.9, f:2, b:5, T:1, l:0.6, x:200}, timers:[]}, view:'tab', session:null, unit:null, pv:null, back:null, cardPick:{}, cardPerm:{}, f:blankFilters(), confirmReset:false, timer:null, cf:null, cp:null, cback:null, codeTimer:null};
 function setHash(h){ try { history.replaceState(null, '', '#' + h); } catch (e) { /* ignore */ } }
 function goTab(t){
   saveEditorNow();
@@ -4169,18 +4420,18 @@ function tagChips(Q){
   if (hasTag(Q, 'b')) h += '<span class="tag t-bey">Beyond the book</span>';
   return h;
 }
-function rowsHTML(ids, cols){
+function rowsHTML(ids, cols, from){
   return ids.map(id => {
     const Q = BY_ID[id];
-    return `<tr data-open="${id}"><td class="c-st">${statusCell(id)}</td><td class="c-ti"><a href="#p${Q.n}" data-open="${id}" title="${esc(Q.q)}">${Q.n}. ${esc(Q.q)}</a><span class="tags">${tagChips(Q)}</span></td>` +
-      (cols === 'compact' ? '' : `<td class="c-tp">${esc(TOPICS[Q.ch])}</td><td class="c-ty">${Q.k === 'm' ? 'MCQ' : 'T/F'}</td>`) +
+    return `<tr data-open="${id}"${from ? ` data-from="${from}"` : ''}><td class="c-st">${statusCell(id)}</td><td class="c-ti"><a href="#p${Q.n}" data-open="${id}" title="${esc(Q.q)}">${Q.n}. ${esc(Q.q)}</a><span class="tags">${tagChips(Q)}</span></td>` +
+      (cols === 'compact' ? '' : `<td class="c-tp">${esc(TOPICS[Q.ch])}</td><td class="c-ty">${Q.k === 'm' ? 'MCQ' : 'T/F'}</td><td class="c-co">${coMini(id)}</td>`) +
       `<td class="c-df"><span class="dbadge d-${Q.d}">${DIFF[Q.d]}</span></td></tr>`;
   }).join('');
 }
-function tableHTML(ids, cols, bodyId){
+function tableHTML(ids, cols, bodyId, from){
   const head = cols === 'compact' ? '<th class="c-st">Status</th><th class="c-ti">Problem</th><th class="c-df">Difficulty</th>' :
-    '<th class="c-st">Status</th><th class="c-ti">Problem</th><th class="c-tp">Topic</th><th class="c-ty">Type</th><th class="c-df">Difficulty</th>';
-  return `<div class="tablewrap"><table class="ptable${cols === 'compact' ? ' compact' : ''}"><thead><tr>${head}</tr></thead><tbody${bodyId ? ` id="${bodyId}"` : ''}>${rowsHTML(ids, cols)}</tbody></table></div>`;
+    '<th class="c-st">Status</th><th class="c-ti">Problem</th><th class="c-tp">Topic</th><th class="c-ty">Type</th><th class="c-co">Companies</th><th class="c-df">Difficulty</th>';
+  return `<div class="tablewrap"><table class="ptable${cols === 'compact' ? ' compact' : ''}"><thead><tr>${head}</tr></thead><tbody${bodyId ? ` id="${bodyId}"` : ''}>${ids.length ? rowsHTML(ids, cols, from) : `<tr><td colspan="6" class="empty">No problems here.</td></tr>`}</tbody></table></div>`;
 }
 function optsHTML(Q, perm, chosen, reveal, scope){
   const items = Q.k === 'm' ? perm.map(p => ({val:p, code:String(p), text:Q.o[p]})) : [{val:true, code:'T', text:'True'}, {val:false, code:'F', text:'False'}];
@@ -4202,18 +4453,22 @@ function verdictHTML(Q, chosen){
 
 function render(){
   renderHeader();
-  const m = $('#main');
-  m.className = 'wrap main' + ((ui.view === 'tab' && (ui.tab === 'problems' || ui.tab === 'coding')) || ui.view === 'code' ? ' wide' : '');
+  const m = $('#main'), home = ui.view === 'tab' && ui.tab === 'home';
+  m.className = home ? 'main home' : 'wrap main' + ((ui.view === 'tab' && ['theory', 'coding', 'companies'].includes(ui.tab)) || ui.view === 'code' || ui.view === 'company' ? ' wide' : '');
+  if (!home) homeStop();
   if (ui.view === 'quiz') { m.innerHTML = viewQuiz(); updateTimer(); }
   else if (ui.view === 'results') m.innerHTML = viewResults();
   else if (ui.view === 'unit') { m.innerHTML = viewUnit(); afterUnitRender(); }
   else if (ui.view === 'problem') m.innerHTML = viewProblem();
   else if (ui.view === 'code') m.innerHTML = viewCode();
+  else if (ui.view === 'company') m.innerHTML = viewCompany();
+  else if (home) { m.innerHTML = viewHome(); homeStart(); }
   else if (ui.tab === 'coding') m.innerHTML = viewCoding();
   else if (ui.tab === 'quest') m.innerHTML = viewQuest();
-  else if (ui.tab === 'problems') m.innerHTML = viewProblems();
+  else if (ui.tab === 'theory') m.innerHTML = viewProblems();
   else if (ui.tab === 'weekly') m.innerHTML = viewWeekly();
-  else m.innerHTML = viewJobs();
+  else if (ui.tab === 'companies') m.innerHTML = viewCompanies();
+  else m.innerHTML = viewRoles();
 }
 
 // ---------- Quest map ----------
@@ -4223,17 +4478,21 @@ function viewQuest(){
     <p class="muted">Each quest follows one chapter of <em>Hardware from the Ground Up</em>: short lessons with hands-on widgets, then a 5-problem checkpoint. Get 4 right to unlock the next quest, or test out of one you already know.</p>
     ${nu ? `<div class="row"><button type="button" class="btn primary" data-act="open-unit" data-u="${nu.id}">${cardsDone(nu) ? 'Continue' : 'Start'}: Quest ${nu.id} · ${esc(nu.title)}</button></div>` : '<p><b>Every quest is complete.</b> Keep your weekly sets going.</p>'}</div>
     <div class="herostat">${ring(done / UNITS.length, 88, 8, `${done} of ${UNITS.length} quests complete`)}<div><b>${done}<span class="muted">/${UNITS.length}</span></b><span>quests complete</span></div></div></section>`;
+  html = html.replace('</section>', '') + `<div class="roadmap" aria-label="${done} of ${UNITS.length} quests complete">${UNITS.map(U => `<i class="${unitPassed(U.id) ? 'done' : nu && nu.id === U.id ? 'cur' : ''}" title="Quest ${U.id} · ${esc(U.title)}"></i>`).join('')}</div></section>`;
   PARTS.forEach(p => {
     const pd = p.units.filter(unitPassed).length;
-    html += `<section class="realm"><header class="realmhead"><div><span class="eyebrow">Part ${ROMAN[p.n - 1]}</span><h2>${esc(p.name)}</h2></div><span class="pill${pd === p.units.length ? ' ok' : ''}">${pd}/${p.units.length} complete</span></header><ol class="path">`;
+    html += `<section class="realm"><header class="realmhead"><div><span class="eyebrow">Part ${ROMAN[p.n - 1]}</span><h2>${esc(p.name)}</h2></div><span class="pill${pd === p.units.length ? ' ok' : ''}">${pd}/${p.units.length} complete</span></header><ol class="path qgrid">`;
     p.units.forEach(uid => {
       const U = UNITS[uid - 1], passed = unitPassed(uid), open = unitUnlocked(uid), cd = cardsDone(U), cur = nu && nu.id === uid;
       const ids = CH_IDS[uid], sv = solvedIn(ids);
       const cls = passed ? 'done' : (open ? (cur ? 'current' : 'open') : 'locked');
-      const orb = passed ? ICON.solved : (open ? `<span>${uid}</span>` : ICON.lock);
-      html += `<li class="node ${cls}"><button type="button" class="nodebtn" data-act="open-unit" data-u="${uid}"><span class="orb">${orb}</span>
-        <span class="nlabel"><span class="nnum">QUEST ${String(uid).padStart(2, '0')}${cur ? ' · UP NEXT' : ''}</span><b>${esc(U.title)}</b>
-        <small>Lessons ${cd}/${U.cards.length} · Checkpoint ${passed ? 'passed' : 'not yet'} · ${sv}/${ids.length} solved</small></span></button></li>`;
+      const state = passed ? `<span class="qst ok">${ICON.solved} Done</span>` : cur ? '<span class="qst cur">Up next</span>' : open ? '<span class="qst">Open</span>' : `<span class="qst lock">${ICON.lock} Locked</span>`;
+      html += `<li class="node ${cls}"><button type="button" class="nodebtn" data-act="open-unit" data-u="${uid}">
+        <span class="qtop"><span class="qnum">${String(uid).padStart(2, '0')}</span>${state}</span>
+        <b class="qtitle">${esc(U.title)}</b>
+        <span class="qbar"><i style="width:${passed ? 100 : pct(cd, U.cards.length + 1)}%"></i></span>
+        <small>Lessons ${cd}/${U.cards.length} · ${sv}/${ids.length} solved${passed ? '' : ` · checkpoint ${open ? 'open' : 'locked'}`}</small>
+        ${cur ? `<span class="qgo">${cd ? 'Continue' : 'Start'} →</span>` : ''}</button></li>`;
     });
     html += '</ol></section>';
   });
@@ -4303,7 +4562,7 @@ function renderCardCheck(){
 function filtered(){
   const f = ui.f, term = f.q.trim().toLowerCase(), L = LISTS[f.list];
   return BANK.filter(Q => (f.ch === 'all' || Q.ch === +f.ch) && (f.d === 'all' || Q.d === f.d) && (f.type === 'all' || Q.k === f.type) &&
-    (f.status === 'all' || statusOf(Q.id) === f.status) && (!L || L.test(Q)) && (!term || Q.hay.indexOf(term) >= 0));
+    (f.status === 'all' || statusOf(Q.id) === f.status) && coHas(Q.id, f.co) && (!L || L.test(Q)) && (!term || Q.hay.indexOf(term) >= 0));
 }
 function sel(id, label, cur, opts){ return `<select id="${id}" aria-label="${label}">${opts.map(o => `<option value="${o[0]}"${cur === o[0] ? ' selected' : ''}>${esc(o[1])}</option>`).join('')}</select>`; }
 function viewProblems(){
@@ -4321,6 +4580,7 @@ function viewProblems(){
       ${sel('f-d', 'Difficulty', f.d, [['all', 'Difficulty'], ['E', 'Easy'], ['M', 'Medium'], ['H', 'Hard']])}
       ${sel('f-status', 'Status', f.status, [['all', 'Status'], ['todo', 'Todo'], ['solved', 'Solved'], ['attempted', 'Attempted']])}
       ${sel('f-type', 'Type', f.type, [['all', 'Type'], ['m', 'Multiple choice'], ['t', 'True / false']])}
+      ${sel('f-co', 'Company', f.co, coOpts())}
       ${sel('f-list', 'List', f.list, listOpts)}
       <div class="fbtns"><button type="button" class="btn small ghost" data-act="f-reset">Reset</button><button type="button" class="btn small primary" id="pick-one" data-act="pick-one"${list.length ? '' : ' disabled'}>Pick one</button></div>
     </div>
@@ -4334,7 +4594,7 @@ function viewProblems(){
     <section class="card studycard"><h2>Study lists</h2><div class="slists">
       ${studyBtn('oa', 'Your OA questions')}${studyBtn('oav', 'Your OA + variants')}
       ${OA_TOPICS.map(t => studyBtn(t.key, t.name)).join('')}
-      <p class="eyebrow sub">From the job posting</p>${SKILLS.map(s => studyBtn(s.key, s.name)).join('')}
+      <p class="eyebrow sub">By skill</p>${SKILLS.map(s => studyBtn(s.key, s.name)).join('')}
       <p class="eyebrow sub">By source</p>${studyBtn('rep', 'Reported online')}${studyBtn('beyond', 'Beyond the book')}
     </div></section>
   </aside></div>`;
@@ -4342,12 +4602,12 @@ function viewProblems(){
 function countLine(list){ const s = solvedIn(list.map(Q => Q.id)); return `${list.length} problem${list.length === 1 ? '' : 's'} · ${s} solved${ui.f.list !== 'all' ? ` · ${esc(LISTS[ui.f.list].name)}` : ''}`; }
 function refreshRows(){
   const list = filtered();
-  $('#prows').innerHTML = list.length ? rowsHTML(list.map(Q => Q.id), 'full') : '<tr><td colspan="5" class="empty">No problems match. Reset the filters or try another search.</td></tr>';
+  $('#prows').innerHTML = list.length ? rowsHTML(list.map(Q => Q.id), 'full') : '<tr><td colspan="6" class="empty">No problems match. Reset the filters or try another search.</td></tr>';
   $('#f-count').innerHTML = countLine(list);
   $('#pick-one').disabled = !list.length;
 }
 function readFilters(){
-  ui.f.q = $('#f-q').value; ui.f.d = $('#f-d').value; ui.f.status = $('#f-status').value; ui.f.type = $('#f-type').value;
+  ui.f.q = $('#f-q').value; ui.f.d = $('#f-d').value; ui.f.status = $('#f-status').value; ui.f.type = $('#f-type').value; ui.f.co = $('#f-co').value;
   const lv = $('#f-list').value;
   if (lv !== ui.f.list) { ui.f.list = lv; $('#main').innerHTML = viewProblems(); return; }
   refreshRows();
@@ -4360,7 +4620,7 @@ function openProblem(id, list, back){
   ui.view = 'problem'; setHash('p' + BY_ID[id].n); render(); window.scrollTo(0, 0);
 }
 function moveProblem(id){ openProblem(id, ui.pv.list); }
-const backLabel = () => !ui.back ? 'Problem list' : ui.back.view === 'unit' ? 'Back to quest' : ui.back.tab === 'weekly' ? 'Back to weekly' : ui.back.tab === 'jobs' ? 'Back to job match' : 'Problem list';
+const backLabel = () => !ui.back ? 'Theory' : ui.back.view === 'unit' ? 'Back to quest' : ui.back.view === 'company' ? 'Back to ' + CO_BY_ID[ui.back.co].name : ui.back.tab === 'weekly' ? 'Back to weekly' : ui.back.tab === 'roles' ? 'Back to roles' : 'Theory';
 function viewProblem(){
   const P = ui.pv, Q = BY_ID[P.id], pos = P.list.indexOf(P.id), s = state.q[Q.id], st = statusOf(Q.id);
   const locked = P.result === 'ok' || P.reveal;
@@ -4372,7 +4632,7 @@ function viewProblem(){
     <button type="button" class="btn small" data-act="pv-rand">Pick one</button></div></div>
     <article class="card pvcard"><div class="pvhead"><h1>${Q.n}. ${esc(TOPICS[Q.ch])}</h1>${st === 'solved' ? `<span class="solvedmark">${ICON.solved} Solved</span>` : st === 'attempted' ? '<span class="attmark">Attempted</span>' : ''}</div>
     <div class="qmeta"><span class="dpill d-${Q.d}">${DIFF[Q.d]}</span><button type="button" class="topicchip" data-act="topic-filter" data-ch="${Q.ch}">${esc(TOPICS[Q.ch])}</button><span>${Q.k === 'm' ? 'Multiple choice' : 'True / false'}</span>${tagChips(Q)}${s ? `<span class="muted">Submissions: ${s.n}</span>` : ''}</div>
-    <p class="qtext">${esc(Q.q)}</p>`;
+    <p class="qtext">${esc(Q.q)}</p>${coChips(Q.id)}`;
   const items = Q.k === 'm' ? P.perm.map(p => ({val:p, code:String(p), text:Q.o[p]})) : [{val:true, code:'T', text:'True'}, {val:false, code:'F', text:'False'}];
   html += '<div class="opts" role="radiogroup" data-scope="pv">' + items.map((it, j) => {
     const selected = P.pick === it.val;
@@ -4567,7 +4827,7 @@ function weekCodingHTML(wi){
   const cw = weekCoding().map(id => CODE_BY_ID[id]);
   return `<section class="card"><div class="row between"><div><p class="eyebrow">Coding · week ${wi.num}</p><h2>This week's coding</h2></div><span class="pill">${cw.filter(p => codeStatus(p.id) === 'solved').length}/${cw.length} solved</span></div>
     <p class="muted">One easy, one medium and one hard problem from the Coding tab, picked from the ones you have not solved yet.</p>
-    <div class="tablewrap"><table class="ptable compact ctable"><tbody>${cw.map(p => `<tr data-copen="${p.id}" data-from="weekly"><td class="c-st">${codeStatusCell(p.id)}</td><td class="c-ti"><a href="#code${p.n}" data-copen="${p.id}" data-from="weekly">${esc(p.title)}</a></td><td class="c-ty">${esc(LANGS[p.lang])}</td><td class="c-df"><span class="dbadge d-${p.d}">${DIFF[p.d]}</span></td></tr>`).join('')}</tbody></table></div></section>`;
+    <div class="tablewrap"><table class="ptable compact ctable"><tbody>${cw.map(p => `<tr data-copen="${p.id}" data-from="weekly"><td class="c-st">${codeStatusCell(p.id)}</td><td class="c-ti"><a href="#code${p.n}" data-copen="${p.id}" data-from="weekly">${esc(p.title)}</a></td><td class="c-ty">${esc(LANGS[p.lang])}</td><td class="c-co">${coMini(p.id)}</td><td class="c-df"><span class="dbadge d-${p.d}">${DIFF[p.d]}</span></td></tr>`).join('')}</tbody></table></div></section>`;
 }
 function topicIds(ch){
   const ids = CH_IDS[ch];
@@ -4580,50 +4840,11 @@ function unitQuizIds(u){
   return [...shuffle(notYet), ...shuffle(okIds)].slice(0, UNIT_N);
 }
 
-// ---------- Job match ----------
-function viewJobs(){
-  const listCell = key => {
-    if (!key) return '<span class="muted">Not in this trainer</span>';
-    const ids = listIds(key);
-    return `<button type="button" class="linkbtn" data-act="f-list-go" data-v="${key}">${ids.length} problems</button><span class="muted"> · ${solvedIn(ids)} solved</span>`;
-  };
-  const oaRows = OA_TOPICS.map(t => {
-    const ids = listIds(t.key), exact = ids.filter(id => hasTag(BY_ID[id], 'o')).length;
-    return `<tr><td>${esc(t.name)}</td><td>${t.book}</td><td class="mono">${exact}</td><td class="mono">${ids.length - exact}</td><td>${listCell(t.key)}</td></tr>`;
-  }).join('');
-  const repRows = REPORTED.map(r => `<tr><td>${esc(r.name)}</td><td>Ch ${r.ch}</td><td>${listCell(r.key)}</td></tr>`).join('');
-  let html = `<section class="card hero"><div><p class="eyebrow">Job match review</p><h1>Does this match what NVIDIA asks for?</h1>
-    <p class="muted">Every requirement in <a href="${JD.url}" target="_blank" rel="noopener">${esc(JD.title)}</a> (${JD.req}), checked against <em>Hardware from the Ground Up</em> and this trainer. Problem counts update as you solve.</p>
-    <p><b>Bottom line:</b> every hardware topic in the posting (CMOS, VLSI, timing, power, computer architecture, computer arithmetic, Verilog and verification, GPUs) is taught in the book and practiced here, every question from your OA has many variants, and the Coding tab covers the hands-on side: RTL, testbenches, C, Python, Linux, Tcl and CUDA. What remains: VHDL is not taught, mechanical CAD is only a suggested project, and clubs and projects are things you show on your resume.</p></div></section>
-    <section class="card"><h2>Your OA questions</h2><p class="muted">Every question you reported is in the bank word for word, plus variants that test the same idea from other angles.</p>
-    <div class="tablewrap"><table class="rtable"><thead><tr><th>OA topic</th><th>Book</th><th>Exact</th><th>Variants</th><th>Practice</th></tr></thead><tbody>${oaRows}</tbody></table></div>
-    <p class="muted small">Your coding question (a linked list) is taught in Chapter 23 and practiced in the Coding tab: ${codeCell(['C and C++'])}.</p></section>
-    <section class="card"><h2>Topics other candidates reported</h2><p class="muted">Every topic from the book's "Seen on the assessment" boxes, where the book teaches it, and the problems that drill it. ${listCell('rep')} carry the reported tag.</p>
-    <div class="tablewrap"><table class="rtable"><thead><tr><th>Reported topic</th><th>Book</th><th>Practice</th></tr></thead><tbody>${repRows}</tbody></table></div></section>`;
-  REVIEW.forEach(g => {
-    html += `<section class="card"><h2>${esc(g.group)}</h2><div class="reviews">`;
-    g.items.forEach(it => {
-      const [label, cls] = VERDICT[it.v];
-      html += `<article class="review"><div class="rhead"><b>${esc(it.req)}</b><span class="vpill ${cls}">${label}</span></div>
-        <dl><div><dt>In the book</dt><dd>${esc(it.book)}</dd></div><div><dt>In this trainer</dt><dd>${listCell(it.list)}${it.code ? '<br>' + codeCell(it.code) : ''}</dd></div><div><dt>What to do</dt><dd>${esc(it.todo)}</dd></div></dl></article>`;
-    });
-    html += '</div></section>';
-  });
-  html += `<section class="card"><h2>Internship teams in the posting</h2><p class="muted">The quests that matter most for each team.</p><div class="areas">` +
-    AREAS.map(a => `<div class="area"><b>${esc(a.name)}</b><div class="row">${a.ch.map(c => `<button type="button" class="topicchip" data-act="open-unit" data-u="${c}">Quest ${c} · ${esc(TOPICS[c])}</button>`).join('')}</div></div>`).join('') + '</div></section>';
-  html += `<section class="card"><h2>Other NVIDIA hardware roles</h2><p class="muted">Ignite only takes first- and second-years. These are the regular internship and new-grad roles to aim for next, with what this kit covers for each and what to add.</p><div class="reviews">` +
-    ROLES.map(r => `<article class="review"><div class="rhead"><b>${esc(r.name)}</b><span class="vpill ${r.fit === 'Strong' || r.fit === 'Good' ? 'ok' : r.fit === 'Medium' ? 'warn' : ''}">${r.fit} fit</span></div>
-      <dl><div><dt>Quests</dt><dd><div class="row">${r.ch.map(c => `<button type="button" class="topicchip" data-act="open-unit" data-u="${c}">Quest ${c} · ${esc(TOPICS[c])}</button>`).join('')}</div></dd></div>
-      <div><dt>Coding track</dt><dd>${r.code ? codeCell([r.code]) : '<span class="muted">No coding track: this role is mostly analog or mechanical</span>'}</dd></div>
-      <div><dt>Also do</dt><dd>${esc(r.add)}</dd></div></dl></article>`).join('') + '</div></section>';
-  return html;
-}
-
 // ---------- Coding problems ----------
 CODING.forEach((p, i) => { p.n = i + 1; p.hay = (p.title + ' ' + p.p.join(' ') + ' ' + LANGS[p.lang] + ' ' + p.area).toLowerCase(); });
 const CODE_BY_ID = Object.fromEntries(CODING.map(p => [p.id, p]));
 const CODE_MAX = 4000;   // characters of your code kept per problem
-const blankCodeFilters = () => ({q:'', area:'all', lang:'all', d:'all', status:'all'});
+const blankCodeFilters = () => ({q:'', area:'all', lang:'all', d:'all', status:'all', co:'all'});
 ui.cf = blankCodeFilters();
 const codeStatus = id => { const s = state.code[id]; return !s ? 'todo' : (s.solved ? 'solved' : 'attempted'); };
 const codeSolvedIn = list => list.filter(p => codeStatus(p.id) === 'solved').length;
@@ -4639,12 +4860,12 @@ function codeCell(areas){
 function codeFiltered(){
   const f = ui.cf, term = f.q.trim().toLowerCase();
   return CODING.filter(p => (f.area === 'all' || p.area === f.area) && (f.lang === 'all' || p.lang === f.lang) && (f.d === 'all' || p.d === f.d) &&
-    (f.status === 'all' || codeStatus(p.id) === f.status) && (!term || p.hay.indexOf(term) >= 0));
+    (f.status === 'all' || codeStatus(p.id) === f.status) && coHas(p.id, f.co) && (!term || p.hay.indexOf(term) >= 0));
 }
-function codeRowsHTML(list){
-  return list.length ? list.map(p => `<tr data-copen="${p.id}"><td class="c-st">${codeStatusCell(p.id)}</td><td class="c-ti"><a href="#code${p.n}" data-copen="${p.id}">${p.n}. ${esc(p.title)}</a>${p.run ? '<span class="tags"><span class="tag t-run">Judged</span></span>' : ''}</td>` +
-    `<td class="c-tp">${esc(p.area)}</td><td class="c-ty">${esc(LANGS[p.lang])}</td><td class="c-df"><span class="dbadge d-${p.d}">${DIFF[p.d]}</span></td></tr>`).join('')
-    : '<tr><td colspan="5" class="empty">No coding problems match. Reset the filters or try another search.</td></tr>';
+function codeRowsHTML(list, from){
+  return list.length ? list.map(p => `<tr data-copen="${p.id}"${from ? ` data-from="${from}"` : ''}><td class="c-st">${codeStatusCell(p.id)}</td><td class="c-ti"><a href="#code${p.n}" data-copen="${p.id}">${p.n}. ${esc(p.title)}</a><span class="tags">${p.run ? '<span class="tag t-run">Judged</span>' : ''}</span></td>` +
+    `<td class="c-tp">${esc(p.area)}</td><td class="c-ty">${esc(LANGS[p.lang])}</td><td class="c-co">${coMini(p.id)}</td><td class="c-df"><span class="dbadge d-${p.d}">${DIFF[p.d]}</span></td></tr>`).join('')
+    : '<tr><td colspan="6" class="empty">No coding problems match. Reset the filters or try another search.</td></tr>';
 }
 function viewCoding(){
   const f = ui.cf, list = codeFiltered(), solved = codeSolvedIn(CODING);
@@ -4659,10 +4880,11 @@ function viewCoding(){
       ${sel('cf-lang', 'Language', f.lang, langOpts)}
       ${sel('cf-d', 'Difficulty', f.d, [['all', 'Difficulty'], ['E', 'Easy'], ['M', 'Medium'], ['H', 'Hard']])}
       ${sel('cf-status', 'Status', f.status, [['all', 'Status'], ['todo', 'Todo'], ['solved', 'Solved'], ['attempted', 'Attempted']])}
+      ${sel('cf-co', 'Company', f.co, coOpts())}
       <div class="fbtns"><button type="button" class="btn small ghost" data-act="cf-reset">Reset</button><button type="button" class="btn small primary" id="cpick" data-act="cpick"${list.length ? '' : ' disabled'}>Pick one</button></div>
     </div>
     <p class="fcount" id="cf-count">${list.length} problems · ${codeSolvedIn(list)} solved</p>
-    <div class="tablewrap"><table class="ptable ctable"><thead><tr><th class="c-st">Status</th><th class="c-ti">Problem</th><th class="c-tp">Area</th><th class="c-ty">Language</th><th class="c-df">Difficulty</th></tr></thead><tbody id="crows">${codeRowsHTML(list)}</tbody></table></div>
+    <div class="tablewrap"><table class="ptable ctable"><thead><tr><th class="c-st">Status</th><th class="c-ti">Problem</th><th class="c-tp">Area</th><th class="c-ty">Language</th><th class="c-co">Companies</th><th class="c-df">Difficulty</th></tr></thead><tbody id="crows">${codeRowsHTML(list)}</tbody></table></div>
   </section>
   <aside class="pside">
     <section class="card progcard"><h2>Coding progress</h2><div class="progring">${ring(solved / CODING.length, 120, 9, `${solved} of ${CODING.length} solved`)}<div class="ringlabel"><b>${solved}</b><span>/${CODING.length}</span><small>Solved</small></div></div>
@@ -4672,7 +4894,7 @@ function viewCoding(){
   </aside></div>`;
 }
 function refreshCodeRows(){
-  ui.cf.q = $('#cf-q').value; ui.cf.lang = $('#cf-lang').value; ui.cf.d = $('#cf-d').value; ui.cf.status = $('#cf-status').value;
+  ui.cf.q = $('#cf-q').value; ui.cf.lang = $('#cf-lang').value; ui.cf.d = $('#cf-d').value; ui.cf.status = $('#cf-status').value; ui.cf.co = $('#cf-co').value;
   const list = codeFiltered();
   $('#crows').innerHTML = codeRowsHTML(list);
   $('#cf-count').textContent = `${list.length} problems · ${codeSolvedIn(list)} solved`;
@@ -4773,6 +4995,7 @@ function codeLeftHTML(){
       : `<p class="muted">${judged(p) ? 'No submissions yet. Submit runs every hidden test and records the verdict here.' : 'This problem is checked by hand: run it in a real tool, then mark it solved.'}</p>`;
   } else body = `<div class="qmeta"><span class="dpill d-${p.d}">${DIFF[p.d]}</span><span class="topicchip">${esc(p.area)}</span><span>${esc(LANGS[p.lang])}</span>${judged(p) ? '<span class="tag t-run">Judged here</span>' : ''}</div>
     <div class="body">${p.p.map(t => `<p>${inlineCode(t)}</p>`).join('')}</div>
+    ${coChips(p.id)}
     ${p.ex ? `<div><p class="eyebrow">Example</p><pre class="code">${esc(p.ex)}</pre></div>` : ''}
     <div class="hintbox">${p.hints.slice(0, C.hints).map((h, i) => `<p><b>Hint ${i + 1}.</b> ${inlineCode(h)}</p>`).join('')}
       ${C.hints < p.hints.length ? `<button type="button" class="btn small ghost" data-act="c-hint">Show hint ${C.hints + 1} of ${p.hints.length}</button>` : ''}</div>`;
@@ -5038,9 +5261,314 @@ function weekCoding(){
   return state.codeWeek.ids.filter(id => CODE_BY_ID[id]);
 }
 
+// ---------- Company tags (the data lives in companies.js) ----------
+const CO_BY_ID = Object.fromEntries(COMPANIES.map(c => [c.id, c]));
+const CO_TAGS = {};   // problem id -> [{co, rank, rep}], best first
+(function buildCompanyTags(){
+  BANK.forEach(Q => { CO_TAGS[Q.id] = []; });
+  CODING.forEach(p => { CO_TAGS[p.id] = []; });
+  COMPANIES.forEach((c, ci) => {
+    const add = (id, rank, rep) => {
+      const l = CO_TAGS[id]; if (!l) return;
+      const e = l.find(x => x.co === c.id);
+      if (e) { e.rank = Math.min(e.rank, rank); e.rep = e.rep || rep; } else l.push({co:c.id, rank, rep, ci});
+    };
+    BANK.forEach(Q => {
+      const k = (c.chapters || []).indexOf(Q.ch);
+      if (k >= 0) add(Q.id, 10 + k, false);
+      if (c.tags && [...c.tags].some(t => hasTag(Q, t))) add(Q.id, 0, true);
+    });
+    CODING.forEach(p => { const k = (c.areas || []).indexOf(p.area); if (k >= 0) add(p.id, 10 + k, false); });
+    (c.ids || []).forEach(id => add(id, 1, (c.reported || []).includes(id)));
+  });
+  Object.values(CO_TAGS).forEach(l => l.sort((a, b) => (b.rep - a.rep) || (a.rank - b.rank) || (a.ci - b.ci)));
+})();
+const coTheory = co => BANK.filter(Q => CO_TAGS[Q.id].some(t => t.co === co)).map(Q => Q.id);
+const coCoding = co => CODING.filter(p => CO_TAGS[p.id].some(t => t.co === co)).map(p => p.id);
+const coReported = co => BANK.filter(Q => CO_TAGS[Q.id].some(t => t.co === co && t.rep)).map(Q => Q.id);
+const coReportedCode = co => CODING.filter(p => CO_TAGS[p.id].some(t => t.co === co && t.rep)).map(p => p.id);
+const coHas = (id, co) => co === 'all' || CO_TAGS[id].some(t => t.co === co);
+const coAvatar = (c, size) => `<span class="coav${size ? ' ' + size : ''}" aria-hidden="true">${esc(c.short || c.name.slice(0, 2).toUpperCase())}</span>`;
+// Compact tags for list rows: the first two companies, then +n.
+function coMini(id){
+  const l = CO_TAGS[id] || [];
+  if (!l.length) return '';
+  return `<span class="comini" title="${esc(l.map(t => CO_BY_ID[t.co].name + (t.rep ? ' (reported)' : '')).join(', '))}">` +
+    l.slice(0, 2).map(t => `<span class="cotag${t.rep ? ' rep' : ''}">${esc(CO_BY_ID[t.co].label || CO_BY_ID[t.co].name)}</span>`).join('') + (l.length > 2 ? `<span class="comore">+${l.length - 2}</span>` : '') + '</span>';
+}
+// Full tags for a problem page; each opens that company's list.
+function coChips(id){
+  const l = CO_TAGS[id] || [];
+  if (!l.length) return '';
+  return `<div class="cochips"><span class="eyebrow">Companies</span>${l.map(t => `<button type="button" class="cochip${t.rep ? ' rep' : ''}" data-act="co-open" data-v="${t.co}">${esc(CO_BY_ID[t.co].name)}${t.rep ? ' · reported' : ''}</button>`).join('')}</div>`;
+}
+const coOpts = () => [['all', 'Company'], ...COMPANIES.map(c => [c.id, c.name])];
+
+function viewCompanies(){
+  const term = (ui.coq || '').trim().toLowerCase();
+  const list = COMPANIES.filter(c => !term || (c.name + ' ' + c.focus).toLowerCase().includes(term));
+  return `<section class="pagehead"><p class="eyebrow">Companies</p><h1>Practice by <em>company</em></h1>
+    <p class="muted">Every theory and coding problem is tagged with the companies whose hardware roles test it. Pick a company to work through its list.</p>
+    <input type="search" id="co-q" class="bigsearch" placeholder="Search companies" value="${esc(ui.coq || '')}" aria-label="Search companies"></section>
+    <div class="cogrid" id="cogrid">${coCardsHTML(list)}</div>
+    <p class="muted small conote">Tags from a company's core topics come from public job postings and widely reported interview topics; they say "this is tested for these roles", not "this exact question was asked". Problems marked <span class="cotag rep">reported</span> were actually seen: your own OA, its variants, and candidate reports.</p>`;
+}
+function coCardsHTML(list){
+  return list.length ? list.map(c => {
+    const t = coTheory(c.id), k = coCoding(c.id), solved = solvedIn(t) + codeSolvedIn(k.map(id => CODE_BY_ID[id])), total = t.length + k.length, rep = coReported(c.id).length + coReportedCode(c.id).length;
+    return `<button type="button" class="cocard" data-act="co-open" data-v="${c.id}">${coAvatar(c)}<span class="cobody"><b>${esc(c.name)}</b><small>${esc(c.focus)}</small>
+      <span class="costats"><span>${t.length} theory</span><span>${k.length} coding</span>${rep ? `<span class="cotag rep">${rep} reported</span>` : ''}</span>
+      <span class="cobar"><i style="width:${pct(solved, total)}%"></i></span><small class="mono">${solved}/${total} solved</small></span></button>`;
+  }).join('') : '<p class="muted">No companies match.</p>';
+}
+function openCompany(id){ ui.co = {id, tab:CO_BY_ID[id].tags || (CO_BY_ID[id].reported || []).length ? 'rep' : 'theory', d:'all'}; ui.view = 'company'; setHash('company-' + id); render(); window.scrollTo(0, 0); }
+function viewCompany(){
+  const C = ui.co, c = CO_BY_ID[C.id], t = coTheory(c.id), k = coCoding(c.id), rt = coReported(c.id), rk = coReportedCode(c.id);
+  const solved = solvedIn(t) + codeSolvedIn(k.map(id => CODE_BY_ID[id])), total = t.length + k.length;
+  const tabs = [...(rt.length || rk.length ? [['rep', `Reported (${rt.length + rk.length})`]] : []), ['theory', `Theory (${t.length})`], ['coding', `Coding (${k.length})`]];
+  const dOk = id => C.d === 'all' || (BY_ID[id] || CODE_BY_ID[id]).d === C.d;
+  let body = '';
+  if (C.tab === 'coding') body = codeTableHTML(k.filter(dOk), 'company');
+  else if (C.tab === 'theory') body = tableHTML(t.filter(dOk), 'full', 'corows', 'company');
+  else {
+    body = (rk.length ? `<h3 class="subh">Coding</h3>${codeTableHTML(rk.filter(dOk), 'company')}` : '') + (rt.length ? `<h3 class="subh">Theory</h3>${tableHTML(rt.filter(dOk), 'full', 'corows', 'company')}` : '');
+    if (c.id === 'nvidia') body += nvidiaReportHTML();
+  }
+  return `<div class="pvbar"><button type="button" class="btn ghost small" data-act="co-back">← Companies</button></div>
+    <section class="card cohead">${coAvatar(c, 'lg')}<div class="cohtext"><h1>${esc(c.name)}</h1><p class="muted">${esc(c.focus)}</p>${c.note ? `<p class="small">${esc(c.note)}</p>` : ''}</div>
+      <div class="herostat">${ring(total ? solved / total : 0, 76, 7, `${solved} of ${total} solved`)}<div><b>${solved}<span class="muted">/${total}</span></b><span>solved</span></div></div></section>
+    <div class="cotabs"><div class="seg" role="tablist">${tabs.map(([v, l]) => `<button type="button" role="tab" aria-selected="${C.tab === v}" data-act="co-tab" data-v="${v}">${l}</button>`).join('')}</div>
+      <div class="chiprow">${[['all', 'All'], ['E', 'Easy'], ['M', 'Medium'], ['H', 'Hard']].map(([v, l]) => `<button type="button" class="tchip${C.d === v ? ' on' : ''}" data-act="co-d" data-v="${v}">${l}</button>`).join('')}</div></div>
+    ${body}`;
+}
+function codeTableHTML(ids, from){
+  return `<div class="tablewrap"><table class="ptable ctable"><thead><tr><th class="c-st">Status</th><th class="c-ti">Problem</th><th class="c-tp">Area</th><th class="c-ty">Language</th><th class="c-co">Companies</th><th class="c-df">Difficulty</th></tr></thead><tbody>${codeRowsHTML(ids.map(id => CODE_BY_ID[id]), from)}</tbody></table></div>`;
+}
+// Your OA and what other candidates reported, shown on NVIDIA's page.
+function nvidiaReportHTML(){
+  const listCell = key => { const ids = listIds(key); return `<button type="button" class="linkbtn" data-act="f-list-go" data-v="${key}">${ids.length} problems</button><span class="muted"> · ${solvedIn(ids)} solved</span>`; };
+  const oaRows = OA_TOPICS.map(t => { const ids = listIds(t.key), exact = ids.filter(id => hasTag(BY_ID[id], 'o')).length; return `<tr><td>${esc(t.name)}</td><td>${t.book}</td><td class="mono">${exact}</td><td class="mono">${ids.length - exact}</td><td>${listCell(t.key)}</td></tr>`; }).join('');
+  const repRows = REPORTED.map(r => `<tr><td>${esc(r.name)}</td><td>Ch ${r.ch}</td><td>${listCell(r.key)}</td></tr>`).join('');
+  return `<section class="card"><h2>Your OA topics</h2><p class="muted">Every question from your Ignite OA is in the bank word for word, plus variants that test the same idea.</p>
+    <div class="tablewrap"><table class="rtable"><thead><tr><th>OA topic</th><th>Book</th><th>Exact</th><th>Variants</th><th>Practice</th></tr></thead><tbody>${oaRows}</tbody></table></div></section>
+    <section class="card"><h2>Topics other candidates reported</h2><p class="muted">From the book's "Seen on the assessment" boxes.</p>
+    <div class="tablewrap"><table class="rtable"><thead><tr><th>Reported topic</th><th>Book</th><th>Practice</th></tr></thead><tbody>${repRows}</tbody></table></div></section>
+    <section class="card"><h2>Internship teams</h2><p class="muted">The quests that matter most for each NVIDIA internship team.</p><div class="areas">` +
+    AREAS.map(a => `<div class="area"><b>${esc(a.name)}</b><div class="row">${a.ch.map(ch => `<button type="button" class="topicchip" data-act="open-unit" data-u="${ch}">Quest ${ch} · ${esc(TOPICS[ch])}</button>`).join('')}</div></div>`).join('') + '</div></section>';
+}
+
+// ---------- Roles: what hardware postings ask for, and the hardware roles to aim for ----------
+function viewRoles(){
+  const listCell = key => { if (!key) return '<span class="muted">Not in this trainer</span>'; const ids = listIds(key); return `<button type="button" class="linkbtn" data-act="f-list-go" data-v="${key}">${ids.length} problems</button><span class="muted"> · ${solvedIn(ids)} solved</span>`; };
+  const hiring = r => COMPANIES.filter(c => (r.code && (c.areas || []).includes(r.code)) || r.ch.filter(ch => (c.chapters || []).slice(0, 4).includes(ch)).length >= 2).slice(0, 6);
+  let html = `<section class="pagehead"><p class="eyebrow">Roles</p><h1>Find your <em>hardware</em> role</h1>
+    <p class="muted">What hardware engineering postings ask for, how well the book and this trainer cover it, and the roles to aim for, each with its quests, coding track and the companies that hire for it.</p></section>
+    <section class="card"><h2>What hardware postings ask for</h2><p class="muted">The requirements that show up again and again in hardware internship and new-grad postings.</p><div class="reviews">`;
+  SKILL_REVIEW.forEach(it => {
+    const [label, cls] = VERDICT[it.v];
+    html += `<article class="review"><div class="rhead"><b>${esc(it.req)}</b><span class="vpill ${cls}">${label}</span></div>
+      <dl><div><dt>In the book</dt><dd>${esc(it.book)}</dd></div><div><dt>In this trainer</dt><dd>${listCell(it.list)}${it.code ? '<br>' + codeCell(it.code) : ''}</dd></div><div><dt>What to do</dt><dd>${esc(it.todo)}</dd></div></dl></article>`;
+  });
+  html += `</div></section><section class="card"><h2>Hardware roles</h2><p class="muted">Internship and new-grad roles across the industry, with what this kit covers for each and what to add.</p><div class="reviews">` +
+    ROLES.map(r => `<article class="review"><div class="rhead"><b>${esc(r.name)}</b><span class="vpill ${r.fit === 'Strong' || r.fit === 'Good' ? 'ok' : r.fit === 'Medium' ? 'warn' : ''}">${r.fit} coverage</span></div>
+      <p class="small">${esc(r.what)}</p>
+      <dl><div><dt>Quests</dt><dd><div class="row">${r.ch.map(c => `<button type="button" class="topicchip" data-act="open-unit" data-u="${c}">Quest ${c} · ${esc(TOPICS[c])}</button>`).join('')}</div></dd></div>
+      <div><dt>Coding track</dt><dd>${r.code ? codeCell([r.code]) : '<span class="muted">No coding track: this role is mostly analog or mechanical</span>'}</dd></div>
+      <div><dt>Hiring</dt><dd><div class="row">${hiring(r).map(c => `<button type="button" class="cochip" data-act="co-open" data-v="${c.id}">${esc(c.name)}</button>`).join('') || '<span class="muted">Most hardware companies</span>'}</div></dd></div>
+      <div><dt>Also do</dt><dd>${esc(r.add)}</dd></div></dl></article>`).join('') + '</div></section>';
+  return html;
+}
+
+// ---------- Home ----------
+const HERO_WORDS = ['digital logic', 'CMOS circuits', 'Verilog RTL', 'static timing', 'GPU architecture', 'computer arithmetic'];
+const HOME_TABS = [
+  {name:'Learn circuits from zero', file:'quest_05.md', go:'quest', link:'Start the quest',
+    code:'Quest 5 · The MOSFET\n\n  Vgs < Vth   off: no channel\n  Vgs > Vth   on:  channel forms\n\n  Id = k (Vgs − Vth)²   saturation\n\n✓ 4 lessons with widgets\n✓ 5-problem checkpoint', vis:'mosfet', cap:'drag Vgs past Vth'},
+  {name:'Write and judge RTL', file:'counter4.v', go:'coding', link:'Browse RTL problems',
+    code:'module counter4 (\n  input  wire       clk, rst, en,\n  output reg  [3:0] q\n);\n  always @(posedge clk)\n    if (rst)     q <= 0;\n    else if (en) q <= q + 1;\nendmodule', vis:'wave', cap:'Yosys + gate simulator · Accepted'},
+  {name:'Code in C, C++ and Python', file:'reverse.c', go:'coding', link:'Browse coding problems',
+    code:'struct node *reverse(struct node *h) {\n    struct node *prev = NULL;\n    while (h) {\n        struct node *next = h->next;\n        h->next = prev;\n        prev = h;\n        h = next;\n    }\n    return prev;\n}', vis:'list', cap:'Clang in your browser · 5/5 tests'},
+  {name:'Prepare by company', file:'companies', go:'companies', link:'Browse companies',
+    code:'NVIDIA     GPUs, AI systems\nAMD        CPUs, GPUs\nIntel      CPUs, foundry\nApple      custom SoCs\nQualcomm   mobile SoCs\nGoogle     TPUs\n…and 9 more', vis:'cos', cap:'tagged theory + coding lists'},
+  {name:'Ace the assessment', file:'mock.oa', go:'weekly', link:'Take a timed mock',
+    code:'Timed mock · 15 problems · 50 min\n\n  #3  A 2:1 mux builds an OR gate…\n      ○ A  ○ B  ● C  ○ D\n\n  Weekly sets resume where you\n  left off, every week.', vis:'timer', cap:'50:00 on the clock'},
+];
+const HOME_TOPICS = [
+  {name:'Digital logic', ch:9, art:'gates'}, {name:'Timing and clocks', ch:11, art:'clock'}, {name:'CMOS and transistors', ch:5, art:'mos'},
+  {name:'Memory and architecture', ch:20, art:'pipe'}, {name:'GPUs and CUDA', ch:21, art:'gpu'}, {name:'Computer arithmetic', ch:22, art:'adder'},
+];
+const HOME_FAQ = [
+  ['Is it free?', 'Yes. The book, every quest, all 682 theory problems and 64 coding problems, and the in-browser judge are free. There is nothing to buy.'],
+  ['Who is it for?', 'Students preparing for hardware internships and new-grad roles: ASIC design, verification, physical design, architecture, power, and the online assessments that screen for them.'],
+  ['I am new to hardware. Where do I start?', 'Start Quest 1. The quests follow the book from charge and current up to GPUs, each with short lessons, interactive widgets and a checkpoint.'],
+  ['What topics does it cover?', 'Circuits, semiconductors and MOSFETs, CMOS gates, combinational and sequential logic, timing, power, PVT, wires and signal integrity, manufacturing and test, memory, Verilog and verification, computer architecture, GPUs, computer arithmetic, and programming with Linux and scripting.'],
+  ['Which languages run in the browser?', 'Python (Pyodide), C and C++ (Clang compiled to WebAssembly) and Verilog (synthesized by Yosys and simulated gate by gate). Run tries the examples; Submit runs every hidden test.'],
+  ['Do I need an account?', 'No. Progress saves in your browser. Sign in to keep one record across all your devices.'],
+];
+function homeVis(kind){
+  if (kind === 'wave') return `<svg viewBox="0 0 300 150" class="wavesvg" aria-hidden="true"><g class="wl"><text x="0" y="22">clk</text><text x="0" y="62">en</text><text x="0" y="102">q</text></g>
+    <path class="wclk" d="M36 30 ${Array.from({length:8}, (_, i) => `h16 v-16 h16 v16`).join(' ')}"/><path class="wsig" d="M36 70 h24 v-16 h228"/>
+    ${Array.from({length:8}, (_, i) => `<g class="wbus" style="--i:${i}"><path d="M${36 + i * 32} 110 l4 -8 h24 l4 8 l-4 8 h-24 z"/><text x="${52 + i * 32}" y="114">${i}</text></g>`).join('')}</svg>`;
+  if (kind === 'mosfet') return `<svg viewBox="0 0 300 150" aria-hidden="true"><path class="axis" d="M30 130 H280 M30 130 V15"/><path class="curve" d="M30 130 C90 130 110 128 130 120 S200 40 270 25"/><line class="vth" x1="118" y1="15" x2="118" y2="130"/><text x="122" y="28" class="lab">Vth</text><text x="250" y="145" class="lab">Vgs</text><text x="36" y="22" class="lab">Id</text><circle class="dot" r="5"><animateMotion dur="4s" repeatCount="indefinite" path="M30 130 C90 130 110 128 130 120 S200 40 270 25"/></circle></svg>`;
+  if (kind === 'list') return `<svg viewBox="0 0 300 150" aria-hidden="true">${[0, 1, 2, 3].map(i => `<g class="lnode" style="--i:${i}"><rect x="${14 + i * 72}" y="55" width="44" height="34" rx="8"/><text x="${36 + i * 72}" y="77">${i + 1}</text>${i < 3 ? `<path class="larr" d="M${60 + i * 72} 72 h22"/>` : ''}</g>`).join('')}<text x="150" y="125" class="lab mid">prev ← h → next</text></svg>`;
+  if (kind === 'cos') return `<div class="viscos">${COMPANIES.slice(0, 9).map(c => `<span class="cotag">${esc(c.label || c.name)}</span>`).join('')}</div>`;
+  return `<svg viewBox="0 0 300 150" aria-hidden="true"><circle cx="150" cy="75" r="52" class="tring"/><circle cx="150" cy="75" r="52" class="tarc"/><text x="150" y="82" class="ttxt">50:00</text></svg>`;
+}
+function homeArt(kind){
+  const A = {
+    gates:'<path d="M40 40 h30 a30 30 0 0 1 0 60 h-30 z M40 55 h-20 M40 85 h-20 M100 70 h20 M130 40 q20 30 0 60 q30 0 50 -30 q-20 -30 -50 -30 z M120 70 h10 M180 70 h20"/><circle cx="203" cy="70" r="3"/>',
+    clock:'<path d="M20 100 h20 v-50 h40 v50 h40 v-50 h40 v50 h40 v-50 h20"/><path class="soft" d="M20 120 h60 l8 -12 h112"/>',
+    mos:'<path d="M40 110 h160 M70 110 v-30 h100 v30 M90 80 v-25 h60 v25 M120 55 v-25"/><text x="70" y="128">source</text><text x="150" y="128">drain</text>',
+    pipe:'<path d="M20 50 h40 v40 h-40 z M75 50 h40 v40 h-40 z M130 50 h40 v40 h-40 z M185 50 h40 v40 h-40 z M60 70 h15 M115 70 h15 M170 70 h15"/><text x="28" y="74">IF</text><text x="83" y="74">ID</text><text x="138" y="74">EX</text><text x="190" y="74">WB</text>',
+    gpu:Array.from({length:12}, (_, i) => `<rect x="${30 + (i % 4) * 46}" y="${32 + Math.floor(i / 4) * 30}" width="36" height="22" rx="4"/>`).join(''),
+    adder:'<path d="M60 30 h60 l20 40 l-20 40 h-60 z M30 50 h30 M30 90 h30 M140 70 h40"/><text x="78" y="75">Σ</text><text x="20" y="45">a</text><text x="20" y="85">b</text><text x="185" y="74">s</text>',
+  };
+  return `<svg viewBox="0 0 230 140" class="art art-${kind}" aria-hidden="true">${A[kind]}</svg>`;
+}
+const TRY = [
+  {name:'Dynamic power', eq:'P = α · C · V² · f'}, {name:'Gray code', eq:'g = b ⊕ (b >> 1)'},
+  {name:'Setup slack', eq:'slack = T − (t_cq + t_logic + t_setup)'}, {name:"Two's complement", eq:'−x = ~x + 1'},
+];
+function tryHTML(i){
+  const t = ui.home.tryv;
+  if (i === 0) { const P = 0.2 * 1e-9 * t.v * t.v * t.f * 1e9; return `<div class="trywid"><label>Supply V <input type="range" min="0.5" max="1.2" step="0.05" value="${t.v}" data-try="v"><b>${t.v.toFixed(2)} V</b></label><label>Clock f <input type="range" min="0.5" max="3" step="0.1" value="${t.f}" data-try="f"><b>${t.f.toFixed(1)} GHz</b></label>
+    <div class="tryout"><span>Power with α = 0.2, C = 1 nF</span><b>${P.toFixed(3)} W</b></div><p class="muted small">Double V and power goes up 4×; double f and it goes up 2×. This exact idea was on the NVIDIA OA.</p></div>`; }
+  if (i === 1) { const b = t.b, g = b ^ (b >> 1), bits = (x) => x.toString(2).padStart(4, '0'); return `<div class="trywid"><div class="bits">${[3, 2, 1, 0].map(k => `<button type="button" class="bit${(b >> k) & 1 ? ' on' : ''}" data-act="try-bit" data-v="${k}">${(b >> k) & 1}</button>`).join('')}</div>
+    <div class="tryout"><span>binary ${bits(b)} (${b})</span><b>gray ${bits(g)}</b></div><p class="muted small">Neighbouring Gray codes differ in one bit, so a pointer crossing clock domains can never be read half-updated.</p></div>`; }
+  if (i === 2) { const s = t.T - (0.1 + t.l + 0.05); return `<div class="trywid"><label>Clock period <input type="range" min="0.5" max="2" step="0.05" value="${t.T}" data-try="T"><b>${t.T.toFixed(2)} ns</b></label><label>Logic delay <input type="range" min="0.1" max="1.8" step="0.05" value="${t.l}" data-try="l"><b>${t.l.toFixed(2)} ns</b></label>
+    <div class="tryout ${s < 0 ? 'neg' : ''}"><span>t_cq 0.10 ns, t_setup 0.05 ns</span><b>slack ${s >= 0 ? '+' : ''}${s.toFixed(2)} ns ${s < 0 ? '(violated)' : '(met)'}</b></div></div>`; }
+  const x = t.x, u = x & 255, sgn = u >= 128 ? u - 256 : u;
+  return `<div class="trywid"><div class="bits">${[7, 6, 5, 4, 3, 2, 1, 0].map(k => `<button type="button" class="bit${(u >> k) & 1 ? ' on' : ''}" data-act="try-byte" data-v="${k}">${(u >> k) & 1}</button>`).join('')}</div>
+    <div class="tryout"><span>unsigned ${u}</span><b>signed ${sgn}</b></div><p class="muted small">The top bit weighs −128. Flip every bit and add 1 to negate.</p></div>`;
+}
+function viewHome(){
+  const H = ui.home, judged = CODING.filter(p => p.run).length, tab = HOME_TABS[H.tab];
+  const lines = s => esc(s).replace(/\b(module|endmodule|input|output|wire|reg|always|posedge|if|else|struct|while|return|NULL)\b/g, '<i class="t-k">$1</i>').replace(/(✓[^\n]*)/g, '<i class="t-s">$1</i>');
+  return `<section class="hhero wrap wide"><div class="hcopy"><h1>Learn<br><em id="hword">${HERO_WORDS[H.word]}</em><br>from the ground up</h1>
+      <p class="hsub">Master <b>${BANK.length} theory problems</b> and <b>${CODING.length} coding problems</b>, from Ohm's law to GPU pipelines, with a free book, interactive lessons, and a judge that runs <b>Verilog and C</b> in your browser.</p>
+      <div class="row"><button type="button" class="btn primary big" data-act="go" data-v="theory">Explore problems →</button><button type="button" class="btn big" data-act="go" data-v="quest">Start the quest</button></div>
+      <div class="langs">${['Verilog', 'SystemVerilog', 'C / C++', 'Python', 'CUDA', 'Tcl'].map(l => `<span>${l}</span>`).join('<i>·</i>')}</div></div>
+    <div class="hcard"><div class="hbar"><span class="dots"><i></i><i></i><i></i></span><span class="mono">counter4.v</span><span class="hrun" id="hrun">▶ Run</span></div>
+      <div class="hbody"><div class="hvis"><p class="hlab">WAVEFORM · q(t)</p>${homeVis('wave')}<p class="mono hstat" id="hstat">cycle 0 | q = 0</p></div>
+      <pre class="hcode">${lines(HOME_TABS[1].code)}</pre></div>
+      <ul class="hchecks" id="hchecks"><li>resets to 0</li><li>counts on every rising edge</li><li>wraps from 15 to 0</li></ul></div></section>
+    <section class="hstrip wrap wide"><p>Problems tagged for hardware roles at</p><div class="hcos">${COMPANIES.slice(0, 10).map(c => `<button type="button" data-act="co-open" data-v="${c.id}">${esc(c.name.replace(/ \(.*\)/, ''))}</button>`).join('')}</div></section>
+    <section class="hsec wrap wide"><h2 class="hh2">The complete hardware engineering trainer</h2>
+      <div class="hplat"><div class="hptabs" role="tablist">${HOME_TABS.map((t, i) => `<button type="button" role="tab" aria-selected="${H.tab === i}" data-act="home-tab" data-v="${i}"><span class="hpi">${['◎', '⌁', '{ }', '▦', '⏱'][i]}</span>${esc(t.name)}</button>`).join('')}</div>
+        <div class="hcard hpcard"><div class="hbar"><span class="dots"><i></i><i></i><i></i></span><span class="mono">${esc(tab.file)}</span></div>
+          <div class="hbody"><div class="hvis">${homeVis(tab.vis)}<p class="mono hstat">${esc(tab.cap)}</p></div><pre class="hcode">${lines(tab.code)}</pre></div></div></div>
+      <p class="hmore"><button type="button" class="linkbtn" data-act="go" data-v="${tab.go}">${esc(tab.link)} →</button></p></section>
+    <section class="hsec wrap wide"><div class="htopics">${HOME_TOPICS.map((t, i) => `<button type="button" class="htopic t${i}" data-act="topic-filter" data-ch="${t.ch}"><span class="hart">${homeArt(t.art)}</span><b>${esc(t.name)}</b><small>${CH_IDS[t.ch].length} theory problems · Quest ${t.ch}</small></button>`).join('')}</div></section>
+    <section class="hsec wrap wide"><h2 class="hh2 left">Try the problems</h2><div class="card htry"><div class="htrytabs" role="tablist">${TRY.map((t, i) => `<button type="button" role="tab" aria-selected="${H.tryi === i}" data-act="try-tab" data-v="${i}"><span class="mono">0${i + 1}</span> ${esc(t.name)}</button>`).join('')}</div>
+      <div class="htrybody"><div><h3>${esc(TRY[H.tryi].name)}</h3><p class="mono teq">${esc(TRY[H.tryi].eq)}</p></div><div id="trywid">${tryHTML(H.tryi)}</div></div></div></section>
+    <section class="hsec wrap wide hstats">${[[BANK.length, 'theory problems'], [CODING.length, 'coding problems'], [judged, 'judged in your browser'], [UNITS.length, 'interactive quests']].map(([n, l]) => `<div><b>${n.toLocaleString()}</b><span>${l}</span></div>`).join('')}</section>
+    <section class="hsec wrap wide hfaq"><h2 class="hh2 left">Questions, answered</h2><div class="faqgrid"><ol class="faqlist">${HOME_FAQ.map((f, i) => `<li><button type="button" aria-selected="${H.faq === i}" data-act="faq" data-v="${i}"><span class="mono">0${i + 1}</span>${esc(f[0])}</button></li>`).join('')}</ol>
+      <div class="card faqans"><h3>${esc(HOME_FAQ[H.faq][0])}</h3><p>${esc(HOME_FAQ[H.faq][1])}</p></div></div></section>
+    <section class="hsec wrap wide"><div class="hcta"><div><h2>Stop reading.<br><em>Start building.</em></h2><p>Don't just read hardware theory. Solve it, simulate it and judge it yourself, one problem at a time.</p>
+      <div class="row">${acct.ready && !acct.user ? '<button type="button" class="btn primary big" data-act="signin">Create free account</button>' : '<button type="button" class="btn primary big" data-act="go" data-v="quest">Start learning</button>'}<button type="button" class="btn big ghost" data-act="go" data-v="theory">Browse problems</button></div>
+      <div class="langs"><span>${BANK.length + CODING.length} problems</span><i>·</i><span>Verilog and C judge</span><i>·</i><span>233-page book</span></div></div>
+      <div class="ctaart" aria-hidden="true">${Array.from({length:36}, (_, i) => `<i style="--d:${(i * 37) % 11}"></i>`).join('')}</div></div></section>
+    <footer class="hfoot wrap wide"><div><a class="brand" href="#home" data-home>${$('.brand .logo') ? $('.brand .logo').outerHTML : ''}<span class="bname">Ground Up</span></a><p class="muted small">A free hardware engineering trainer, built on the book <em>Hardware from the Ground Up</em>.</p></div>
+      <div><b>Practice</b>${[['quest', 'Quest'], ['theory', 'Theory'], ['coding', 'Coding'], ['weekly', 'Weekly']].map(([t, l]) => `<button type="button" class="linkbtn plain" data-act="go" data-v="${t}">${l}</button>`).join('')}</div>
+      <div><b>Careers</b>${[['companies', 'Companies'], ['roles', 'Roles']].map(([t, l]) => `<button type="button" class="linkbtn plain" data-act="go" data-v="${t}">${l}</button>`).join('')}</div>
+      <p class="muted small hcopy2">Unofficial study material. Not affiliated with or endorsed by any company named here.</p></footer>`;
+}
+// The hero's rotating word and its counter animation, running only while Home is shown.
+function homeStart(){
+  homeStop();
+  const H = ui.home;
+  let cyc = 0;
+  H.timers.push(setInterval(() => {
+    H.word = (H.word + 1) % HERO_WORDS.length;
+    const w = $('#hword'); if (w) { w.classList.remove('in'); void w.offsetWidth; w.textContent = HERO_WORDS[H.word]; w.classList.add('in'); }
+  }, 2600));
+  H.timers.push(setInterval(() => {
+    cyc = (cyc + 1) % 10;
+    const s = $('#hstat'); if (!s) return;
+    s.textContent = `cycle ${cyc} | q = ${Math.min(cyc, 8) % 16}`;
+    document.querySelectorAll('.hhero .wbus').forEach((g, i) => g.classList.toggle('on', i < cyc));
+    document.querySelectorAll('#hchecks li').forEach((li, i) => li.classList.toggle('ok', cyc >= [2, 5, 8][i]));
+    const r = $('#hrun'); if (r) r.classList.toggle('busy', cyc > 0 && cyc < 9);
+  }, 700));
+}
+function homeStop(){ if (ui.home) { ui.home.timers.forEach(clearInterval); ui.home.timers = []; } }
+
+// ---------- Sign-in screen (standalone site with accounts turned on) ----------
+function openAuth(){ if (!acct.ready) return; ui.auth = {mode:'signin', err:'', busy:false, info:''}; renderAuth(); }
+function closeAuth(){ ui.auth = null; const p = $('#authpage'); if (p) p.remove(); authStop(); document.body.classList.remove('authopen'); }
+function renderAuth(){
+  const A = ui.auth; if (!A) return;
+  let p = $('#authpage');
+  if (!p) { p = document.createElement('div'); p.id = 'authpage'; p.setAttribute('role', 'dialog'); p.setAttribute('aria-modal', 'true'); p.setAttribute('aria-label', 'Sign in'); document.body.appendChild(p); document.body.classList.add('authopen'); }
+  const create = A.mode === 'create';
+  p.innerHTML = `<div class="authl"><div class="authtop"><a class="brand" href="#home" data-act="auth-close">${$('.brand .logo').outerHTML}<span class="bname">Ground Up</span></a><button type="button" class="iconbtn" data-act="auth-close" aria-label="Close">×</button></div>
+    <div class="authform"><h1>${create ? 'Create your account' : 'Sign in to Ground Up'}</h1>
+      <p class="muted">${create ? 'Already have an account?' : "Don't have an account?"} <button type="button" class="linkbtn" data-act="auth-mode">${create ? 'Sign in' : 'Create account'}</button></p>
+      <button type="button" class="btn authbtn" data-act="auth-google"${A.busy ? ' disabled' : ''}><svg viewBox="0 0 18 18" width="16" height="16" aria-hidden="true"><path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.7H9v3.3h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.5z"/><path fill="#34A853" d="M9 18c2.4 0 4.5-.8 5.9-2.2l-2.9-2.2c-.8.5-1.8.9-3 .9-2.3 0-4.3-1.6-5-3.7H1v2.3A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M4 10.8a5.4 5.4 0 0 1 0-3.6V4.9H1a9 9 0 0 0 0 8.2l3-2.3z"/><path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 1 4.9l3 2.3C4.7 5.2 6.7 3.6 9 3.6z"/></svg>Continue with Google</button>
+      <div class="author"><span>or continue with email</span></div>
+      <form id="authemail" novalidate><label>Email<input type="email" id="au-email" autocomplete="email" placeholder="me@example.com" required></label>
+        <label><span class="row between">Password${create ? '' : '<button type="button" class="linkbtn small" data-act="auth-forgot">Forgot password?</button>'}</span><input type="password" id="au-pw" autocomplete="${create ? 'new-password' : 'current-password'}" placeholder="${create ? 'At least 6 characters' : 'Enter your password'}" required></label>
+        ${A.err ? `<p class="autherr" role="alert">${esc(A.err)}</p>` : ''}${A.info ? `<p class="authinfo" role="status">${esc(A.info)}</p>` : ''}
+        <button type="submit" class="btn primary authsubmit"${A.busy ? ' disabled' : ''}>${A.busy ? 'Please wait…' : create ? 'Create account' : 'Sign in'}</button></form>
+      <p class="muted small authfine">Your progress syncs to your account on every device. Without an account it stays in this browser.</p></div></div>
+    <div class="authr" aria-hidden="true"><canvas id="authcanvas"></canvas><div class="authquote"><b>${BANK.length + CODING.length} problems.</b><span>From one transistor to a GPU.</span></div></div>`;
+  authAnim();
+}
+function authErr(e){
+  const c = (e && e.code) || '';
+  return ({'auth/operation-not-allowed':'Email sign-in is not turned on for this site yet. Use Continue with Google.', 'auth/invalid-credential':'Wrong email or password.', 'auth/wrong-password':'Wrong email or password.', 'auth/user-not-found':'No account with that email. Create one instead.',
+    'auth/email-already-in-use':'That email already has an account. Sign in instead.', 'auth/weak-password':'Use at least 6 characters.', 'auth/invalid-email':'Enter a valid email address.', 'auth/missing-password':'Enter your password.',
+    'auth/unauthorized-domain':'Sign-in is not allowed on this address yet. Add it under Authentication → Settings → Authorized domains in Firebase.', 'auth/too-many-requests':'Too many tries. Wait a minute and try again.'}[c]) || (e && e.message) || 'Sign-in failed.';
+}
+async function authRun(fn){
+  const A = ui.auth; if (!A || A.busy) return;
+  A.busy = true; A.err = ''; A.info = ''; renderAuth();
+  try { await fn(); if (ui.auth && !ui.auth.info) closeAuth(); }
+  catch (e) { const c = (e && e.code) || ''; if (ui.auth) { ui.auth.err = c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request' ? '' : authErr(e); } }
+  if (ui.auth) { ui.auth.busy = false; renderAuth(); }
+}
+function authEmail(){
+  const email = $('#au-email').value.trim(), pw = $('#au-pw').value, create = ui.auth.mode === 'create';
+  authRun(() => create ? firebase.auth().createUserWithEmailAndPassword(email, pw) : firebase.auth().signInWithEmailAndPassword(email, pw));
+}
+function authForgot(){
+  const email = $('#au-email').value.trim();
+  if (!email) { ui.auth.err = 'Enter your email first, then press Forgot password.'; renderAuth(); return; }
+  authRun(async () => { await firebase.auth().sendPasswordResetEmail(email); ui.auth.info = 'Check your inbox for a link to reset your password.'; });
+}
+// The right-hand panel: a slowly turning wafer of dies, drawn as points.
+let authRAF = 0;
+function authStop(){ cancelAnimationFrame(authRAF); authRAF = 0; }
+function authAnim(){
+  authStop();
+  const cv = $('#authcanvas'); if (!cv || !cv.getContext) return;
+  const ctx = cv.getContext('2d'), pts = [];
+  for (let i = 0; i < 1400; i++) {
+    const r = Math.sqrt(Math.random()), a = Math.random() * Math.PI * 2, x = r * Math.cos(a), y = r * Math.sin(a);
+    const onGrid = Math.abs(((x * 7 + 7) % 1) - 0.5) < 0.06 || Math.abs(((y * 7 + 7) % 1) - 0.5) < 0.06;
+    pts.push({x, y, z:(Math.random() - 0.5) * 0.08, b:onGrid ? 1 : 0.35 + Math.random() * 0.3});
+  }
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const draw = t => {
+    const w = cv.clientWidth, h = cv.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+    const ang = reduce ? 0.6 : t / 9000, tilt = 1.05, R = Math.min(w, h) * 0.3, cx = w / 2, cy = h / 2;
+    for (const p of pts) {
+      const x1 = p.x * Math.cos(ang) - p.y * Math.sin(ang), y1 = p.x * Math.sin(ang) + p.y * Math.cos(ang);
+      const y2 = y1 * Math.cos(tilt) - p.z * Math.sin(tilt), z2 = y1 * Math.sin(tilt) + p.z * Math.cos(tilt);
+      const s = 1 / (1.6 - z2 * 0.6);
+      ctx.fillStyle = `rgba(${p.b > 0.9 ? '134, 226, 170' : '210, 220, 210'}, ${p.b * (0.5 + 0.5 * s)})`;
+      ctx.fillRect(cx + x1 * R * s * 1.6, cy + y2 * R * s * 1.6, 1.4, 1.4);
+    }
+    if (!reduce) authRAF = requestAnimationFrame(draw);
+  };
+  authRAF = requestAnimationFrame(draw);
+}
+
 // ---------- events ----------
 document.addEventListener('click', e => {
-  if (e.target.closest('[data-home]')) { e.preventDefault(); goTab('quest'); return; }
+  if (e.target.closest('[data-home]')) { e.preventDefault(); if (ui.auth) closeAuth(); goTab('home'); return; }
   const tabBtn = e.target.closest('.navlinks button');
   if (tabBtn) { goTab(tabBtn.dataset.tab); return; }
   const pv = e.target.closest('[data-pv]');
@@ -5061,23 +5589,40 @@ document.addEventListener('click', e => {
   const co = e.target.closest('[data-copen]');
   if (co) {
     e.preventDefault();
-    if (co.dataset.from === 'weekly') openCode(co.dataset.copen, weekCoding(), {view:'tab', tab:'weekly'});
+    const cfrom = (co.closest('[data-from]') || {dataset:{}}).dataset.from;
+    if (cfrom === 'weekly') openCode(co.dataset.copen, weekCoding(), {view:'tab', tab:'weekly'});
+    else if (cfrom === 'company') openCode(co.dataset.copen, coCoding(ui.co.id), {view:'company', co:ui.co.id});
     else openCode(co.dataset.copen, codeFiltered().map(p => p.id), {view:'tab', tab:'coding'});
     return;
   }
   const op = e.target.closest('[data-open]');
   if (op) {
     e.preventDefault();
-    const id = op.dataset.open, from = op.dataset.from;
+    const id = op.dataset.open, fromEl = op.closest('[data-from]'), from = fromEl && fromEl.dataset.from;
     if (from === 'weekly') { const w = state.weeks[isoWeek(new Date()).key]; openProblem(id, w ? w.ids : null, {view:'tab', tab:'weekly'}); }
     else if (ui.view === 'unit') openProblem(id, CH_IDS[ui.unit.id], {view:'unit'});
-    else openProblem(id, filtered().map(Q => Q.id), {view:'tab', tab:'problems'});
+    else if (from === 'company') openProblem(id, ui.co.tab === 'rep' ? coReported(ui.co.id) : coTheory(ui.co.id), {view:'company', co:ui.co.id});
+    else openProblem(id, filtered().map(Q => Q.id), {view:'tab', tab:'theory'});
   }
 });
 function act(a){
   const S = ui.session, P = ui.pv;
   switch (a.dataset.act) {
     case 'open-unit': openUnit(+a.dataset.u); break;
+    case 'go': goTab(a.dataset.v); break;
+    case 'co-open': openCompany(a.dataset.v); break;
+    case 'co-back': goTab('companies'); break;
+    case 'co-tab': ui.co.tab = a.dataset.v; render(); break;
+    case 'co-d': ui.co.d = a.dataset.v; render(); break;
+    case 'home-tab': ui.home.tab = +a.dataset.v; render(); break;
+    case 'try-tab': ui.home.tryi = +a.dataset.v; render(); break;
+    case 'faq': ui.home.faq = +a.dataset.v; render(); break;
+    case 'try-bit': ui.home.tryv.b ^= 1 << +a.dataset.v; $('#trywid').innerHTML = tryHTML(1); break;
+    case 'try-byte': ui.home.tryv.x ^= 1 << +a.dataset.v; $('#trywid').innerHTML = tryHTML(3); break;
+    case 'auth-close': closeAuth(); break;
+    case 'auth-mode': ui.auth.mode = ui.auth.mode === 'create' ? 'signin' : 'create'; ui.auth.err = ''; ui.auth.info = ''; renderAuth(); break;
+    case 'auth-google': authRun(() => firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider())); break;
+    case 'auth-forgot': authForgot(); break;
     case 'to-quest': goTab('quest'); break;
     case 'step': ui.unit.step = +a.dataset.i; render(); break;
     case 'card-prev': ui.unit.step = Math.max(0, ui.unit.step - 1); render(); window.scrollTo(0, 0); break;
@@ -5104,8 +5649,8 @@ function act(a){
     case 'review-oa': startSession('practice', shuffle(listIds('oav')).slice(0, 20), {title:'Your OA + variants', from:{view:'tab', tab:'weekly'}}); break;
     case 'f-ch': ui.f.ch = a.dataset.v; $('#main').innerHTML = viewProblems(); break;
     case 'f-list': ui.f = Object.assign(blankFilters(), {list:a.dataset.v}); $('#main').innerHTML = viewProblems(); break;
-    case 'f-list-go': ui.f = Object.assign(blankFilters(), {list:a.dataset.v}); goTab('problems'); break;
-    case 'topic-filter': ui.f = Object.assign(blankFilters(), {ch:a.dataset.ch}); goTab('problems'); break;
+    case 'f-list-go': ui.f = Object.assign(blankFilters(), {list:a.dataset.v}); goTab('theory'); break;
+    case 'topic-filter': ui.f = Object.assign(blankFilters(), {ch:a.dataset.ch}); goTab('theory'); break;
     case 'f-reset': ui.f = blankFilters(); $('#main').innerHTML = viewProblems(); break;
     case 'cf-area': ui.cf.area = a.dataset.v; $('#main').innerHTML = viewCoding(); break;
     case 'cf-reset': ui.cf = blankCodeFilters(); $('#main').innerHTML = viewCoding(); break;
@@ -5115,7 +5660,7 @@ function act(a){
       if (pool.length) openCode(pool[Math.floor(Math.random() * pool.length)].id, list.map(p => p.id), {view:'tab', tab:'coding'});
       break;
     }
-    case 'c-back': saveEditorNow(); goTab(ui.cback && ui.cback.tab ? ui.cback.tab : 'coding'); break;
+    case 'c-back': saveEditorNow(); if (ui.cback && ui.cback.view === 'company') { ui.view = 'company'; setHash('company-' + ui.co.id); render(); } else goTab(ui.cback && ui.cback.tab ? ui.cback.tab : 'coding'); break;
     case 'c-prev': case 'c-next': {
       const C = ui.cp, i = C.list.indexOf(C.id) + (a.dataset.act === 'c-next' ? 1 : -1);
       if (i >= 0 && i < C.list.length) openCode(C.list[i], C.list);
@@ -5138,10 +5683,10 @@ function act(a){
     }
     case 'pick-one': {
       const list = filtered(), todo = list.filter(Q => !isSolved(Q.id)), pool = todo.length ? todo : list;
-      if (pool.length) openProblem(pool[Math.floor(Math.random() * pool.length)].id, list.map(Q => Q.id), {view:'tab', tab:'problems'});
+      if (pool.length) openProblem(pool[Math.floor(Math.random() * pool.length)].id, list.map(Q => Q.id), {view:'tab', tab:'theory'});
       break;
     }
-    case 'pv-back': returnFrom(ui.back || {view:'tab', tab:'problems'}); break;
+    case 'pv-back': returnFrom(ui.back || {view:'tab', tab:'theory'}); break;
     case 'pv-prev': { const i = P.list.indexOf(P.id); if (i > 0) moveProblem(P.list[i - 1]); break; }
     case 'pv-next': { const i = P.list.indexOf(P.id); if (i < P.list.length - 1) moveProblem(P.list[i + 1]); break; }
     case 'pv-rand': {
@@ -5154,7 +5699,7 @@ function act(a){
     case 'reset': ui.confirmReset = true; render(); break;
     case 'reset-no': ui.confirmReset = false; render(); break;
     case 'reset-yes': state = emptyState(); ui.confirmReset = false; save(); toast('Progress erased'); render(); break;
-    case 'signin': signIn(); break;
+    case 'signin': openAuth(); break;
     case 'signout': firebase.auth().signOut(); break;
     case 'to-progress': goTab('weekly'); { const c = $('#progress-card'); if (c) c.scrollIntoView(); } break;
     case 'export': exportProgress(); break;
@@ -5162,10 +5707,19 @@ function act(a){
   }
 }
 function returnFrom(from){
+  if (from && from.view === 'company') { ui.view = 'company'; setHash('company-' + from.co); render(); return; }
   if (from && from.view === 'unit' && ui.unit) { ui.view = 'unit'; render(); return; }
   goTab(from && from.tab ? from.tab : 'quest');
 }
 document.addEventListener('input', e => {
+  if (e.target.id === 'co-q') { ui.coq = e.target.value; $('#cogrid').innerHTML = coCardsHTML(COMPANIES.filter(c => !ui.coq.trim() || (c.name + ' ' + c.focus).toLowerCase().includes(ui.coq.trim().toLowerCase()))); return; }
+  if (e.target.dataset.try) {   // update the numbers without replacing the slider being dragged
+    ui.home.tryv[e.target.dataset.try] = parseFloat(e.target.value);
+    const t = document.createElement('div'); t.innerHTML = tryHTML(ui.home.tryi);
+    const w = $('#trywid'); w.querySelector('.tryout').outerHTML = t.querySelector('.tryout').outerHTML;
+    w.querySelectorAll('label b').forEach((b, i) => { b.textContent = t.querySelectorAll('label b')[i].textContent; });
+    return;
+  }
   if (e.target.id === 'code-editor') { syncEditor(); clearTimeout(ui.codeTimer); ui.codeTimer = setTimeout(saveEditorNow, 500); return; }
   if (e.target.closest('.cfbar')) { refreshCodeRows(); return; }
   if (e.target.closest('.fbar')) readFilters();
@@ -5193,6 +5747,8 @@ document.addEventListener('keydown', e => {
   e.target.dispatchEvent(new Event('input', {bubbles:true}));
 });
 document.addEventListener('scroll', e => { if (e.target.id === 'code-editor') syncScroll(); }, true);
+document.addEventListener('submit', e => { if (e.target.id === 'authemail') { e.preventDefault(); authEmail(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.auth) closeAuth(); });
 document.addEventListener('change', e => { if (e.target.id === 'import-file' && e.target.files[0]) importProgress(e.target.files[0]); });
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -5225,8 +5781,10 @@ if (local) state = normalize(local);
   if (cm && CODING[+cm[1] - 1]) { ui.tab = 'coding'; ui.cback = {view:'tab', tab:'coding'}; ui.cp = blankCodePage(CODING[+cm[1] - 1].id, CODING.map(p => p.id)); ui.view = 'code'; }
   else if (h === 'learn') ui.tab = 'quest';
   else if (h === 'practice') ui.tab = 'weekly';
-  else if (h === 'bank') ui.tab = 'problems';
-  if (m && BANK[+m[1] - 1]) { ui.tab = 'problems'; ui.back = {view:'tab', tab:'problems'}; ui.pv = {id:BANK[+m[1] - 1].id, list:BANK.map(Q => Q.id), pick:undefined, result:null, reveal:false, perm:shuffle([0, 1, 2, 3])}; ui.view = 'problem'; }
+  else if (h === 'bank' || h === 'problems') ui.tab = 'theory';
+  else if (h === 'jobs') ui.tab = 'roles';
+  else if (/^company-/.test(h) && CO_BY_ID[h.slice(8)]) { ui.tab = 'companies'; ui.co = {id:h.slice(8), tab:'theory', d:'all'}; ui.view = 'company'; }
+  if (m && BANK[+m[1] - 1]) { ui.tab = 'theory'; ui.back = {view:'tab', tab:'theory'}; ui.pv = {id:BANK[+m[1] - 1].id, list:BANK.map(Q => Q.id), pick:undefined, result:null, reveal:false, perm:shuffle([0, 1, 2, 3])}; ui.view = 'problem'; }
 })();
 render();
 setSync(store.status);

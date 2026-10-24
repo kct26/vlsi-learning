@@ -3,13 +3,13 @@
 //   node build.js --fragment out.html -> page body only (for hosts that add their own <html>/<head>, such as Claude artifacts)
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const src = path.join(__dirname, 'src'), read = f => fs.readFileSync(path.join(src, f), 'utf8');
-const SCRIPTS = ['questions.js', 'lessons.js', 'widgets.js', 'coding.js', 'hidden-tests.js', 'judge.js', 'app.js'];
+const SCRIPTS = ['questions.js', 'lessons.js', 'widgets.js', 'coding.js', 'hidden-tests.js', 'judge.js', 'companies.js', 'app.js'];
 
 // Load the data files and widget table into one sandbox to check them.
 const ctx = {};
 vm.createContext(ctx);
-vm.runInContext(SCRIPTS.slice(0, 6).map(read).join('\n') + '\n;this.HIDDEN = HIDDEN; this.V_CHECKS = V_CHECKS; this.RAW = RAW; this.PARTS = PARTS; this.UNITS = UNITS; this.WIDGETS = WIDGETS; this.CODING = CODING; this.LANGS = LANGS; this.CODE_AREAS = CODE_AREAS;', ctx);
-const {RAW, PARTS, UNITS, WIDGETS, CODING, LANGS, CODE_AREAS, HIDDEN, V_CHECKS} = ctx;
+vm.runInContext(SCRIPTS.slice(0, 7).map(read).join('\n') + '\n;this.COMPANIES = COMPANIES; this.HIDDEN = HIDDEN; this.V_CHECKS = V_CHECKS; this.RAW = RAW; this.PARTS = PARTS; this.UNITS = UNITS; this.WIDGETS = WIDGETS; this.CODING = CODING; this.LANGS = LANGS; this.CODE_AREAS = CODE_AREAS;', ctx);
+const {RAW, PARTS, UNITS, WIDGETS, CODING, LANGS, CODE_AREAS, HIDDEN, V_CHECKS, COMPANIES} = ctx;
 const errs = [], ids = new Set(), perCh = {}, texts = new Set();
 RAW.forEach((r, i) => {
   const [id, d, q, ans, expl, tags] = r, where = `RAW[${i}] ${id}`;
@@ -57,6 +57,18 @@ CODING.forEach((p, i) => {
   if (R && R.kind === 'v' && (p.lang !== 'verilog' || (R.check ? !V_CHECKS[R.check] || !R.top : !Array.isArray(R.benches) || !R.benches.length || R.benches.some(b => !b.name || !b.top || !Array.isArray(b.in) || !(b.rows || b.rand)))))  errs.push(where + ': bad Verilog tests');
   if (R && R.kind && !['c', 'v'].includes(R.kind)) errs.push(where + ': unknown test kind ' + R.kind);
 });
+// Company tags: every id must exist, chapters must be quests, areas must be Coding areas.
+const coIds = new Set();
+COMPANIES.forEach(c => {
+  const where = 'company ' + c.id;
+  if (!c.id || coIds.has(c.id) || !c.name || !c.focus) errs.push(where + ': missing or duplicate id, or missing name or focus');
+  coIds.add(c.id);
+  (c.chapters || []).forEach(ch => { if (!UNITS.some(U => U.id === ch)) errs.push(where + ': unknown chapter ' + ch); });
+  (c.areas || []).forEach(a => { if (!CODE_AREAS.includes(a)) errs.push(where + ': unknown coding area ' + a); });
+  if (c.tags && !/^[ovrba]+$/.test(c.tags)) errs.push(where + ': unknown source tag in ' + c.tags);
+  (c.ids || []).concat(c.reported || []).forEach(id => { if (!ids.has(id) && !codeIds.has(id)) errs.push(where + ': unknown problem id ' + id); });
+  (c.reported || []).forEach(id => { if (!(c.ids || []).includes(id)) errs.push(where + ': reported id ' + id + ' must also be in ids'); });
+});
 Object.keys(HIDDEN).forEach(id => { if (!codeIds.has(id)) errs.push('hidden tests for unknown problem ' + id); });
 const partUnits = PARTS.flatMap(p => p.units).sort((a, b) => a - b).join(',');
 if (partUnits !== UNITS.map(U => U.id).join(',')) errs.push('PARTS do not cover every quest exactly once');
@@ -68,7 +80,7 @@ const count = f => RAW.filter(f).length, tag = t => count(r => (r[5] || '').incl
 const cards = UNITS.reduce((n, U) => n + U.cards.length, 0);
 console.log(`ok: ${RAW.length} problems (E ${count(r => r[1] === 'E')}, M ${count(r => r[1] === 'M')}, H ${count(r => r[1] === 'H')}); ` +
   `OA ${tag('o')}, variants ${tag('v')}, reported ${tag('r')}, beyond the book ${tag('b')}, arithmetic ${tag('a')}; ${UNITS.length} quests, ${cards} lessons; ` +
-  `${CODING.length} coding problems (E ${CODING.filter(p => p.d === 'E').length}, M ${CODING.filter(p => p.d === 'M').length}, H ${CODING.filter(p => p.d === 'H').length}; ${CODING.filter(p => p.run).length} run in the browser)`);
+  `${COMPANIES.length} companies; ${CODING.length} coding problems (E ${CODING.filter(p => p.d === 'E').length}, M ${CODING.filter(p => p.d === 'M').length}, H ${CODING.filter(p => p.d === 'H').length}; ${CODING.filter(p => p.run).length} run in the browser)`);
 
 const body = read('shell.html')
   .replace('/*STYLE*/', () => read('style.css'))
