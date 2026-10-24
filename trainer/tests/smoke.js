@@ -74,6 +74,16 @@ function phase1(){
   ok(/Role: verification/.test($('#rmdetail h3').textContent) && $('#rmdetail [data-v="roles"]'), 'role nodes link to Roles');
   const z0 = $('.rminner').style.transform; click('[data-act="rm-zoom"][data-v="in"]');
   ok($('.rminner').style.transform !== z0, 'roadmap zooms');
+  ok($('.rmtop #rmdetail') && $('.rmtop').compareDocumentPosition($('.rmboard')) & Node.DOCUMENT_POSITION_FOLLOWING, 'details sit above the map');
+  const sc = $('#rmscroll'), rr = sc.getBoundingClientRect(), z1 = $('.rminner').style.transform;
+  sc.dispatchEvent(new WheelEvent('wheel', {deltaY:-200, clientX:rr.left + 200, clientY:rr.top + 150, bubbles:true, cancelable:true}));
+  ok($('.rminner').style.transform !== z1 && /\d+%/.test($('#rmzoom').textContent), 'wheel zooms the map (' + $('#rmzoom').textContent + ')');
+  const p0 = {bubbles:true, pointerId:7, clientX:rr.left + 300, clientY:rr.top + 300}, z2 = $('.rminner').style.transform;
+  sc.dispatchEvent(new PointerEvent('pointerdown', p0));
+  document.dispatchEvent(new PointerEvent('pointermove', Object.assign({}, p0, {clientX:rr.left + 240, clientY:rr.top + 250})));
+  document.dispatchEvent(new PointerEvent('pointerup', p0));
+  ok($('.rminner').style.transform !== z2 && /scale/.test($('.rminner').style.transform), 'dragging pans the map');
+  click('[data-act="rm-zoom"][data-v="fit"]');
   click('#theme');
   ok(document.documentElement.dataset.theme === 'dark' && localStorage.getItem('ground-up-theme') === 'dark', 'theme toggle switches to dark and remembers it');
   click('#theme');

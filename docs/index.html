@@ -839,21 +839,37 @@ code, pre, .code-editor, .editor, .hcode, .mono { font-variant-ligatures: none; 
 @media (max-width: 1100px) { .topbar .solved .codecount { display: none; } }
 @media (max-width: 720px) { .topbar .solved { display: none; } .navlinks button[aria-current="page"]::after { bottom: 6px; } }
 
-/* Roadmap map */
-.rmwrap { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+/* Roadmap map: details on top, an interactive canvas below */
+.rmtop { display: grid; grid-template-columns: minmax(0, 1fr) 220px minmax(0, 1.3fr); gap: 16px; align-items: stretch; }
+.rmtop h3 { font-size: 1rem; }
+.rmwho { margin: 0; padding-left: 18px; color: var(--muted); font-size: 0.86rem; display: flex; flex-direction: column; gap: 6px; }
+.rmprogcard { align-items: center; }
+.rmgauge { position: relative; width: 120px; height: 120px; margin: 0 auto; }
+.rmgauge .ringlabel { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+.rmgauge b { font-size: 2rem; color: var(--accent); } .rmgauge span { font-size: 0.78rem; color: var(--muted); }
+.center { text-align: center; }
+.rmdetail h3 { font-size: 1.1rem; }
+.rmprog { display: flex; align-items: center; gap: 10px; } .rmprog .rmbar { flex: 1; height: 6px; }
+.rmlessons { margin: 0; padding-left: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 14px; font-size: 0.84rem; counter-reset: l; }
+.rmlessons li { display: flex; gap: 8px; align-items: baseline; }
+.rmlessons li::before { counter-increment: l; content: counter(l); width: 18px; height: 18px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 0.68rem; background: var(--surface-2); color: var(--muted); }
+.rmlessons li.ok::before { content: "✓"; background: var(--ok); color: var(--go-ink); }
+.rmdetail .row { gap: 6px; }
+.topicchip.ok { background: var(--ok-soft); color: var(--ok); }
 .rmboard { position: relative; border: 1px solid var(--line); border-radius: var(--radius); background-color: var(--surface); background-image: radial-gradient(var(--line) 1px, transparent 1px); background-size: 18px 18px; overflow: hidden; }
 .rmtools { position: absolute; top: 12px; left: 12px; z-index: 2; display: flex; flex-direction: column; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 4px; box-shadow: var(--shadow-sm); }
 .rmtools .iconbtn { border: 0; background: none; width: 30px; height: 30px; }
 .rmtools .iconbtn:hover { background: var(--surface-2); }
-.rmscroll { overflow: auto; max-height: 78vh; }
-.rmstage { position: relative; padding: 24px; box-sizing: content-box; }
-.rminner { position: relative; width: 1000px; height: 1200px; transform-origin: 0 0; }
-.rmstage { width: auto; }
+.rmhint { position: absolute; top: 14px; right: 14px; z-index: 2; font-size: 0.74rem; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; }
+.rmscroll { position: relative; height: min(78vh, 760px); overflow: hidden; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.rmscroll.grabbing { cursor: grabbing; }
+.rminner { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
 .rmlines { position: absolute; inset: 0; overflow: visible; }
 .rmlines path { fill: none; stroke: var(--line); stroke-width: 1.6; }
 .rmlines path.lit { stroke: var(--accent-line); stroke-width: 2; }
-.rmnode { position: absolute; width: 176px; height: 58px; display: flex; flex-direction: column; justify-content: center; gap: 7px; padding: 8px 12px; text-align: center; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; box-shadow: var(--shadow-sm); transition: border-color .15s, box-shadow .15s, transform .15s; }
-.rmnode:hover { border-color: var(--accent-line); transform: translateY(-1px); box-shadow: var(--shadow); }
+.rmnode { position: absolute; width: 176px; height: 58px; display: flex; flex-direction: column; justify-content: center; gap: 7px; padding: 8px 12px; text-align: center; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; box-shadow: var(--shadow-sm); transition: border-color .15s, box-shadow .15s; }
+.rmnode:hover { border-color: var(--accent-line); box-shadow: var(--shadow); }
+.grabbing .rmnode { cursor: grabbing; }
 .rmt { font-size: 0.74rem; font-weight: 600; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .rmbar { display: block; height: 3px; border-radius: 3px; background: repeating-linear-gradient(90deg, var(--line) 0 6px, transparent 6px 9px); overflow: hidden; }
 .rmbar i { display: block; height: 100%; background: var(--accent); }
@@ -866,28 +882,14 @@ code, pre, .code-editor, .editor, .hcode, .mono { font-variant-ligatures: none; 
 .rmnode.sel { outline: 2px solid var(--ink); outline-offset: 2px; }
 .rmlegend { display: flex; flex-wrap: wrap; gap: 14px; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--surface); font-size: 0.76rem; color: var(--muted); }
 .rmlegend span { display: inline-flex; align-items: center; gap: 6px; }
+.rmzoom { margin-left: auto; }
 .lg { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--line); background: var(--surface); }
 .lg.c { border-color: color-mix(in srgb, #2563EB 40%, var(--line)); background: color-mix(in srgb, #2563EB 10%, var(--surface)); }
 .lg.r { border-color: color-mix(in srgb, #B45309 40%, var(--line)); background: color-mix(in srgb, #B45309 10%, var(--surface)); }
 .lg.done { border-color: var(--ok); background: var(--ok-soft); }
-.rmside { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); position: sticky; top: 92px; }
-.rmside > section { padding: 18px 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
-.rmside > section:first-child { border-top: 0; }
-.rmside h3 { font-size: 1rem; }
-.rmwho { margin: 0; padding-left: 18px; color: var(--muted); font-size: 0.86rem; display: flex; flex-direction: column; gap: 6px; }
-.rmgauge { position: relative; width: 132px; height: 132px; margin: 0 auto; }
-.rmgauge .ringlabel { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
-.rmgauge b { font-size: 2rem; color: var(--accent); } .rmgauge span { font-size: 0.78rem; color: var(--muted); }
-.center { text-align: center; }
-.rmprog { display: flex; align-items: center; gap: 10px; } .rmprog .rmbar { flex: 1; height: 6px; }
-.rmlessons { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 0.84rem; counter-reset: l; }
-.rmlessons li { display: flex; gap: 8px; align-items: baseline; }
-.rmlessons li::before { counter-increment: l; content: counter(l); width: 18px; height: 18px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 0.68rem; background: var(--surface-2); color: var(--muted); }
-.rmlessons li.ok::before { content: "✓"; background: var(--ok); color: var(--go-ink); }
-.rmdetail .row { gap: 6px; }
-.topicchip.ok { background: var(--ok-soft); color: var(--ok); }
 .stagesh { margin-top: 18px; }
-@media (max-width: 1000px) { .rmwrap { grid-template-columns: 1fr; } .rmside { position: static; } .rmscroll { max-height: 64vh; } }
+@media (max-width: 1100px) { .rmtop { grid-template-columns: 1fr 200px; } .rmdetail { grid-column: 1 / -1; } }
+@media (max-width: 640px) { .rmtop { grid-template-columns: 1fr; } .rmscroll { height: 62vh; } .rmhint { display: none; } }
 
 /* Dark mode: the tokens switch in :root[data-theme="dark"]; these are the few hand-picked light colors */
 :root[data-theme="dark"] { color-scheme: dark; }
@@ -903,7 +905,6 @@ code, pre, .code-editor, .editor, .hcode, .mono { font-variant-ligatures: none; 
 :root[data-theme="dark"] .coav, :root[data-theme="dark"] .pfav { background: #ECEFE8; color: #0F120F; }
 :root[data-theme="dark"] .bit.on { background: #ECEFE8; color: #0F120F; }
 :root[data-theme="dark"] #authpage { background: var(--bg); }
-.rmstage { padding-left: 70px; }
 
 </style>
 </head>
@@ -4666,7 +4667,7 @@ function render(){
 // ---------- Quest map ----------
 function viewQuest(){
   const done = UNITS.filter(U => unitPassed(U.id)).length, nu = nextUnit();
-  if (!ui.rm) ui.rm = {sel:'u' + (nu ? nu.id : 1), z:1, fit:true};
+  if (!ui.rm) ui.rm = {sel:'u' + (nu ? nu.id : 1), z:1, tx:60, ty:24, fit:true};
   let html = `<section class="pagehead"><p class="eyebrow">VLSI roadmap</p><h1>The <em>VLSI</em> roadmap</h1>
     <p class="muted">Everything you need to know to apply for VLSI roles, in the order to learn it: ${UNITS.length} theory quests from a single wire to a GPU, the hands-on coding tracks, and the role each path leads to. ${done}/${UNITS.length} quests passed.</p>
     ${nu ? `<div class="row"><button type="button" class="btn primary" data-act="open-unit" data-u="${nu.id}">${cardsDone(nu) ? 'Continue' : 'Start'}: Quest ${nu.id} · ${esc(nu.title)}</button></div>` : '<p><b>Every stage is complete.</b> Keep practicing in Theory and Coding.</p>'}</section>
@@ -5855,26 +5856,73 @@ function rmPanelHTML(){
   return `<p class="eyebrow">${esc(I.kind)}</p><h3>${esc(I.title)}</h3><div class="rmprog"><span class="rmbar"><i style="width:${Math.round(I.frac * 100)}%"></i></span><span class="mono small">${Math.round(I.frac * 100)}%</span></div>${body}<div class="row">${btn}</div>`;
 }
 function roadmapHTML(){
-  const done = UNITS.filter(U => unitPassed(U.id)).length, cs = codeSolvedIn(CODING);
-  const z = ui.rm.z;
-  return `<div class="rmwrap"><div class="rmboard"><div class="rmtools"><button type="button" class="iconbtn" data-act="rm-zoom" data-v="in" aria-label="Zoom in">+</button><button type="button" class="iconbtn" data-act="rm-zoom" data-v="out" aria-label="Zoom out">−</button><button type="button" class="iconbtn" data-act="rm-zoom" data-v="fit" aria-label="Fit to screen">⤢</button></div>
-      <div class="rmscroll" id="rmscroll"><div class="rmstage" style="width:${RM_W * z + 48}px;height:${RM_H * z + 48}px"><div class="rminner" style="transform:scale(${z})">${rmNodesHTML()}</div></div></div>
-      <div class="rmlegend"><span><i class="lg q"></i>Theory quest</span><span><i class="lg c"></i>Coding track</span><span><i class="lg r"></i>Role path</span><span><i class="lg done"></i>Done</span></div></div>
-    <aside class="rmside"><section><h3>Who is it for?</h3><ul class="rmwho"><li>Students aiming for VLSI and hardware internships or new-grad roles</li><li>Anyone new to hardware who wants one clear path</li><li>Engineers moving into ASIC design, verification or physical design</li><li>Candidates preparing for hardware OAs and interviews</li></ul></section>
-      <section><h3>Progress</h3><div class="rmgauge">${ring(done / UNITS.length, 132, 10, `${done} of ${UNITS.length} quests passed`)}<div class="ringlabel"><b>${done}</b><span>/${UNITS.length} quests</span></div></div><p class="muted small center">${cs}/${CODING.length} coding problems solved</p></section>
-      <section class="rmdetail" id="rmdetail">${rmPanelHTML()}</section></aside></div>`;
+  const done = UNITS.filter(U => unitPassed(U.id)).length, cs = codeSolvedIn(CODING), R = ui.rm;
+  return `<div class="rmtop">
+    <section class="card"><h3>Who is it for?</h3><ul class="rmwho"><li>Students aiming for VLSI and hardware internships or new-grad roles</li><li>Anyone new to hardware who wants one clear path</li><li>Engineers moving into ASIC design, verification or physical design</li><li>Candidates preparing for hardware OAs and interviews</li></ul></section>
+    <section class="card rmprogcard"><h3>Progress</h3><div class="rmgauge">${ring(done / UNITS.length, 120, 10, `${done} of ${UNITS.length} quests passed`)}<div class="ringlabel"><b>${done}</b><span>/${UNITS.length} quests</span></div></div><p class="muted small center">${cs}/${CODING.length} coding problems solved</p></section>
+    <section class="card rmdetail" id="rmdetail">${rmPanelHTML()}</section></div>
+  <div class="rmboard"><div class="rmtools"><button type="button" class="iconbtn" data-act="rm-zoom" data-v="in" aria-label="Zoom in">+</button><button type="button" class="iconbtn" data-act="rm-zoom" data-v="out" aria-label="Zoom out">−</button><button type="button" class="iconbtn" data-act="rm-zoom" data-v="fit" aria-label="Fit to screen">⤢</button></div>
+    <span class="rmhint">Drag to move · scroll or pinch to zoom · click a topic for details</span>
+    <div class="rmscroll" id="rmscroll"><div class="rminner" style="width:${RM_W}px;height:${RM_H}px;transform:translate(${R.tx}px, ${R.ty}px) scale(${R.z})">${rmNodesHTML()}</div></div>
+    <div class="rmlegend"><span><i class="lg q"></i>Theory quest</span><span><i class="lg c"></i>Coding track</span><span><i class="lg r"></i>Role path</span><span><i class="lg done"></i>Done</span><span class="rmzoom mono" id="rmzoom">${Math.round(R.z * 100)}%</span></div></div>`;
 }
 function rmRefreshSel(){
   document.querySelectorAll('.rmnode').forEach(b => b.classList.toggle('sel', b.dataset.v === ui.rm.sel));
   const d = $('#rmdetail'); if (d) d.innerHTML = rmPanelHTML();
 }
-function rmZoom(v){
-  const sc = $('#rmscroll');
-  if (v === 'fit') ui.rm.z = sc ? Math.max(0.45, Math.min(1, (sc.clientWidth - 100) / RM_W)) : 1;
-  else ui.rm.z = Math.max(0.45, Math.min(1.6, ui.rm.z + (v === 'in' ? 0.15 : -0.15)));
-  const st = $('.rmstage'), inn = $('.rminner');
-  if (st) { st.style.width = (RM_W * ui.rm.z + 48) + 'px'; st.style.height = (RM_H * ui.rm.z + 48) + 'px'; inn.style.transform = `scale(${ui.rm.z})`; }
+// The map is a canvas: ui.rm holds its zoom (z) and offset (tx, ty) in pixels.
+function rmApply(){
+  const inn = $('.rminner'); if (!inn) return;
+  inn.style.transform = `translate(${ui.rm.tx}px, ${ui.rm.ty}px) scale(${ui.rm.z})`;
+  const z = $('#rmzoom'); if (z) z.textContent = Math.round(ui.rm.z * 100) + '%';
 }
+// Zooms by factor f around a point (px, py) inside the canvas, so that point stays put.
+function rmZoomAt(f, px, py){
+  const R = ui.rm, z = Math.max(0.3, Math.min(2.2, R.z * f)), k = z / R.z;
+  R.tx = px - (px - R.tx) * k; R.ty = py - (py - R.ty) * k; R.z = z;
+  rmApply();
+}
+function rmZoom(v){
+  const sc = $('#rmscroll'); if (!sc) return;
+  const w = sc.clientWidth, h = sc.clientHeight;
+  if (v === 'fit') {
+    const R = ui.rm;
+    R.z = Math.max(0.3, Math.min(0.9, (w - 120) / RM_W));
+    R.tx = Math.max(60, (w - RM_W * R.z) / 2); R.ty = 24;
+    rmApply();
+  } else rmZoomAt(v === 'in' ? 1.2 : 1 / 1.2, w / 2, h / 2);
+}
+// Drag to pan, wheel or trackpad pinch to zoom, two-finger pinch on touch screens.
+const rmPtr = {pts:new Map(), moved:0, last:null, dist:0, dragged:false};
+document.addEventListener('pointerdown', e => {
+  const sc = e.target.closest('#rmscroll'); if (!sc || e.button > 0) return;
+  rmPtr.pts.set(e.pointerId, {x:e.clientX, y:e.clientY}); rmPtr.moved = 0; rmPtr.dragged = false;
+  if (rmPtr.pts.size === 2) { const [p, q] = [...rmPtr.pts.values()]; rmPtr.dist = Math.hypot(p.x - q.x, p.y - q.y); }
+  sc.classList.add('grabbing');
+});
+document.addEventListener('pointermove', e => {
+  if (!rmPtr.pts.has(e.pointerId)) return;
+  const sc = $('#rmscroll'); if (!sc) { rmPtr.pts.clear(); return; }
+  const prev = rmPtr.pts.get(e.pointerId), dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+  rmPtr.pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if (rmPtr.pts.size === 2) {
+    const [p, q] = [...rmPtr.pts.values()], d = Math.hypot(p.x - q.x, p.y - q.y), r = sc.getBoundingClientRect();
+    if (rmPtr.dist) rmZoomAt(d / rmPtr.dist, (p.x + q.x) / 2 - r.left, (p.y + q.y) / 2 - r.top);
+    rmPtr.dist = d; rmPtr.dragged = true; return;
+  }
+  rmPtr.moved += Math.abs(dx) + Math.abs(dy);
+  if (rmPtr.moved > 4) { rmPtr.dragged = true; ui.rm.tx += dx; ui.rm.ty += dy; rmApply(); }
+});
+const rmUp = e => { if (!rmPtr.pts.delete(e.pointerId)) return; rmPtr.dist = 0; if (!rmPtr.pts.size) { const sc = $('#rmscroll'); if (sc) sc.classList.remove('grabbing'); } };
+document.addEventListener('pointerup', rmUp);
+document.addEventListener('pointercancel', rmUp);
+document.addEventListener('wheel', e => {
+  const sc = e.target.closest && e.target.closest('#rmscroll'); if (!sc) return;
+  e.preventDefault();
+  const r = sc.getBoundingClientRect();
+  if (e.ctrlKey || e.metaKey || Math.abs(e.deltaY) >= Math.abs(e.deltaX)) rmZoomAt(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), e.clientX - r.left, e.clientY - r.top);
+  else { ui.rm.tx -= e.deltaX; rmApply(); }
+}, {passive:false});
 
 // ---------- events ----------
 document.addEventListener('click', e => {
@@ -5895,6 +5943,7 @@ document.addEventListener('click', e => {
     return;
   }
   const a = e.target.closest('[data-act]');
+  if (a && a.dataset.act === 'rm-sel' && a.closest('#rmscroll') && rmPtr.dragged) { rmPtr.dragged = false; return; }   // that was a drag, not a click
   if (a && !a.disabled) { e.preventDefault(); act(a); return; }
   const co = e.target.closest('[data-copen]');
   if (co) {
