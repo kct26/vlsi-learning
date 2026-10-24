@@ -1,0 +1,97 @@
+\chapter{Preface}
+
+\section*{Who this book is for}
+
+This book is for someone who wants to work on computer hardware and is starting from nothing. It assumes you know high-school algebra and can read a simple program. It does \emph{not} assume you know what a voltage is, what a transistor does, or why a chip gets hot. Every idea is built from the one before it.
+
+It was written for one specific goal: passing the hardware online assessment for NVIDIA's Ignite program, a 12-week summer internship for first- and second-year university students. But the content is the standard foundation every hardware engineer learns, so it will serve you well in your courses and in any hardware interview.
+
+\section*{Why the assessment felt like a different subject}
+
+Many students prepare for hardware assessments by practicing Verilog on sites like HDLBits. That is useful, but the Ignite hardware assessment mostly tests \emph{theory}: why circuits behave the way they do. Questions like these have appeared:
+
+\begin{itemize}
+  \item What is one advantage of a flip-flop over a latch?
+  \item How do you build an OR gate out of a 2:1 multiplexer?
+  \item If you swap the transistors in an inverter so the NMOS connects to the supply and the PMOS to ground, how does the circuit behave?
+  \item If the clock frequency doubles and the supply voltage doubles, what happens to dynamic power?
+  \item When temperature rises, what happens to transistor carrier mobility and to wire resistance?
+  \item True or false: for the antenna rule, as long as the metal wire is safe, a small connected transistor is good.
+\end{itemize}
+
+None of these needs code. Each one needs one idea, understood well enough to apply to a small twist. This book teaches those ideas from the beginning.
+
+\section*{What the assessment looks like}
+
+NVIDIA does not publish the format, and it changes between years and teams. The picture below comes from candidate reports on Glassdoor and interview-preparation sites (see Appendix~\ref{app:sources}). Treat it as a guide, not a promise.
+
+\begin{itemize}
+  \item \textbf{Platform:} HackerRank, with webcam and screen recording. The link is usually open for about 48 hours; once started, the timer runs roughly 45 to 90 minutes.
+  \item \textbf{Coding:} one or two easy coding problems. Reported examples include a linked-list problem, bit-manipulation problems (checking whether two addresses are on the same 4\,KB page, building a bit mask), and an XOR-of-subarrays problem.
+  \item \textbf{Hardware multiple choice and true/false:} reported topics include transistors, circuits, heat sinks, ground (GND) connections, FIFOs, timing diagrams, the output of short code snippets, and every question in the list above. One hardware intern reported 15 questions in 50 minutes. Some tracks use negative marking, so a wrong guess can cost points.
+  \item \textbf{After the assessment:} reported interviews ask you to build gates and flip-flops out of multiplexers, list the stages of a five-stage processor pipeline, design clock dividers, and reason about setup and hold timing.
+\end{itemize}
+
+\section*{How the reported topics map to this book}
+
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X l}
+\toprule
+\textbf{Reported topic} & \textbf{Where it is taught} \\
+\midrule
+Voltage, current, resistance, ground connections & Chapter~\ref{ch:electricity} \\
+Capacitors, decoupling, signal reflections & Chapter~\ref{ch:capind} \\
+Heat sinks and cooling & Chapter~\ref{ch:heat} \\
+Carrier mobility and temperature & Chapters~\ref{ch:semis} and~\ref{ch:pvt} \\
+Transistors, strong and weak 0 and 1, sizing & Chapter~\ref{ch:mosfet} \\
+Inverters, the swapped inverter, NAND and NOR & Chapter~\ref{ch:cmos} \\
+Gates built from multiplexers, XOR chains & Chapter~\ref{ch:comb} \\
+Latches versus flip-flops, flip-flops from multiplexers & Chapter~\ref{ch:latch} \\
+Setup, hold, timing diagrams, maximum frequency & Chapter~\ref{ch:timing} \\
+Clock dividers, counters, state machines & Chapter~\ref{ch:fsm} \\
+Gate and wire delay & Chapter~\ref{ch:delay} \\
+Dynamic power scaling, power gating & Chapter~\ref{ch:power} \\
+Wire resistance, crosstalk, bandwidth & Chapter~\ref{ch:wires} \\
+Antenna rule, electromigration, latch-up & Chapter~\ref{ch:fab} \\
+SRAM and DRAM & Chapter~\ref{ch:memory} \\
+FIFOs, clock-domain crossing, Verilog, verification & Chapter~\ref{ch:rtl} \\
+Pipelines, caches, memory access time & Chapter~\ref{ch:arch} \\
+GPUs and number formats & Chapter~\ref{ch:gpu} \\
+Computer arithmetic (named in the job posting) & Chapter~\ref{ch:arith} \\
+Linked lists, bit manipulation, C output questions & Chapter~\ref{ch:prog} \\
+Aptitude and puzzles & Chapter~\ref{ch:aptitude} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section*{How to read this book}
+
+Read the chapters in order. Each one builds on the last: you cannot understand why an inverter swapped upside down misbehaves (Chapter~\ref{ch:cmos}) until you understand why a transistor passes a ``weak 1'' (Chapter~\ref{ch:mosfet}), and that rests on how a transistor's channel forms (Chapter~\ref{ch:semis}).
+
+Throughout the book you will see these boxes:
+
+\begin{bigidea}
+The one sentence to remember from a section. If you forget everything else, keep this.
+\end{bigidea}
+
+\begin{everyday}
+A comparison to something you already know, such as water in pipes, to build intuition before the math.
+\end{everyday}
+
+\begin{worked}{a calculation}
+A problem solved step by step, in the style of the assessment.
+\end{worked}
+
+\begin{trap}
+A twist that assessment questions like to use to catch people who memorized instead of understood.
+\end{trap}
+
+\begin{onoa}
+A topic or question that candidates have reported seeing on the NVIDIA assessment or in its interviews.
+\end{onoa}
+
+Every chapter ends with exercises and their answers. Try each exercise before reading the answer; the struggle is where the learning happens. Chapter~\ref{ch:exam} is a full practice assessment, Appendix~\ref{app:plan} lays out a twelve-month plan to be ready for the next application cycle, and Appendix~\ref{app:projects} lists what to learn beyond this book and the projects that make an application stand out.
+
+\section*{A note on honesty}
+
+The reported questions come from anonymous candidate reports, and some come from other NVIDIA hardware roles rather than Ignite itself. Where a reported question depended on a diagram that was never published, this book teaches the method for that \emph{kind} of question with its own example rather than pretending to know the original. The safest preparation is not memorizing past questions; it is understanding the ideas well enough that a new twist does not scare you.

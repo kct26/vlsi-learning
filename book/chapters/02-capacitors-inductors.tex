@@ -1,0 +1,283 @@
+\chapter{Capacitors, Inductors and the Role of Time}
+\label{ch:capind}
+
+Resistors respond instantly: change the voltage and the current changes at the same moment. Real circuits also contain components that \emph{store energy}, and stored energy takes time to fill and to drain. Those components, capacitors and inductors, are the reason every signal in a chip takes time to switch, the reason chips need dozens of small capacitors around them, and the reason fast signals on a circuit board can bounce like waves. This chapter explains all three.
+
+\section{The capacitor}
+
+A \term{capacitor} is two conductors (``plates'') separated by a thin insulator. Connect it to a voltage and charge flows onto the plates: positive charge piles up on one plate and an equal negative charge on the other. The insulator stops charge from crossing, so the charge stays there, held by the attraction between the plates.
+
+The amount of charge stored is proportional to the voltage across the capacitor:
+\[
+  \boxed{Q = C V}
+\]
+The constant $C$ is the \term{capacitance}, measured in \term{farads} (F). A farad is enormous; real values are written with prefixes:
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Prefix & Value & Typical example \\
+\midrule
+femtofarad (fF) & $10^{-15}$\,F & the gate of one small transistor \\
+picofarad (pF) & $10^{-12}$\,F & a long on-chip wire, an I/O pin \\
+nanofarad (nF) & $10^{-9}$\,F & a small ceramic capacitor on a board \\
+microfarad ($\mu$F) & $10^{-6}$\,F & a typical board-level decoupling capacitor \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+For two flat plates of area $A$ separated by a gap $d$ filled with an insulator of permittivity $\varepsilon$,
+\[
+  C = \varepsilon \frac{A}{d}.
+\]
+Bigger plates hold more charge; a thinner gap holds more charge because the plates attract each other more strongly.
+
+\begin{bigidea}
+Every wire and every transistor gate in a chip \emph{is} a capacitor, whether we want it or not. A wire running next to another wire, or above the silicon, forms plates separated by insulation. A transistor's gate sits on a very thin insulator above the silicon. So every time a signal switches, some capacitance must be charged or discharged. That takes time (delay) and energy (power). Most of Chapters~\ref{ch:delay} and~\ref{ch:power} follow from this sentence.
+\end{bigidea}
+
+\begin{everyday}
+A capacitor is like a water tank. The water level is the voltage; the amount of water is the charge. A wide tank (large capacitance) needs a lot of water to raise its level a little. Filling a tank through a pipe takes time, and the narrower the pipe (larger resistance), the longer it takes.
+\end{everyday}
+
+\section{Current into a capacitor}
+
+Since $Q = CV$, changing the voltage requires moving charge, which is a current:
+\[
+  \boxed{I = C\,\frac{dV}{dt}}
+\]
+In words: the current into a capacitor equals its capacitance times how fast its voltage is changing. Two consequences:
+
+\begin{itemize}
+  \item A capacitor's voltage \emph{cannot change instantly}. An instant change would need infinite current. Voltage across a capacitor always changes smoothly.
+  \item When the voltage is steady, no current flows into the capacitor. At DC, a capacitor acts like an open circuit.
+\end{itemize}
+
+\section{Energy stored in a capacitor}
+
+A charged capacitor holds energy:
+\[
+  \boxed{E = \tfrac{1}{2} C V^2}
+\]
+The square on $V$ is important. Doubling the voltage stores four times the energy. This is why the power a chip burns when it switches grows with the \emph{square} of the supply voltage (Chapter~\ref{ch:power}).
+
+\section{Charging through a resistor: the RC time constant}
+\label{sec:rc}
+
+Connect a capacitor, initially at 0\,V, through a resistor $R$ to a voltage $V_s$ (Figure~\ref{fig:rc}).
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (0,0) to[battery1, l=$V_s$] (0,2.4) to[R, l=$R$, i=$I$] (3,2.4) to[C, l=$C$, v^=$V_C$] (3,0) -- (0,0);
+  \draw (0,0) node[ground]{};
+\end{circuitikz}
+\hspace{1cm}
+\begin{tikzpicture}[scale=0.9]
+  \draw[->] (0,0) -- (6.2,0) node[right]{$t$};
+  \draw[->] (0,0) -- (0,3.2) node[above]{$V_C$};
+  \draw[dashed] (0,2.6) node[left]{$V_s$} -- (6,2.6);
+  \draw[thick,blue!60!black,domain=0:6,samples=60] plot (\x,{2.6*(1-exp(-\x))});
+  \draw[dotted] (1,0) node[below]{$\tau$} -- (1,{2.6*(1-exp(-1))}) -- (0,{2.6*(1-exp(-1))}) node[left]{$0.63V_s$};
+  \draw[dotted] (0.69,0) -- (0.69,1.3) -- (0,1.3) node[left]{$0.5V_s$};
+  \node[below] at (0.6,-0.3) {\scriptsize $0.69\tau$};
+\end{tikzpicture}
+\caption{Charging a capacitor through a resistor. The voltage rises quickly at first, then slows as it approaches $V_s$.}
+\label{fig:rc}
+\end{figure}
+
+At the first instant the capacitor is at 0\,V, so the full $V_s$ appears across the resistor and current is large: $I = V_s/R$. As the capacitor charges, its voltage rises, the voltage left across the resistor shrinks, and the current falls. Charging slows down as it goes. The result is an exponential curve:
+\[
+  V_C(t) = V_s\left(1 - e^{-t/RC}\right).
+\]
+The product $\tau = RC$ is the \term{time constant} (ohms times farads gives seconds). These checkpoints are worth memorizing:
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Time & Capacitor voltage \\
+\midrule
+$0.69\,RC$ & 50\% of final value \\
+$1\,RC$ & 63\% \\
+$2.2\,RC$ & time to go from 10\% to 90\% (the ``rise time'') \\
+$3\,RC$ & 95\% \\
+$5\,RC$ & over 99\% (``fully'' charged) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Discharging works the same way in reverse: a capacitor at $V_0$ discharging through $R$ follows $V_C(t) = V_0 e^{-t/RC}$ and reaches half its starting voltage after $0.69\,RC$.
+
+\begin{worked}{an on-chip RC delay}
+A transistor that behaves like a 2\,k$\Omega$ resistor drives a wire with 50\,fF of capacitance. How long until the wire reaches half the supply voltage?
+
+$\tau = RC = 2000 \times 50\times10^{-15} = 10^{-10}$\,s $= 100$\,ps. Half-voltage takes $0.69\,\tau \approx 69$\,ps.
+\end{worked}
+
+This little calculation is the heart of all delay estimates in chip design: a transistor is a resistor, the thing it drives is a capacitor, and the delay is about $0.69\,RC$.
+
+\section{Capacitors in series and parallel}
+
+Capacitors combine the \emph{opposite} way from resistors:
+\begin{itemize}
+  \item \textbf{Parallel capacitors add}: $C = C_1 + C_2$. Side by side, they act like one capacitor with more plate area.
+  \item \textbf{Series capacitors combine like parallel resistors}: $1/C = 1/C_1 + 1/C_2$. In series, the gap effectively gets wider, so capacitance falls.
+\end{itemize}
+
+\section{The inductor}
+
+An \term{inductor} is usually a coil of wire. Current through it creates a magnetic field, and the field stores energy. Changing the current means changing the field, and the inductor fights that change by producing a voltage:
+\[
+  \boxed{V = L\,\frac{dI}{dt}}
+\]
+$L$ is the \term{inductance}, measured in \term{henries} (H). Practical values are nanohenries (nH) to microhenries ($\mu$H). The stored energy is $E = \tfrac12 L I^2$.
+
+\begin{everyday}
+An inductor is like a heavy water wheel in a pipe. Once water is moving, the wheel's momentum keeps it moving; to speed the flow up or slow it down quickly, you have to push hard. A capacitor resists sudden changes in \emph{voltage}; an inductor resists sudden changes in \emph{current}.
+\end{everyday}
+
+\paragraph{Every wire has inductance.} Coils are not the only inductors. Any loop of current, including the path from a power supply to a chip and back through ground, has some inductance. A rule of thumb is roughly 1\,nH per millimeter of a thin wire, such as the bond wires inside an older chip package. Small numbers, but chips change their current very fast.
+
+\begin{worked}{why fast current changes are dangerous}
+The power path into a chip package has an effective inductance of 10\,pH ($10 \times 10^{-12}$\,H). The chip's current jumps by 50\,A in 10\,ns when a big block starts working. What voltage appears across that inductance?
+\[
+  V = L\frac{dI}{dt} = 10\times10^{-12} \times \frac{50}{10\times10^{-9}} = 0.05~\text{V}.
+\]
+On a 0.8\,V supply, a 50\,mV dip is over 6\%. Faster current changes, or more inductance, make it worse. This dip is called \term{supply droop} or $L\,di/dt$ noise.
+\end{worked}
+
+\section{Decoupling capacitors}
+\label{sec:decap}
+
+Look at any graphics card or motherboard near the processor and you will see dozens or hundreds of tiny capacitors. They are \term{decoupling capacitors} (``decaps''), and they solve the problem in the last example.
+
+\paragraph{The problem.} The voltage regulator that powers a chip is centimeters away. Between them sit board traces, connectors, package pins and solder balls, all with resistance and inductance. When the chip's current demand suddenly jumps, the inductance prevents the regulator's current from arriving quickly ($V = L\,dI/dt$). For a short time the chip is starved and its supply voltage dips.
+
+\paragraph{The solution.} Put a capacitor right next to the chip's power pins, between the supply and ground. It is a small reservoir of charge, already charged to the supply voltage. When the chip suddenly needs current, the capacitor supplies it from just millimeters away, through very little inductance, while the far-away regulator catches up.
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (0,0) to[battery1, l=regulator] (0,2.6) to[L, l=$L_{\text{path}}$] (3,2.6) to[R, l=$R_{\text{path}}$] (5.5,2.6) -- (7.2,2.6);
+  \draw (5.5,2.6) to[C, l_=decap, *-*] (5.5,0);
+  \draw (6.6,0.4) rectangle (7.8,2.2); \node at (7.2,1.3) {chip};
+  \draw (7.2,2.6) -- (7.2,2.2);
+  \draw (7.2,0.4) -- (7.2,0) -- (0,0);
+  \draw (0,0) node[ground]{};
+\end{circuitikz}
+\caption{A decoupling capacitor next to the chip supplies sudden bursts of current that cannot get through the inductance of the long path from the regulator.}
+\end{figure}
+
+\paragraph{Why it must be close.} The capacitor only helps if \emph{its own} path to the chip has little inductance. Every millimeter of trace between the capacitor and the pin adds inductance and undoes the benefit. Real capacitors also have a little built-in inductance, called \term{ESL} (equivalent series inductance), and resistance, \term{ESR} (equivalent series resistance). Smaller capacitor packages have lower ESL.
+
+\paragraph{Why several sizes.} Different capacitors handle different speeds of change, so designs use a ladder of them:
+\begin{itemize}
+  \item \textbf{Bulk capacitors} (tens to hundreds of $\mu$F) store lots of charge but have higher inductance. They cover slow changes over microseconds.
+  \item \textbf{Ceramic capacitors near the chip} (roughly 0.1 to 10\,$\mu$F, in tiny packages) cover faster changes.
+  \item \textbf{Capacitors inside the package and on the die itself} (on-die decap, made from transistor gates or metal layers) cover the fastest changes, within nanoseconds, because they are closest of all.
+\end{itemize}
+
+\begin{onoa}
+A reported style of question asks which decoupling arrangement ``better supports rapid changes in current, and why.'' The answer to reason toward: for \emph{fast} changes, what matters is low inductance in the path, so a small, low-ESL capacitor placed as close as possible to the power pins beats a large capacitor far away. A large capacitor stores more total charge, but it cannot deliver it quickly through the inductance of a long path. Large capacitors help with slow, sustained changes.
+\end{onoa}
+
+\section{How capacitors and inductors respond to frequency}
+
+Because a capacitor's current depends on how fast voltage changes, its effect depends on frequency. For a sine wave of frequency $f$, the capacitor's opposition to current, its \term{reactance}, is
+\[
+  X_C = \frac{1}{2\pi f C}.
+\]
+At DC ($f = 0$) this is infinite: a capacitor blocks steady current. At high frequency it becomes small: a capacitor passes fast changes. An inductor does the opposite, $X_L = 2\pi f L$: it passes DC and blocks fast changes.
+
+A resistor followed by a capacitor to ground is a \term{low-pass filter}. Slow signals pass through unchanged; fast signals are smoothed away because the capacitor cannot charge and discharge fast enough to follow them. The boundary is the \term{cutoff frequency}
+\[
+  f_c = \frac{1}{2\pi R C}.
+\]
+Every wire on a chip is a little low-pass filter, which is why signals sent over long wires get slow and rounded.
+
+\section{When wires become transmission lines}
+\label{sec:tline}
+
+So far we assumed a wire's voltage is the same everywhere along it. That is true when signals change slowly compared with the time a signal takes to travel down the wire. Signals do not travel instantly: on a circuit board they move at roughly half the speed of light, about 15\,cm per nanosecond. A signal that switches in 100\,ps has its edge spread over only about 1.5\,cm of board trace.
+
+When a wire is long compared with the distance a signal edge covers, the signal travels as a wave, and the wire must be treated as a \term{transmission line}. A transmission line has a \term{characteristic impedance} $Z_0$, set by its geometry and materials. Board traces are usually designed for 50\,$\Omega$ (or 100\,$\Omega$ for a differential pair).
+
+\paragraph{Reflections.} When a wave reaches the end of the line, some of it bounces back unless the load at the end matches $Z_0$. The fraction of the voltage that reflects is the \term{reflection coefficient}:
+\[
+  \boxed{\Gamma = \frac{Z_L - Z_0}{Z_L + Z_0}}
+\]
+
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{4.2cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}X}
+\toprule
+Load at the end & $\Gamma$ & What happens \\
+\midrule
+Matched, $Z_L = Z_0$ & 0 & no reflection; the ideal \\
+Open circuit, $Z_L = \infty$ & $+1$ & everything reflects, same polarity (voltage doubles at the end) \\
+Short circuit, $Z_L = 0$ & $-1$ & everything reflects, inverted \\
+$Z_L > Z_0$ & positive & partial reflection, same polarity \\
+$Z_L < Z_0$ & negative & partial reflection, inverted polarity \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{worked}{reflection from a mismatched load}
+A 50\,$\Omega$ trace ends in a 25\,$\Omega$ load. What fraction of an incoming voltage step reflects, and is it inverted?
+\[
+  \Gamma = \frac{25 - 50}{25 + 50} = \frac{-25}{75} = -\frac13.
+\]
+One third of the step reflects, and since $\Gamma$ is negative, the reflection is inverted. With a 150\,$\Omega$ load instead, $\Gamma = (150-50)/(150+50) = +0.5$: half reflects, same polarity.
+\end{worked}
+
+Reflections cause \term{ringing}: the signal overshoots and wobbles before settling, which can make a receiver see extra transitions. The cure is \term{termination}: adding resistors so the line sees a matched load at the end (parallel termination) or a matched source at the start (series termination).
+
+\section{Measuring fast signals: bandwidth}
+\label{sec:probe}
+
+A square wave is not as simple as it looks. Mathematically, a square wave of frequency $f$ is a sum of sine waves: one at $f$ (the \term{fundamental}), plus smaller ones at $3f$, $5f$, $7f$ and so on (the \term{odd harmonics}). The sharp corners come from those high harmonics.
+
+An oscilloscope and its probe can only follow signals up to their \term{bandwidth}; above it, they act like a low-pass filter. A useful rule links bandwidth to the fastest rise time an instrument can show:
+\[
+  t_{\text{rise}} \approx \frac{0.35}{\text{bandwidth}}.
+\]
+
+\begin{worked}{why a square wave looks like a sine wave}
+A 100\,MHz square wave is viewed with a 150\,MHz probe and scope. The fundamental (100\,MHz) passes, but the third harmonic (300\,MHz) and everything above it are filtered out. With only the fundamental left, the display shows something close to a 100\,MHz sine wave. The signal is fine; the measurement is too slow. To see the true edges you need roughly five times the signal frequency in bandwidth, or more.
+\end{worked}
+
+\section{Summary}
+
+\begin{itemize}
+  \item Capacitor: $Q = CV$, $I = C\,dV/dt$, energy $\tfrac12CV^2$. Its voltage cannot jump; it blocks DC.
+  \item Every wire and transistor gate is a capacitor, so switching costs time and energy.
+  \item RC charging: 50\% at $0.69RC$, 63\% at $RC$, essentially done at $5RC$.
+  \item Inductor: $V = L\,dI/dt$. It resists sudden current changes. Every current loop has some inductance.
+  \item Decoupling capacitors are local charge reservoirs. For fast current changes, low inductance (small and close) matters most; large capacitors handle slow changes.
+  \item Long, fast wires are transmission lines. Reflection coefficient $\Gamma = (Z_L - Z_0)/(Z_L + Z_0)$; negative means inverted.
+  \item Too little measurement bandwidth makes a square wave look like a sine wave.
+\end{itemize}
+
+\section{Exercises}
+
+\begin{enumerate}
+  \item A 10\,pF capacitor is charged to 1.2\,V. How much charge does it hold, and how much energy?
+  \item A 2\,k$\Omega$ resistance drives a 50\,fF load. Find the time constant and the time to reach 50\%.
+  \item Two 1\,$\mu$F capacitors are connected (a) in parallel and (b) in series. What is the total capacitance in each case?
+  \item A current through a 1\,nH inductance changes by 2\,A in 1\,ns. What voltage appears across it?
+  \item True or false: the voltage across a capacitor can change instantly if the current is large enough.
+  \item You can place either a 100\,$\mu$F capacitor 10\,cm from a chip or a 0.1\,$\mu$F capacitor right next to its power pins. Which better handles a sudden current step lasting a few nanoseconds? Why?
+  \item A 50\,$\Omega$ line drives a 150\,$\Omega$ load. Find the reflection coefficient. Is the reflection inverted?
+  \item A 200\,MHz clock looks like a sine wave on a 250\,MHz oscilloscope. Is the clock broken?
+\end{enumerate}
+
+\subsection*{Answers}
+\begin{enumerate}
+  \item $Q = CV = 10\times10^{-12}\times1.2 = 12$\,pC. $E = \tfrac12CV^2 = 0.5\times10\times10^{-12}\times1.44 = 7.2$\,pJ.
+  \item $\tau = 2000 \times 50\times10^{-15} = 100$\,ps. 50\% at $0.69\tau \approx 69$\,ps.
+  \item (a) 2\,$\mu$F. (b) 0.5\,$\mu$F.
+  \item $V = L\,dI/dt = 10^{-9} \times 2/10^{-9} = 2$\,V.
+  \item False. In any real circuit current is finite, so the voltage changes at a finite rate; it changes quickly with large current, but never instantly.
+  \item The small capacitor next to the pins. A fast current step is limited by inductance, and the capacitor that is 10\,cm away sits behind a lot of path inductance. The big capacitor helps only with slower, longer changes.
+  \item $\Gamma = (150-50)/(150+50) = 0.5$. Positive, so not inverted.
+  \item Probably not. The scope's bandwidth removes the third harmonic (600\,MHz) and above, so only the 200\,MHz fundamental is displayed, which is a sine wave. Use a faster scope and probe to judge the real edges.
+\end{enumerate}

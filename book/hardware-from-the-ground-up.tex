@@ -1,0 +1,89 @@
+\documentclass[11pt,openany]{book}
+\input{preamble}
+
+\title{\Huge\bfseries Hardware from the Ground Up\\[0.6em]
+  \Large\mdseries A beginner's book on circuits, chips and computer hardware,\\
+  written to prepare for the NVIDIA Ignite hardware assessment}
+\author{}
+\date{First edition, October 2026}
+
+\begin{document}
+
+\frontmatter
+\begin{titlepage}
+  \centering
+  \vspace*{3cm}
+  {\Huge\bfseries Hardware from the Ground Up\par}
+  \vspace{1.2em}
+  {\Large A beginner's book on circuits, chips and computer hardware\par}
+  \vspace{0.6em}
+  {\large Written to prepare for the NVIDIA Ignite hardware assessment\par}
+  \vfill
+  \begin{tikzpicture}[scale=0.9]
+    \draw[thick,rounded corners=2pt] (0,0) rectangle (4,4);
+    \foreach \i in {0.5,1,...,3.5} {
+      \draw (\i,4) -- (\i,4.4); \draw (\i,0) -- (\i,-0.4);
+      \draw (0,\i) -- (-0.4,\i); \draw (4,\i) -- (4.4,\i);}
+    \draw[fill=gray!15] (1,1) rectangle (3,3);
+    \node[font=\small\bfseries] at (2,2) {start here};
+  \end{tikzpicture}
+  \vfill
+  {\large First edition, October 2026\par}
+  \vspace{0.5em}
+  {\small An unofficial study book. It is not produced or endorsed by NVIDIA.\par}
+\end{titlepage}
+
+\include{chapters/00-preface}
+\tableofcontents
+
+\mainmatter
+
+\part{Electricity, from Zero}
+\include{chapters/01-electricity}
+\include{chapters/02-capacitors-inductors}
+\include{chapters/03-heat}
+
+\part{Semiconductors and Transistors}
+\include{chapters/04-semiconductors}
+\include{chapters/05-mosfet}
+\include{chapters/06-analog}
+
+\part{From Transistors to Logic}
+\include{chapters/07-binary-boolean}
+\include{chapters/08-cmos-gates}
+\include{chapters/09-combinational}
+
+\part{Memory and Time}
+\include{chapters/10-latches-flipflops}
+\include{chapters/11-timing}
+\include{chapters/12-counters-fsm}
+
+\part{Speed, Power and the Real World}
+\include{chapters/13-delay}
+\include{chapters/14-power}
+\include{chapters/15-pvt}
+
+\part{Building Real Chips}
+\include{chapters/16-interconnect}
+\include{chapters/17-manufacturing}
+\include{chapters/18-memory-circuits}
+
+\part{Digital Systems}
+\include{chapters/19-rtl-verilog}
+\include{chapters/20-architecture}
+\include{chapters/21-gpu}
+\include{chapters/22-arithmetic}
+
+\part{The Assessment}
+\include{chapters/23-programming}
+\include{chapters/24-aptitude}
+\include{chapters/25-practice-exam}
+
+\appendix
+\include{chapters/A-formulas}
+\include{chapters/B-glossary}
+\include{chapters/C-plan}
+\include{chapters/D-projects}
+\include{chapters/E-sources}
+
+\end{document}

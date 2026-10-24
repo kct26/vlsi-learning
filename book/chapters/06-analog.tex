@@ -1,0 +1,174 @@
+\chapter{A Short Tour of Analog Circuits}
+\label{ch:analog}
+
+Digital circuits treat voltages as just 0 or 1. Underneath, every voltage is a continuous, \term{analog} quantity, and some parts of every chip system must deal with it directly: the power supplies, the sensors, the converters between analog and digital, and the high-speed links between chips. Hardware assessments sometimes include a basic analog question, and the ideas here also deepen your understanding of transistors. This chapter is a short tour, not a full course.
+
+\section{The transistor as an amplifier}
+
+In Chapter~\ref{ch:mosfet} we used the transistor as a switch. Used differently, it is an \term{amplifier}: a small change in input voltage produces a large change in output voltage.
+
+In saturation, the drain current depends on the gate voltage. A small wiggle in $V_{GS}$ produces a wiggle in $I_D$. How much current change you get per volt of gate change is the \term{transconductance}:
+\[
+  g_m = \frac{\Delta I_D}{\Delta V_{GS}} = \mu C_{ox}\frac{W}{L}(V_{GS}-\Vt) = \frac{2 I_D}{V_{GS}-\Vt}.
+\]
+
+\paragraph{The common-source amplifier.} Connect a resistor $R_D$ from the supply to the drain, ground the source, apply the input to the gate, and take the output from the drain (Figure~\ref{fig:csamp}). The drain voltage is $V_{\text{out}} = \VDD - I_D R_D$. A small input change $\Delta V_{\text{in}}$ changes the current by $g_m\,\Delta V_{\text{in}}$, which changes the output by $-g_m R_D\,\Delta V_{\text{in}}$. The \term{voltage gain} is
+\[
+  \boxed{A_v = \frac{\Delta V_{\text{out}}}{\Delta V_{\text{in}}} = -g_m R_D}
+\]
+The minus sign means the output moves the opposite way from the input: raising the gate pulls more current, which drops more voltage across $R_D$, which lowers the output. (A CMOS inverter is a common-source amplifier with a PMOS in place of the resistor. That is why an inverter has high gain in the middle of its range, Chapter~\ref{ch:cmos}.)
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (0,0) node[nmos](n){};
+  \draw (n.S) node[ground]{};
+  \draw (n.D) to[R, l=$R_D$] ++(0,2) node[vdd]{$\VDD$};
+  \draw (n.D) to[short,-o] ++(1.2,0) node[right]{$V_{\text{out}}$};
+  \draw (n.G) to[short,-o] ++(-0.8,0) node[left]{$V_{\text{in}}$};
+\end{circuitikz}
+\caption{A common-source amplifier.}
+\label{fig:csamp}
+\end{figure}
+
+\begin{worked}{amplifier gain}
+An NMOS is biased at $I_D = 100~\mu$A with overdrive $V_{GS} - \Vt = 0.2$\,V, and $R_D = 10$\,k$\Omega$. Find the gain.
+\[
+  g_m = \frac{2 \times 100\,\mu\text{A}}{0.2\,\text{V}} = 1~\text{mA/V}, \qquad A_v = -g_m R_D = -10^{-3} \times 10^4 = -10.
+\]
+A 10\,mV wiggle at the input becomes a 100\,mV wiggle at the output, inverted.
+\end{worked}
+
+\section{The operational amplifier}
+
+An \term{operational amplifier}, or op-amp, is a packaged amplifier with two inputs, $V_+$ (non-inverting) and $V_-$ (inverting), and one output. Its output is the difference between the inputs multiplied by an enormous gain $A$, often $10^5$ or more:
+\[
+  V_{\text{out}} = A\,(V_+ - V_-).
+\]
+With such huge gain, an op-amp is almost always used with \term{negative feedback}: part of the output is fed back to the $V_-$ input. Then two ``golden rules'' let you analyze circuits in seconds:
+
+\begin{enumerate}
+  \item \textbf{No current flows into the inputs.}
+  \item \textbf{With negative feedback, the output adjusts itself until $V_+ = V_-$.} If they differ even slightly, the huge gain drives the output in the direction that removes the difference. (This is called a \term{virtual short}.)
+\end{enumerate}
+
+\paragraph{Inverting amplifier.} $V_+$ is grounded; the input drives $V_-$ through $R_{\text{in}}$; a feedback resistor $R_f$ connects the output back to $V_-$ (Figure~\ref{fig:opamps}, left). By rule 2, $V_- = V_+ = 0$. The current through $R_{\text{in}}$ is $V_{\text{in}}/R_{\text{in}}$; by rule 1, it all continues through $R_f$, so $V_{\text{out}} = 0 - R_f\,(V_{\text{in}}/R_{\text{in}})$:
+\[
+  \boxed{V_{\text{out}} = -\frac{R_f}{R_{\text{in}}}\,V_{\text{in}}}
+\]
+
+\paragraph{Non-inverting amplifier.} The input drives $V_+$ directly; $R_f$ and $R_g$ form a divider from the output to $V_-$ (Figure~\ref{fig:opamps}, right). By rule 2, $V_- = V_{\text{in}}$, and the divider gives $V_- = V_{\text{out}}\,R_g/(R_f+R_g)$:
+\[
+  \boxed{V_{\text{out}} = \left(1 + \frac{R_f}{R_g}\right) V_{\text{in}}}
+\]
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (0,0) node[op amp](A){};
+  \draw (A.-) to[R, l_=$R_{\text{in}}$, -o] ++(-2.2,0) node[left]{$V_{\text{in}}$};
+  \draw (A.+) -- ++(-0.4,0) node[ground]{};
+  \draw (A.-) -- ++(0,1.3) coordinate(fb) to[R, l=$R_f$] (fb -| A.out) -- (A.out);
+  \draw (A.out) to[short,-o] ++(0.8,0) node[right]{$V_{\text{out}}$};
+  \node at (0,-1.6) {inverting};
+\end{circuitikz}
+\hspace{0.6cm}
+\begin{circuitikz}
+  \draw (0,0) node[op amp, noinv input up](B){};
+  \draw (B.+) to[short,-o] ++(-1.2,0) node[left]{$V_{\text{in}}$};
+  \draw (B.-) -- ++(-0.5,0) coordinate(m) -- ++(0,-1.0) coordinate(k);
+  \draw (k) to[R, l_=$R_f$] (k -| B.out) -- (B.out);
+  \draw (k) to[R, l_=$R_g$] ++(0,-1.8) node[ground]{};
+  \draw (B.out) to[short,-o] ++(0.8,0) node[right]{$V_{\text{out}}$};
+  \node at (0.6,-3.6) {non-inverting};
+\end{circuitikz}
+\caption{The two basic op-amp amplifiers.}
+\label{fig:opamps}
+\end{figure}
+
+\paragraph{Voltage follower.} Connect the output straight to $V_-$ and drive $V_+$ with the input. The gain is exactly 1, so it seems useless, but it is not: the op-amp's input draws no current while its output can supply plenty. A follower lets a weak signal drive a heavy load without being dragged down. It is a \term{buffer}.
+
+\paragraph{Comparator.} With no feedback at all, the huge gain slams the output to its maximum if $V_+ > V_-$ and to its minimum if $V_+ < V_-$. The output is effectively a digital 1 or 0 answering ``which input is bigger?'' A comparator is a one-bit analog-to-digital converter.
+
+\section{The bipolar junction transistor, briefly}
+
+Before MOSFETs dominated, the main transistor was the \term{bipolar junction transistor} (BJT), made of three layers: n-p-n or p-n-p. Its terminals are the \term{base}, \term{collector} and \term{emitter}. In an NPN transistor:
+\begin{itemize}
+  \item it turns on when the base--emitter junction is forward biased, about $V_{BE} \approx 0.7$\,V;
+  \item a small base current controls a large collector current, $I_C = \beta I_B$, with $\beta$ typically around 100.
+\end{itemize}
+The key contrast: a MOSFET is \emph{voltage-controlled} and its gate draws no DC current; a BJT is \emph{current-controlled} and its base needs a steady current. BJTs are still used in some analog and radio circuits. For a CMOS designer they matter mostly because CMOS chips contain unwanted \emph{parasitic} BJTs that can cause latch-up (Chapter~\ref{ch:fab}).
+
+\section{Filters}
+
+A resistor and capacitor make a simple filter. With the capacitor to ground at the output, it is a \term{low-pass filter}: slow signals pass, fast ones are smoothed away. Swap the two components and it becomes a \term{high-pass filter}: fast changes pass, steady levels are blocked. Either way the boundary is the cutoff frequency
+\[
+  f_c = \frac{1}{2\pi R C}.
+\]
+
+\section{Converting between analog and digital}
+
+An \term{analog-to-digital converter} (ADC) measures a voltage and outputs a number. An $N$-bit ADC divides its input range into $2^N$ steps. The voltage of one step, the \term{least significant bit} (LSB) or \term{resolution}, is
+\[
+  \boxed{\text{LSB} = \frac{V_{\text{ref}}}{2^N}}
+\]
+where $V_{\text{ref}}$ is the full-scale range. (Some texts divide by $2^N - 1$ instead; for large $N$ the difference is tiny. Use whichever convention a question implies.)
+
+\begin{worked}{ADC resolution}
+A 12-bit ADC has a 3.3\,V range. What voltage change corresponds to one code step?
+\[
+  \frac{3.3}{2^{12}} = \frac{3.3}{4096} \approx 0.806~\text{mV}.
+\]
+A 10-bit ADC with a 1.024\,V range has exactly $1.024/1024 = 1$\,mV per step.
+\end{worked}
+
+\paragraph{Sampling.} An ADC measures at regular intervals, the \term{sampling rate}. To capture a signal faithfully, you must sample at more than twice its highest frequency, the \term{Nyquist rate}. Sampling too slowly causes \term{aliasing}: fast signals masquerade as slow ones. Audio CDs sample at 44.1\,kHz to capture sound up to about 20\,kHz.
+
+A \term{digital-to-analog converter} (DAC) does the reverse, turning numbers into voltages.
+
+\section{Power supplies}
+
+Chips need a precise, low supply voltage (around 1\,V), but power arrives at higher voltages (12\,V or more in a computer). Two kinds of circuit convert it.
+
+\begin{itemize}
+  \item A \term{linear regulator} (often an LDO, ``low-dropout'' regulator) acts like an automatically adjusted resistor in series with the load. It is simple and quiet, but it burns the voltage difference as heat. Its efficiency is about $V_{\text{out}}/V_{\text{in}}$.
+  \item A \term{switching regulator} (such as a \term{buck converter}) rapidly switches the input on and off and smooths the result with an inductor and capacitor. It wastes little power, typically 85--95\% efficient. GPUs are powered by multi-phase buck converters, called voltage regulator modules (VRMs), placed close to the chip.
+\end{itemize}
+
+\begin{worked}{why linear regulators waste power}
+An LDO converts 3.3\,V to 1.0\,V for a load drawing 2\,A. The same 2\,A flows through the regulator, which drops $3.3 - 1.0 = 2.3$\,V. Power wasted: $2.3 \times 2 = 4.6$\,W. Power delivered: $1.0 \times 2 = 2$\,W. Efficiency: $2/(2+4.6) \approx 30\%$, matching $V_{\text{out}}/V_{\text{in}} = 1.0/3.3$.
+\end{worked}
+
+\section{Summary}
+
+\begin{itemize}
+  \item A transistor in saturation amplifies: $g_m = 2I_D/(V_{GS}-\Vt)$; common-source gain $A_v = -g_m R_D$.
+  \item Op-amp golden rules (with negative feedback): no input current; $V_+ = V_-$.
+  \item Inverting gain $-R_f/R_{\text{in}}$; non-inverting gain $1 + R_f/R_g$; a follower is a unity-gain buffer; with no feedback an op-amp is a comparator.
+  \item BJTs are current-controlled ($I_C = \beta I_B$, $V_{BE} \approx 0.7$\,V); MOSFETs are voltage-controlled.
+  \item ADC step size $= V_{\text{ref}}/2^N$. Sample at more than twice the highest frequency.
+  \item Linear regulators are simple but waste the voltage difference; switching regulators are efficient.
+\end{itemize}
+
+\section{Exercises}
+
+\begin{enumerate}
+  \item An NMOS is biased at $I_D = 200~\mu$A with overdrive 0.25\,V. Find $g_m$, and the gain of a common-source amplifier with $R_D = 5$\,k$\Omega$.
+  \item An inverting amplifier has $R_{\text{in}} = 2$\,k$\Omega$ and $R_f = 10$\,k$\Omega$. If $V_{\text{in}} = 0.3$\,V, what is $V_{\text{out}}$?
+  \item A non-inverting amplifier has $R_f = 9$\,k$\Omega$ and $R_g = 1$\,k$\Omega$. What is its gain?
+  \item An op-amp with no feedback has $V_+ = 1.2$\,V and $V_- = 1.0$\,V. What does the output do?
+  \item A 10-bit ADC has a 1.024\,V range. What is one step?
+  \item A signal contains frequencies up to 20\,kHz. What is the minimum sampling rate?
+  \item A linear regulator supplies 3.3\,V at 1\,A from a 5\,V input. How much power does it waste, and what is its efficiency?
+\end{enumerate}
+
+\subsection*{Answers}
+\begin{enumerate}
+  \item $g_m = 2 \times 200\,\mu\text{A}/0.25\,\text{V} = 1.6$\,mA/V. Gain $= -1.6\times10^{-3} \times 5000 = -8$.
+  \item $V_{\text{out}} = -(10/2) \times 0.3 = -1.5$\,V.
+  \item $1 + 9/1 = 10$.
+  \item It swings to its maximum (positive) output, because $V_+ > V_-$. It is acting as a comparator.
+  \item $1.024/1024 = 1$\,mV.
+  \item More than 40\,kHz (twice 20\,kHz).
+  \item Wasted: $(5 - 3.3) \times 1 = 1.7$\,W. Efficiency: $3.3/5 = 66\%$.
+\end{enumerate}

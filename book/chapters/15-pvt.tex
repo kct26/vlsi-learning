@@ -1,0 +1,164 @@
+\chapter{Process, Voltage and Temperature}
+\label{ch:pvt}
+
+No two chips are identical, and no chip runs in identical conditions all its life. Transistors come out of the factory a little faster or slower; the supply voltage sags under load; the temperature swings from a cold start to full load. A design must work across all of it. Engineers summarize these three sources of variation as \term{PVT}: process, voltage and temperature. This chapter explains each, finishes the temperature question from the assessment, and shows how designers decide which conditions to check.
+
+\section{Process variation}
+
+Manufacturing a chip involves printing features tens of nanometers wide and implanting dopant atoms by the thousands (Chapter~\ref{ch:fab}). Nothing can be done perfectly at that scale, so transistor properties vary:
+\begin{itemize}
+  \item \textbf{Global variation}: whole wafers or whole chips come out faster or slower than average (for example, a slightly thinner gate oxide everywhere on one wafer).
+  \item \textbf{Local variation}: neighboring transistors on the same chip differ. With only a few dozen dopant atoms in a tiny transistor's channel, the random count alone changes its threshold voltage (\term{random dopant fluctuation}). The roughness of printed edges changes channel lengths.
+\end{itemize}
+
+Designers describe global variation with \term{process corners}, named by the speed of the NMOS and PMOS transistors:
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Corner & Meaning \\
+\midrule
+TT & typical NMOS, typical PMOS \\
+FF & fast NMOS, fast PMOS \\
+SS & slow NMOS, slow PMOS \\
+FS & fast NMOS, slow PMOS \\
+SF & slow NMOS, fast PMOS \\
+\bottomrule
+\end{tabular}
+\end{center}
+The skewed corners (FS and SF) matter for circuits that depend on a balance between pull-up and pull-down, such as an inverter's switching threshold or an SRAM cell's stability (Chapter~\ref{ch:memory}). Local variation is handled statistically, with \term{Monte Carlo} simulation (running many simulations with randomly varied transistors) and with timing margins called on-chip variation (OCV) derates.
+
+A practical consequence is \term{binning}: chips from the same wafer are tested and sorted by how fast they run, and faster chips are sold as higher-end products.
+
+\section{Voltage variation}
+
+The supply voltage a transistor actually sees is lower than the regulator's output and changes over time (Chapters~\ref{ch:electricity} and~\ref{ch:capind}):
+\begin{itemize}
+  \item \textbf{Regulator tolerance}: the supply is specified as, say, $0.80\,\text{V} \pm 3\%$.
+  \item \textbf{Static IR drop}: steady current through the resistance of the power grid lowers the voltage, more so far from the power pins.
+  \item \textbf{Dynamic droop}: sudden increases in current cause $L\,di/dt$ dips until decoupling capacitors and the regulator respond.
+\end{itemize}
+Lower voltage means less overdrive, so transistors are slower. Power-delivery design aims to keep the total drop within a budget, often a few percent.
+
+\section{Temperature}
+
+Chips must work across a wide range of temperatures, from a cold start in an unheated room (or a car in winter) to full load under a heat sink. Typical junction-temperature ranges are about 0 to 100\,\textdegree C for consumer products, and $-40$ to 125\,\textdegree C or more for automotive parts. Temperature changes several things at once:
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Quantity & As temperature rises & Effect \\
+\midrule
+Carrier mobility $\mu$ & decreases & transistors slower \\
+Threshold voltage $\Vt$ & decreases & transistors faster \\
+Metal wire resistance & increases & wires slower \\
+Subthreshold leakage & increases exponentially & more power, more heat \\
+Electromigration & accelerates & shorter wire lifetime \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Why each happens}
+
+\paragraph{Mobility falls.} Hot atoms vibrate more, so carriers collide with them more often (phonon scattering) and drift more slowly in the same electric field (Section~\ref{sec:tempmobility}).
+
+\paragraph{Wire resistance rises.} Metal electrons are scattered by the same vibrations. Copper's resistance increases by about 0.39\% per \textdegree C.
+
+\paragraph{Threshold voltage falls.} Heat gives carriers more energy, so a smaller gate voltage is enough to form the channel. A typical rate is on the order of 1\,mV per \textdegree C.
+
+\begin{onoa}
+The assessment asked how CMOS carrier mobility and wire resistance change as temperature increases. \textbf{Mobility decreases} and \textbf{wire resistance increases}; both make the circuit slower when hot. A complete answer also knows the exception below.
+\end{onoa}
+
+\begin{worked}{a hot wire}
+A copper wire has a resistance of 100\,$\Omega$ at 25\,\textdegree C. What is its resistance at 85\,\textdegree C?
+\[
+  R = 100 \times [1 + 0.0039 \times (85 - 25)] = 100 \times 1.234 \approx 123\,\Omega.
+\]
+A 60\,\textdegree C rise adds about 23\% to the wire's resistance, and to its RC delay.
+\end{worked}
+
+\section{Temperature inversion}
+\label{sec:tempinv}
+
+For a transistor, heat has two opposite effects: lower mobility (slower) and lower threshold (faster). Which wins depends on the supply voltage. Drive current is roughly
+\[
+  I \propto \mu(T)\,\big(\VDD - \Vt(T)\big)^{\alpha}, \qquad \alpha \approx 1 \text{ to } 1.3.
+\]
+
+\begin{worked}{which effect wins? (illustrative numbers)}
+Suppose heating a chip from 25\,\textdegree C to 100\,\textdegree C lowers mobility by 25\% and lowers $\Vt$ from 0.35\,V to 0.30\,V. Take $\alpha = 1.3$.
+
+\textbf{At $\VDD = 1.0$\,V:} overdrive goes from 0.65 to 0.70\,V, up 7.7\%; raised to 1.3, about $+10\%$. Combined with the 25\% mobility loss: $0.75 \times 1.10 \approx 0.83$. Current \emph{falls}; the chip is slower when hot.
+
+\textbf{At $\VDD = 0.5$\,V:} overdrive goes from 0.15 to 0.20\,V, up 33\%; raised to 1.3, about $+45\%$. Combined: $0.75 \times 1.45 \approx 1.09$. Current \emph{rises}; the chip is \emph{faster} when hot.
+\end{worked}
+
+At high supply voltages the overdrive is large, so a small change in $\Vt$ hardly matters and the mobility loss dominates: hotter is slower. At low supply voltages, common in modern power-saving chips, the overdrive is small, so the $\Vt$ drop is a large fraction of it and wins: hotter is faster, and the worst-case speed is at the \emph{coldest} temperature. This is \term{temperature inversion}.
+
+\begin{trap}
+True or false: ``A chip is always slowest at its highest temperature.'' False for modern low-voltage designs, because of temperature inversion. Wires, however, are always slower when hot.
+\end{trap}
+
+\section{Corners for sign-off}
+
+Since no single condition is worst for everything, designers check a set of \term{PVT corners}:
+
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}X}
+\toprule
+Check & Worst-case corner \\
+\midrule
+Setup (paths too slow) & slow process (SS), low voltage, and the temperature that makes cells slowest (hot at high voltage; cold at low voltage, because of inversion) \\
+Hold (paths too fast) & fast process (FF), high voltage, and the temperature that makes cells fastest \\
+Leakage power & fast process (FF), high voltage, high temperature \\
+Electromigration & high temperature, high current \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Aging}
+
+Chips also slow down slowly over their lifetimes. Mechanisms such as NBTI (in PMOS) and hot-carrier injection gradually raise threshold voltages (Chapter~\ref{ch:fab}). Designers add an \term{aging guardband}: timing margin so that the chip still meets its frequency after years of use.
+
+\section{Living with variation}
+
+Modern chips measure their own conditions and adapt:
+\begin{itemize}
+  \item On-die \textbf{thermal sensors} trigger throttling before the chip overheats (Chapter~\ref{ch:heat}).
+  \item \textbf{Ring oscillators} or replica critical paths measure how fast this particular chip is right now.
+  \item \textbf{Adaptive voltage scaling} gives a fast chip a lower voltage (saving power) and a slow chip a higher one, so both meet the same frequency.
+  \item \textbf{DVFS} picks voltage and frequency based on workload (Chapter~\ref{ch:power}).
+\end{itemize}
+
+\section{Summary}
+
+\begin{itemize}
+  \item Process: chips vary; corners TT, FF, SS, FS, SF; local variation handled statistically.
+  \item Voltage: regulator tolerance, IR drop and $L\,di/dt$ droop lower the supply; lower voltage is slower.
+  \item Temperature: mobility down, $\Vt$ down, wire resistance up, leakage up.
+  \item At high $\VDD$ hot is slower; at low $\VDD$ hot can be faster (temperature inversion). Wires are always slower when hot.
+  \item Setup is signed off at the slow corner, hold at the fast corner, leakage at fast, high-voltage, hot.
+\end{itemize}
+
+\section{Exercises}
+
+\begin{enumerate}
+  \item As temperature increases, what happens to carrier mobility, threshold voltage, wire resistance and leakage?
+  \item A copper wire is 100\,$\Omega$ at 25\,\textdegree C. Estimate its resistance at 85\,\textdegree C.
+  \item True or false: every chip is slowest at its maximum temperature.
+  \item At which corner is setup checked? Hold? Worst-case leakage?
+  \item A 0.80\,V supply suffers 5\% IR drop. What voltage do the transistors see, and are they faster or slower?
+  \item What does the FS corner mean? Name a circuit property it might affect.
+  \item Why is Monte Carlo simulation used?
+\end{enumerate}
+
+\subsection*{Answers}
+\begin{enumerate}
+  \item Mobility decreases; threshold voltage decreases; wire resistance increases; leakage increases (exponentially).
+  \item About $100 \times (1 + 0.0039 \times 60) \approx 123\,\Omega$.
+  \item False. At low supply voltage, temperature inversion makes cold the slow case.
+  \item Setup: slow process, low voltage (and the slowest temperature). Hold: fast process, high voltage (and the fastest temperature). Leakage: fast process, high voltage, high temperature.
+  \item 0.76\,V. Slower, because there is less overdrive.
+  \item Fast NMOS, slow PMOS. It skews any balance between pull-up and pull-down, for example moving an inverter's switching threshold down, or affecting SRAM read and write margins.
+  \item To estimate the effect of random local variation, by simulating many randomly varied copies of a circuit and looking at the spread of results.
+\end{enumerate}

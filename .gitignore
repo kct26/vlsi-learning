@@ -1,0 +1,13 @@
+# Test output
+trainer/tests/out/
+
+# LaTeX intermediate files (Tectonic normally cleans these up)
+*.aux
+*.log
+*.toc
+*.out
+*.synctex.gz
+
+# System and editor files
+.DS_Store
+node_modules/

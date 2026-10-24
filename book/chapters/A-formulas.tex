@@ -1,0 +1,127 @@
+\chapter{Formula Sheet}
+\label{app:formulas}
+
+Every formula in the book, grouped by topic, with the chapter that explains it. Knowing \emph{why} each one holds matters more than memorizing it.
+
+\section*{Electricity (Chapters~\ref{ch:electricity}--\ref{ch:heat})}
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}X}
+\toprule
+Ohm's law & $V = IR$ \\
+Power & $P = VI = I^2R = V^2/R$ \\
+Wire resistance & $R = \rho L/A = R_\square \cdot L/W$ \\
+Series / parallel resistors & $R_1 + R_2$ \quad / \quad $R_1R_2/(R_1+R_2)$ \\
+Voltage divider & $V_{out} = V_{in}\,R_2/(R_1+R_2)$ \\
+Capacitor & $Q = CV$, \; $I = C\,dV/dt$, \; $E = \tfrac12CV^2$ \\
+RC charging & $V(t) = V_s(1 - e^{-t/RC})$; 50\% at $0.69RC$; 10--90\% in $2.2RC$ \\
+Inductor & $V = L\,dI/dt$, \; $E = \tfrac12LI^2$ \\
+Reactance; RC cutoff & $X_C = 1/(2\pi fC)$, $X_L = 2\pi fL$; \; $f_c = 1/(2\pi RC)$ \\
+Reflection coefficient & $\Gamma = (Z_L - Z_0)/(Z_L + Z_0)$ \\
+Scope rise time & $t_r \approx 0.35/\text{bandwidth}$ \\
+Thermal & $\Delta T = P\,\theta$; \; $T_j = T_a + P(\theta_{jc} + \theta_{cs} + \theta_{sa})$ \\
+Heat carried by a fluid & $P = \dot m\,c\,\Delta T$ \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section*{Devices (Chapters~\ref{ch:semis}--\ref{ch:analog})}
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}X}
+\toprule
+Drift velocity & $v = \mu E$; \; $\mu_n \approx 2$--$3\,\mu_p$ \\
+Diode & $I = I_S(e^{V/V_T} - 1)$, \; $V_T = kT/q \approx 26$\,mV \\
+MOSFET saturation & $I_D = \tfrac12\mu C_{ox}(W/L)(V_{GS} - \Vt)^2$ \\
+MOSFET linear & $I_D = \mu C_{ox}(W/L)\left[(V_{GS}-\Vt)V_{DS} - \tfrac12V_{DS}^2\right]$ \\
+Pass transistor & NMOS: $V_{out} = \min(V_{in}, V_G - \Vtn)$; NMOS weak 1 $= \VDD - \Vtn$; PMOS weak 0 $= |\Vtp|$ \\
+Equal-current sizing & $(W/L)_p/(W/L)_n = \mu_n/\mu_p$ \\
+Transconductance; CS gain & $g_m = 2I_D/(V_{GS} - \Vt)$; \; $A_v = -g_mR_D$ \\
+Op-amps & inverting $-R_f/R_{in}$; non-inverting $1 + R_f/R_g$ \\
+ADC step & $V_{ref}/2^N$ \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section*{Logic (Chapters~\ref{ch:binary}--\ref{ch:comb})}
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}X}
+\toprule
+Bits needed & $\lceil\log_2 N\rceil$ for $N$ values \\
+Two's complement & range $-2^{n-1}$ to $2^{n-1}-1$; negate $=$ invert $+ 1$ \\
+Gray code & $g = b \oplus (b \gg 1)$ \\
+De Morgan & $\nt{A+B} = \nt{A}\,\nt{B}$, \; $\nt{AB} = \nt{A} + \nt{B}$ \\
+Mux; Shannon & $Y = \nt{S}I_0 + SI_1$; \; $F = \nt{S}F|_{S=0} + SF|_{S=1}$ \\
+Full adder & $S = A\oplus B\oplus C_{in}$, \; $C_{out} = AB + C_{in}(A\oplus B)$ \\
+Number of functions & $2^{2^n}$ for $n$ inputs \\
+Noise margins & $NM_H = V_{OH} - V_{IH}$, \; $NM_L = V_{IL} - V_{OL}$ \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section*{Timing (Chapters~\ref{ch:timing}--\ref{ch:delay})}
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}X}
+\toprule
+Setup & $t_{cq} + t_{pd} + t_{su} \le T + t_{skew}$ \\
+Hold & $t_{cq} + t_{cd} \ge t_h + t_{skew}$ \quad (no $T$!) \\
+Maximum frequency & $f_{max} = 1/(t_{cq} + t_{pd} + t_{su})$ \\
+Counter bit $k$ & $f_{clk}/2^{k+1}$; MSB of $n$ bits has period $2^nT$ \\
+Retiming flops & segments $= \lceil$delay$/(T - \text{overhead})\rceil$; flops $=$ segments $-1$ \\
+Gate delay & $t_{pd} \approx 0.69\,R\,C_{load}$ \\
+Elmore delay & $\sum_i R_i\,C_{\text{downstream},i}$ \\
+Logical effort & $d = gh + p$; best path delay $NF^{1/N} + P$; buffer chain $N \approx \log_4 F$ \\
+Wire delay & $\propto L^2$ unbuffered \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section*{Power and reliability (Chapters~\ref{ch:power}--\ref{ch:fab})}
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}X}
+\toprule
+Dynamic power & $P = \alpha C\VDD^2 f$ \\
+Energy per operation & $E = \alpha C\VDD^2$ \\
+Leakage power & $P = I_{leak}\VDD$; $I_{leak}$ grows exponentially as $\Vt$ falls or $T$ rises \\
+Copper resistance vs temperature & $R(T) \approx R_0[1 + 0.0039(T - T_0)]$ \\
+Crosstalk glitch & $\Delta V \approx \VDD\,C_c/(C_c + C_g)$ \\
+Yield & $Y = e^{-DA}$ \\
+Electromigration (Black) & MTTF $= A\,J^{-n}e^{E_a/kT}$ \\
+Antenna ratio & metal area connected to gate / gate area (smaller gate is worse) \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section*{Systems (Chapters~\ref{ch:memory}--\ref{ch:gpu})}
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}X}
+\toprule
+DRAM charge sharing & $\Delta V = (V_{cell} - \VDD/2)\,C_s/(C_s + C_{BL})$ \\
+FIFO depth & $B(1 - r_r/r_w)$, rates in words per second \\
+Bandwidth & width $\times$ transfers/s $/ 8 \times$ efficiency; DDR $= 2$ transfers per clock \\
+Performance & time $=$ instructions $\times$ CPI $\times$ period \\
+Amdahl & speedup $= 1/((1-p) + p/s)$ \\
+Cache fields & offset $= \log_2(\text{line})$, index $= \log_2(\text{sets})$, tag $=$ rest \\
+AMAT & $t_{L1} + m_{L1}(t_{L2} + m_{L2}\,t_{mem})$ \\
+Effective CPI & base $+$ (memory accesses per instruction) $\times$ miss rate $\times$ penalty \\
+Matrix multiply & $2MNK$ FLOPs \\
+Floating point & $(-1)^s \times 1.m \times 2^{e - \text{bias}}$; FP32 bias 127 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section*{Computer arithmetic (Chapter~\ref{ch:arith})}
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}X}
+\toprule
+Overflow & unsigned: carry out of the MSB; signed: $V = c_{\text{into MSB}} \oplus c_{\text{out of MSB}}$ \\
+Generate, propagate & $G_i = A_iB_i$, \; $P_i = A_i \oplus B_i$, \; $c_{i+1} = G_i + P_i c_i$ \\
+Carry-save adder & 3 numbers in, 2 out (sum $=$ XOR, carry $=$ majority shifted left); one full-adder delay \\
+Product width & $n$ bits $\times$ $m$ bits $\to$ $n + m$ bits \\
+Radix-4 Booth digit & $d_i = -2b_{2i+1} + b_{2i} + b_{2i-1} \in \{-2,\dots,2\}$; about $n/2$ partial products \\
+Barrel shifter & $\log_2 n$ layers of $n$ 2:1 multiplexers \\
+Fixed point Q$m$.$n$ & value $=$ integer $/ 2^n$; resolution $2^{-n}$; Q$a$.$b \times$ Q$c$.$d \to$ Q$(a{+}c)$.$(b{+}d)$ \\
+FP multiply & sign $= s_1 \oplus s_2$; exponent field $= e_1 + e_2 - 127$; multiply significands \\
+FP add & compare exponents, align, add, normalize, round \\
+FP32 limits & smallest normal $2^{-126}$; smallest subnormal $2^{-149}$; epsilon $2^{-23} \approx 1.2\times10^{-7}$ \\
+\bottomrule
+\end{tabularx}
+\end{center}

@@ -1,0 +1,192 @@
+\chapter{Delay: Why Circuits Take Time}
+\label{ch:delay}
+
+Chapter~\ref{ch:timing} used gate delays as given numbers. This chapter explains where they come from and how designers control them. One idea runs through all of it: a transistor behaves like a resistor, whatever it drives behaves like a capacitor, and delay is the time to charge that capacitor through that resistor.
+
+\section{The RC model of a gate}
+
+When a gate's output switches from 0 to 1, its PMOS pull-up network charges the output node from 0 to $\VDD$. Everything connected to that node is capacitance (Chapter~\ref{ch:capind}):
+\begin{itemize}
+  \item the input (gate) capacitance of every gate it drives, called its \term{fan-out};
+  \item the capacitance of the wire;
+  \item the gate's own drain (diffusion) capacitance, its \term{parasitic} capacitance.
+\end{itemize}
+The pull-up network acts like a resistor, $R$, so the output rises like an RC charging curve. It reaches 50\% after about $0.69\,RC$ (Section~\ref{sec:rc}):
+\[
+  \boxed{t_{pd} \approx 0.69\,R\,C_{load}}
+\]
+The same applies to a falling output through the pull-down network.
+
+\begin{worked}{an inverter driving four others}
+A unit inverter has an effective resistance of 10\,k$\Omega$, an input capacitance of 1\,fF and a parasitic output capacitance of 1\,fF. It drives four identical inverters (a \term{fan-out of 4}).
+
+$C_{load} = 4 \times 1 + 1 = 5$\,fF. Delay $\approx 0.69 \times 10^4 \times 5\times10^{-15} \approx 35$\,ps.
+\end{worked}
+
+The delay of an inverter driving four copies of itself, the \term{FO4 delay}, is a standard yardstick for how fast a manufacturing process is. Designers often describe a clock period as ``so many FO4 delays,'' which stays meaningful across processes.
+
+\section{Rise, fall and propagation}
+
+Precise definitions, all measured on waveforms:
+\begin{itemize}
+  \item $t_{pLH}$, $t_{pHL}$: from the input crossing 50\% to the output crossing 50\%, for a rising or falling output. The propagation delay is often quoted as their average.
+  \item \term{Rise time} and \term{fall time}: how long the output takes to go from 10\% to 90\% of its swing (or the reverse). For an RC curve that is $2.2\,RC$.
+  \item The \term{slew} or transition time of a signal is its rise or fall time. A slowly rising input makes the next gate slower and wastes power, because both of its transistors are partly on for longer.
+\end{itemize}
+
+\section{How sizing changes delay}
+
+From Chapter~\ref{ch:mosfet}, a transistor's current is proportional to its width $W$, so its resistance is proportional to $1/W$. Its gate capacitance is proportional to $W$. That gives the basic tension of sizing:
+
+\begin{bigidea}
+Making a gate $k$ times wider makes it $k$ times stronger (its own delay falls), but it presents $k$ times more input capacitance to whatever drives it (the previous gate's delay rises). Making gates bigger is not free speed; it moves delay backward.
+\end{bigidea}
+
+\section{Driving a big load: buffer chains}
+
+Suppose a small gate must drive a huge capacitance: a long bus, a clock net, an output pin. Driving it directly is very slow, and making the small gate huge just loads \emph{its} driver. The solution is a chain of inverters, each bigger than the last by a constant factor, a \term{tapered buffer}.
+
+If the load is $F$ times the input capacitance of the first inverter and you use $N$ stages, each stage should be $F^{1/N}$ times bigger than the one before. Analysis (and practice) shows the best ratio per stage is around \textbf{4}, so
+\[
+  N \approx \log_4 F.
+\]
+
+\begin{worked}{sizing a buffer chain}
+A unit inverter must drive a load 1024 times its own input capacitance. With a ratio of 4 per stage: $\log_4 1024 = 5$ stages, sized 1, 4, 16, 64 and 256, with the last one driving the 1024 load. Each stage sees a fan-out of 4, so each has roughly an FO4 delay, and the total is about 5 FO4.
+\end{worked}
+
+\section{Logical effort}
+\label{sec:logeffort}
+
+\term{Logical effort} is a method for estimating and optimizing the delay of a path of different gates. It writes the delay of each gate, in units of a basic inverter delay, as
+\[
+  d = g\,h + p
+\]
+\begin{itemize}
+  \item $g$, the \term{logical effort}: how much worse the gate is at driving current than an inverter with the same input capacitance. It depends only on the gate type.
+  \item $h$, the \term{electrical effort} or fan-out: $C_{out}/C_{in}$.
+  \item $p$, the \term{parasitic delay}: the gate's delay from its own internal capacitance.
+\end{itemize}
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+Gate & Logical effort $g$ & Parasitic delay $p$ \\
+\midrule
+Inverter & 1 & 1 \\
+NAND2 & 4/3 & 2 \\
+NAND3 & 5/3 & 3 \\
+NOR2 & 5/3 & 2 \\
+NOR3 & 7/3 & 3 \\
+\bottomrule
+\end{tabular}
+\end{center}
+(These values assume a PMOS twice as wide as an NMOS for equal strength.) NOR has a higher logical effort than NAND, which is the quantitative version of ``NAND is better than NOR'' (Chapter~\ref{ch:cmos}).
+
+For a path of $N$ gates, multiply the logical efforts into $G$, take the overall electrical effort $H = C_{out,\text{path}}/C_{in,\text{path}}$, and form the \term{path effort} $F = G\,H$ (ignoring branching). The fastest design gives every stage the same effort, $f = F^{1/N}$, and the minimum delay is
+\[
+  D = N\,F^{1/N} + P,
+\]
+where $P$ is the sum of the parasitic delays.
+
+\begin{worked}{a three-gate path}
+A path is inverter, NAND2, inverter. The final load is 48 times the first inverter's input capacitance ($H = 48$).
+
+$G = 1 \times \tfrac43 \times 1 = \tfrac43$. $F = GH = \tfrac43 \times 48 = 64$. Best stage effort $f = 64^{1/3} = 4$. $P = 1 + 2 + 1 = 4$. Minimum delay $D = 3 \times 4 + 4 = 16$ inverter delay units. Each stage is then sized so that its $g\,h = 4$.
+\end{worked}
+
+\section{Elmore delay: delays through networks}
+
+Often a driver charges several capacitances through a chain or tree of resistances (a wire with many segments, or a stack of transistors). The \term{Elmore delay} is a simple estimate of the time constant to a given node:
+
+\begin{bigidea}
+Elmore delay: for each resistor on the path from the source to the node of interest, multiply its resistance by \emph{all} the capacitance downstream of it, then add up the products:
+\[
+  \tau_{Elmore} = \sum_i R_i \cdot C_{\text{downstream of } R_i}.
+\]
+\end{bigidea}
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (0,0) node[left]{driver} to[R, l=$R_1$, o-] (2,0) to[R, l=$R_2$] (4,0) to[R, l=$R_3$] (6,0) node[right]{end};
+  \draw (2,0) to[C, l=$C_1$, *-] (2,-1.5) node[ground]{};
+  \draw (4,0) to[C, l=$C_2$, *-] (4,-1.5) node[ground]{};
+  \draw (6,0) to[C, l=$C_3$, *-] (6,-1.5) node[ground]{};
+\end{circuitikz}
+\caption{An RC ladder, the model of a wire divided into three segments.}
+\label{fig:ladder}
+\end{figure}
+
+\begin{worked}{Elmore delay of a ladder}
+In Figure~\ref{fig:ladder}, every $R$ and every $C$ is equal. To the end node:
+\[
+  \tau = R_1(C_1 + C_2 + C_3) + R_2(C_2 + C_3) + R_3 C_3 = 3RC + 2RC + RC = 6RC.
+\]
+With $R = 100~\Omega$ and $C = 10$\,fF, $\tau = 6 \times 10^{-12} = 6$\,ps.
+\end{worked}
+
+\section{Wires}
+
+A wire's resistance and capacitance are both spread along its length. Split a wire of length $L$ into $n$ segments, and the Elmore delay grows like $1 + 2 + \cdots + n \approx n^2/2$. Since both $R$ and $C$ are proportional to $L$:
+\[
+  t_{wire} \propto R_{wire}\,C_{wire} \propto L^2.
+\]
+(For a uniformly distributed RC wire, the 50\% delay is about $0.38\,R_{wire}C_{wire}$.)
+
+\begin{bigidea}
+An unbuffered wire's delay grows with the \emph{square} of its length. Doubling the length quadruples the delay. The fix is to break a long wire into segments with \term{repeaters} (buffers) between them: each short segment has a small delay, and the total grows only linearly with length.
+\end{bigidea}
+
+\begin{worked}{repeaters}
+An unbuffered wire has a delay of 400\,ps. Insert one repeater in the middle. Each half has a quarter of the original delay (half the length, squared): 100\,ps each, 200\,ps for both, plus the repeater's own delay (say 20\,ps): 220\,ps total, almost half. More repeaters help further, up to the point where the repeaters' own delays dominate.
+\end{worked}
+
+As transistors have shrunk, they have become much faster, but thin wires have become \emph{more} resistive. In modern chips, long-wire delay often matters more than gate delay, which is why chip architects work hard to keep communicating blocks close together.
+
+\section{Other effects on delay}
+
+\begin{itemize}
+  \item \textbf{Supply voltage.} A gate's delay is roughly $C\,\VDD/I$, and drive current grows with $(\VDD - \Vt)$ raised to a power between 1 and 2. Raising $\VDD$ speeds gates up; lowering it slows them, dramatically so as $\VDD$ approaches $\Vt$.
+  \item \textbf{Temperature and process.} Hot transistors are usually slower (lower mobility), and manufacturing variation makes some chips faster than others (Chapter~\ref{ch:pvt}).
+  \item \textbf{Input ordering in stacks.} In a series stack, the transistor nearest the output must discharge the most internal capacitance. Connecting the \emph{latest-arriving} input to the transistor nearest the output makes the gate respond fastest to it, because the other transistors have already turned on and discharged the internal nodes.
+  \item \textbf{Miller effect.} Capacitance between a gate's input and output appears doubled when they swing in opposite directions (as they do in an inverter), adding delay. The same effect makes coupling between neighboring wires worse when they switch in opposite directions (Chapter~\ref{ch:wires}).
+\end{itemize}
+
+\section{Summary}
+
+\begin{itemize}
+  \item Gate delay $\approx 0.69\,R\,C_{load}$; the load is fan-out input capacitance plus wire plus parasitic capacitance.
+  \item FO4 delay is the standard yardstick for process speed.
+  \item Wider gates are stronger but load their drivers more.
+  \item Drive big loads with a tapered chain, about 4 times larger per stage: $N \approx \log_4(C_{load}/C_{in})$.
+  \item Logical effort: $d = gh + p$; NAND2 has $g = 4/3$, NOR2 $5/3$. Best path delay $D = NF^{1/N} + P$.
+  \item Elmore delay: sum of each resistance times all downstream capacitance.
+  \item Unbuffered wire delay grows with $L^2$; repeaters make it linear.
+  \item Higher $\VDD$ is faster; put the latest-arriving input nearest the output.
+\end{itemize}
+
+\section{Exercises}
+
+\begin{enumerate}
+  \item A gate with a 5\,k$\Omega$ effective resistance drives 20\,fF. Estimate its delay.
+  \item A gate's fan-out doubles. Roughly what happens to its delay, assuming the fan-out capacitance dominates?
+  \item A unit inverter must drive 64 times its input capacitance. How many stages should a tapered buffer chain have, and what sizes?
+  \item What are the logical efforts of an inverter, a NAND2 and a NOR2? Why is the NOR2's larger?
+  \item An RC ladder has $R_1 = R_2 = 1$\,k$\Omega$ and $C_1 = C_2 = 10$\,fF (the same shape as Figure~\ref{fig:ladder} with two segments). Find the Elmore delay to the end.
+  \item An unbuffered wire's length triples. By what factor does its delay change?
+  \item Why should the latest-arriving input of a NAND gate drive the transistor nearest the output?
+  \item Does raising the supply voltage make a gate faster or slower? Why?
+\end{enumerate}
+
+\subsection*{Answers}
+\begin{enumerate}
+  \item $0.69 \times 5000 \times 20\times10^{-15} \approx 69$\,ps.
+  \item It roughly doubles.
+  \item $\log_4 64 = 3$ stages, sized 1, 4 and 16 (the last drives the 64 load).
+  \item 1, 4/3 and 5/3. NOR2 has two PMOS in series; to match an inverter's strength they must be very wide, giving more input capacitance for the same drive.
+  \item $R_1(C_1 + C_2) + R_2 C_2 = 1000 \times 20\times10^{-15} + 1000 \times 10\times10^{-15} = 30$\,ps.
+  \item $3^2 = 9$ times.
+  \item By the time the last input arrives, the other transistors are already on and the internal nodes have been discharged, so only the transistor nearest the output has to switch, and the output responds fastest.
+  \item Faster: more voltage gives more drive current (more overdrive above $\Vt$), so capacitances charge and discharge more quickly. The cost is more power.
+\end{enumerate}

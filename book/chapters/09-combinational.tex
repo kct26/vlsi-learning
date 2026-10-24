@@ -1,0 +1,255 @@
+\chapter{Combinational Building Blocks}
+\label{ch:comb}
+
+A \term{combinational} circuit is one whose output depends only on its \emph{current} inputs, with no memory of the past. Gates are combinational; so are the larger blocks built from them: multiplexers, decoders, adders, comparators. This chapter covers those blocks, with special attention to the multiplexer, because ``build gate X out of 2:1 multiplexers'' is one of the most frequently reported assessment and interview questions. It ends with timing: how long a combinational circuit takes to settle, and the glitches it can produce on the way.
+
+\section{Universal gates}
+
+A gate type is \term{universal} if any Boolean function can be built using only that gate. NAND is universal, and so is NOR. With NAND alone:
+
+\begin{itemize}
+  \item \textbf{NOT}: tie both inputs together. $\nt{A \cdot A} = \nt{A}$. (1 gate)
+  \item \textbf{AND}: a NAND followed by a NAND-inverter. (2 gates)
+  \item \textbf{OR}: invert each input, then NAND them: $\nt{\nt{A}\cdot\nt{B}} = A + B$ by De Morgan. (3 gates)
+  \item \textbf{XOR}: the classic 4-NAND circuit: let $M = \nt{AB}$; then $A \oplus B = \nt{\nt{A M} \cdot \nt{B M}}$. (4 gates)
+\end{itemize}
+
+Because NOT, AND and OR can express any function (any truth table can be written as a sum of products), a gate that can build all three is universal.
+
+\section{The multiplexer}
+
+A \term{multiplexer} (mux) is a selector switch. A 2:1 mux has two data inputs $I_0$ and $I_1$, one select input $S$, and one output $Y$. When $S = 0$, the output copies $I_0$; when $S = 1$, it copies $I_1$:
+\[
+  \boxed{Y = \nt{S}\,I_0 + S\,I_1} \qquad\text{(in C notation: \code{Y = S ? I1 : I0})}
+\]
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \muxtwo{m}{(0,0)}{}
+  \draw (m-in0) -- ++(-0.8,0) node[left]{$I_0$};
+  \draw (m-in1) -- ++(-0.8,0) node[left]{$I_1$};
+  \draw (m-sel) -- ++(0,-0.7) node[below]{$S$};
+  \draw (m-out) -- ++(0.8,0) node[right]{$Y$};
+\end{tikzpicture}
+\hspace{1.5cm}
+\begin{tabular}[b]{c|c}
+\toprule
+$S$ & $Y$ \\
+\midrule
+0 & $I_0$ \\
+1 & $I_1$ \\
+\bottomrule
+\end{tabular}
+\caption{A 2:1 multiplexer. The input marked 0 is chosen when $S = 0$.}
+\label{fig:mux}
+\end{figure}
+
+Bigger muxes choose among more inputs: a 4:1 mux has 2 select bits, an 8:1 mux has 3, and in general an $N$:1 mux needs $\log_2 N$ select bits. Muxes are everywhere in hardware: choosing which register feeds an adder, which input a pipeline stage takes, which data a cache returns.
+
+\section{Building any gate from a 2:1 multiplexer}
+\label{sec:muxgates}
+
+Here is the method that answers every ``build X from muxes'' question. Any function $F$ can be split on any one of its variables, say $S$:
+\[
+  F = \nt{S}\cdot F\big|_{S=0} \;+\; S\cdot F\big|_{S=1}
+\]
+This is \term{Shannon expansion}. Compare it with the mux equation $Y = \nt{S}\,I_0 + S\,I_1$: they have the same shape. So:
+
+\begin{bigidea}
+To build $F$ from a 2:1 mux, pick one variable for the select line. Feed $I_0$ with what $F$ equals when that variable is 0, and feed $I_1$ with what $F$ equals when it is 1.
+\end{bigidea}
+
+\begin{worked}{an OR gate from one 2:1 mux}
+Build $F = A + B$. Choose $B$ as the select.
+\begin{itemize}
+  \item When $B = 0$: $F = A + 0 = A$. So $I_0 = A$.
+  \item When $B = 1$: $F = A + 1 = 1$. So $I_1 = 1$.
+\end{itemize}
+Result: $S = B$, $I_0 = A$, $I_1 = 1$. Check: $Y = \nt{B}A + B\cdot1 = \nt{B}A + B = A + B$ (by the rule $X + \nt{X}Y = X + Y$).
+
+Choosing $A$ as the select instead gives $S = A$, $I_0 = B$, $I_1 = 1$, which is equally correct, because OR treats its two inputs the same way.
+\end{worked}
+
+\begin{onoa}
+The question ``build an OR gate from a 2:1 mux'' was on the Ignite hardware assessment, with the two answers in the worked example above (both are valid). Interviews have also asked for AND and OR from 2:1 muxes, and for XOR from 2:1 muxes, covered next.
+\end{onoa}
+
+Applying the method to the other gates (assuming the constants 0 and 1 are available):
+
+\begin{center}
+\begin{tabular}{lcccc}
+\toprule
+Function & $S$ & $I_0$ & $I_1$ & 2:1 muxes needed \\
+\midrule
+Buffer ($A$) & $A$ & 0 & 1 & 1 \\
+NOT ($\nt{A}$) & $A$ & 1 & 0 & 1 \\
+AND ($AB$) & $A$ & 0 & $B$ & 1 \\
+OR ($A + B$) & $A$ & $B$ & 1 & 1 \\
+NAND ($\nt{AB}$) & $A$ & 1 & $\nt{B}$ & 2 (one to make $\nt{B}$) \\
+NOR ($\nt{A+B}$) & $A$ & $\nt{B}$ & 0 & 2 \\
+XOR ($A \oplus B$) & $A$ & $B$ & $\nt{B}$ & 2 \\
+XNOR & $A$ & $\nt{B}$ & $B$ & 2 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{worked}{XOR from 2:1 multiplexers}
+$A \oplus B$ split on $A$: when $A = 0$ it equals $B$; when $A = 1$ it equals $\nt{B}$. So the main mux has $S = A$, $I_0 = B$, $I_1 = \nt{B}$. If $\nt{B}$ is not available as an input, make it with a second mux wired as an inverter ($S = B$, $I_0 = 1$, $I_1 = 0$). Total: two 2:1 muxes (Figure~\ref{fig:muxxor}).
+\end{worked}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \muxtwo{a}{(0,0)}{}
+  \draw (a-in0) -- ++(-0.6,0) node[left]{1};
+  \draw (a-in1) -- ++(-0.6,0) node[left]{0};
+  \draw (a-sel) -- ++(0,-0.6) node[below]{$B$};
+  \node[above] at (0.5,2.1) {\small inverter};
+  \muxtwo{b}{(3,0)}{}
+  \draw (a-out) -- node[above,font=\small]{$\nt{B}$} ++(1.2,0) |- (b-in1);
+  \draw (b-in0) -- ++(-0.9,0) |- ++(0,1.0) -- ++(-3.4,0) node[left]{$B$};
+  \draw (b-sel) -- ++(0,-0.6) node[below]{$A$};
+  \draw (b-out) -- ++(0.8,0) node[right]{$A \oplus B$};
+\end{tikzpicture}
+\caption{XOR from two 2:1 muxes: the first makes $\nt{B}$, the second selects $B$ or $\nt{B}$ based on $A$.}
+\label{fig:muxxor}
+\end{figure}
+
+\paragraph{Larger muxes from smaller ones.} A 4:1 mux is three 2:1 muxes: two pick within pairs using the low select bit, and a third picks between their outputs using the high select bit. An 8:1 mux takes seven 2:1 muxes. In general, an $N$:1 mux takes $N - 1$ two-input muxes arranged as a tree.
+
+\paragraph{Any function from a bigger mux.} A $2^n$:1 mux with the $n$ inputs on its selects can implement \emph{any} $n$-input function: just put the function's truth-table output values (0s and 1s) on the data inputs. That is exactly a \term{lookup table} (LUT), the basic element of an FPGA. With one more trick, a 4:1 mux implements any 3-input function: put two inputs on the selects and feed each data input with 0, 1, $C$ or $\nt{C}$.
+
+\begin{worked}{majority function from a 4:1 mux}
+The 3-input majority function is 1 when at least two inputs are 1. Use $A$ and $B$ as selects:
+$AB = 00$: majority needs both others, impossible, so feed 0.
+$AB = 01$ or $10$: majority iff $C = 1$, so feed $C$.
+$AB = 11$: already a majority, so feed 1.
+\end{worked}
+
+Muxes can also build \emph{memory}: a mux whose output is fed back to one of its inputs is a latch. That leads to building flip-flops from muxes in Chapter~\ref{ch:latch}.
+
+\section{Decoders, encoders and demultiplexers}
+
+A \term{decoder} takes an $n$-bit binary number and raises exactly one of its $2^n$ outputs: a 2-to-4 decoder with input $11$ raises output 3. Decoders select memory rows: a memory with 1024 rows uses a 10-to-1024 decoder on its address bits (Chapter~\ref{ch:memory}).
+
+An \term{encoder} does the reverse: given which one of $2^n$ inputs is active, it outputs that input's number. A \term{priority encoder} handles several active inputs by reporting the highest-priority one, which is useful for interrupt controllers and arbiters.
+
+A \term{demultiplexer} routes one input to one of several outputs, chosen by select bits: the opposite of a mux.
+
+\section{Adding binary numbers}
+
+\paragraph{Half adder.} Adding two bits gives a sum bit and a carry bit:
+\[
+  S = A \oplus B, \qquad C = AB.
+\]
+
+\paragraph{Full adder.} To add multi-bit numbers, each position must also add the carry from the position to its right. A \term{full adder} adds three bits, $A$, $B$ and carry-in $C_{in}$:
+\[
+  S = A \oplus B \oplus C_{in}, \qquad C_{out} = AB + C_{in}(A \oplus B).
+\]
+$C_{out}$ is the \term{majority} function: it is 1 when at least two of the three inputs are 1. The sum is 1 when an odd number of inputs are 1.
+
+\paragraph{Ripple-carry adder.} Chain $n$ full adders, each passing its carry to the next. It is simple and small, but slow: in the worst case (for example, adding 1 to $0111\ldots1$) a carry must ripple through every stage, so delay grows in proportion to $n$.
+
+\paragraph{Faster adders.} Each position can be described by whether it \term{generates} a carry ($G = AB$: both bits are 1) or \term{propagates} an incoming carry ($P = A \oplus B$: exactly one bit is 1). A \term{carry-lookahead} adder computes the carries for many positions at once from $G$ and $P$ instead of waiting for the ripple. Tree-shaped \term{prefix adders} (such as Kogge--Stone) bring the delay down to grow with $\log_2 n$ instead of $n$, at the cost of more area and wiring. A \term{carry-select} adder computes the upper half twice, once assuming carry-in 0 and once assuming 1, then uses a mux to pick the right one when the real carry arrives.
+
+\paragraph{Subtraction.} Using two's complement (Chapter~\ref{ch:binary}), $A - B = A + \nt{B} + 1$. An adder becomes a subtractor by inverting $B$ (XOR gates controlled by a ``subtract'' signal act as optional inverters) and setting the carry-in to 1.
+
+\paragraph{Comparators.} Two numbers are equal when every bit pair is equal: XNOR each pair, then AND all the results. To find which is larger, subtract and look at the sign or the carry.
+
+\paragraph{Shifters and multipliers.} A \term{barrel shifter} shifts by any amount in one step using layers of muxes (shift by 1, 2, 4, 8, \ldots, each layer enabled or not). A \term{multiplier} adds up shifted copies of one operand (one for each 1 bit in the other); fast multipliers add the partial products with trees of adders. Multipliers are among the largest arithmetic blocks, and a GPU contains thousands of them.
+
+\section{XOR chains and parity}
+\label{sec:xorchain}
+
+Because XOR with 1 inverts and XOR with 0 passes, a chain of XOR gates is easy to analyze if you track what each stage does.
+
+\begin{worked}{a chain of 50 XOR gates}
+Gate 1 has inputs 1 and $X$. Every later gate $k$ has inputs (output of gate $k-1$) and $X$. What does each gate output?
+\begin{itemize}
+  \item Gate 1: $1 \oplus X = \nt{X}$.
+  \item Gate 2: $\nt{X} \oplus X = 1$.
+  \item Gate 3: $1 \oplus X = \nt{X}$.
+\end{itemize}
+The pattern repeats: odd-numbered gates output $\nt{X}$ and even-numbered gates output 1. Gate 50 outputs 1. Gate 49 outputs $\nt{X}$, so gate 49 followed by an inverter gives $X$.
+\end{worked}
+
+\begin{onoa}
+A reported question gave a chain of 50 XOR gates with input $X$ and asked for the output of the $N$th gate and the inverted output of the $(N+1)$th gate. The exact wiring may differ from this example, but the method is the same: compute the first two or three stages, spot the period-2 pattern, and use whether $N$ is odd or even.
+\end{onoa}
+
+The XOR of many bits is their \term{parity}. Parity bits detect single-bit errors in memory and communication. A parity tree of XOR gates computes the parity of $n$ bits in about $\log_2 n$ gate delays.
+
+\section{Delay through combinational logic}
+\label{sec:combdelay}
+
+Gates are not instant: each takes time to charge its output capacitance (Chapter~\ref{ch:capind}). Two numbers describe a gate's timing:
+
+\begin{itemize}
+  \item \term{Propagation delay} $t_{pd}$: the \emph{longest} time from an input change until the output has settled to its final value.
+  \item \term{Contamination delay} $t_{cd}$: the \emph{shortest} time from an input change until the output \emph{starts} to change.
+\end{itemize}
+
+A gate may have different delays for a rising output and a falling output ($t_{pLH}$ and $t_{pHL}$), because the PMOS pull-up and NMOS pull-down have different strengths. The delay of a whole circuit is found by adding delays along each path from input to output. The slowest path is the \term{critical path}; it sets the circuit's propagation delay. The fastest path sets its contamination delay. Both matter for timing (Chapter~\ref{ch:timing}).
+
+\begin{worked}{how long does the output stay at 0?}
+$Z = A \cdot \nt{B}$, where $\nt{B}$ comes from an inverter. Delays: inverter rise 2\,ns and fall 1\,ns; AND gate rise 3\,ns and fall 2\,ns. Initially $A = 0$, $B = 1$, so $\nt{B} = 0$ and $Z = 0$. At $t = 0$ both inputs flip: $A$ becomes 1 and $B$ becomes 0. When does $Z$ become 1?
+
+$A$ is high from $t = 0$. The inverter output rises (0 to 1), which takes its \emph{rise} delay: $\nt{B}$ is high at $t = 2$\,ns. The AND gate's inputs are both high only from $t = 2$, and its output rises after its rise delay: $Z$ becomes 1 at $t = 2 + 3 = 5$\,ns. So $Z$ stays at 0 for 5\,ns.
+\end{worked}
+
+\begin{onoa}
+Reported questions give a small gate circuit with rise and fall delays, flip the inputs at $t = 0$, and ask how long the output stays at a value. The method: walk forward from the inputs, at each gate note which input arrives last for the transition that matters, and add the gate's rise or fall delay according to the direction its output moves.
+\end{onoa}
+
+\subsection*{Glitches and hazards}
+
+Unequal path delays can produce a brief wrong pulse, a \term{glitch}, even when the output should not change at all.
+
+\begin{worked}{a glitch}
+$Z = A + \nt{A}$ should always be 1. Build $\nt{A}$ with an inverter of delay 1\,ns, and suppose $A$ falls from 1 to 0 at $t = 0$. From $t = 0$ to $t = 1$\,ns, $A$ is already 0 but $\nt{A}$ has not yet risen. Both OR inputs are 0, so after the OR gate's delay, $Z$ dips to 0 for about 1\,ns before returning to 1.
+\end{worked}
+
+This is a \term{static-1 hazard}: an output that should stay 1 briefly drops to 0. In a K-map it appears when two groups of 1s touch but do not overlap; adding the redundant \emph{consensus} term that covers the boundary removes the hazard. In synchronous designs (Chapter~\ref{ch:timing}), glitches are usually harmless as long as everything settles before the next clock edge, but they waste power, and a glitch on a clock or an asynchronous reset is a serious bug.
+
+\section{Summary}
+
+\begin{itemize}
+  \item NAND and NOR are each universal. OR from NANDs takes 3 gates; XOR takes 4.
+  \item A 2:1 mux computes $Y = \nt{S}I_0 + SI_1$. Shannon expansion builds any function from muxes: select on a variable, feed each data input with the function's value for that select value.
+  \item OR: $S = B$, $I_0 = A$, $I_1 = 1$. AND: $S = A$, $I_0 = 0$, $I_1 = B$. NOT: $S = A$, $I_0 = 1$, $I_1 = 0$. XOR: $S = A$, $I_0 = B$, $I_1 = \nt{B}$ (two muxes).
+  \item $N$:1 mux $= N - 1$ two-input muxes. A $2^n$:1 mux is a lookup table for any $n$-input function.
+  \item Full adder: $S = A\oplus B\oplus C_{in}$, $C_{out} = $ majority. Ripple carry is $O(n)$; lookahead and prefix adders are $O(\log n)$. Subtract with $A + \nt{B} + 1$.
+  \item XOR chains alternate; track the pattern and the parity of $N$.
+  \item Propagation delay is the slowest path; contamination delay the fastest. Unequal paths cause glitches.
+\end{itemize}
+
+\section{Exercises}
+
+\begin{enumerate}
+  \item Give the $S$, $I_0$ and $I_1$ connections that make a 2:1 mux act as NOT, AND and OR.
+  \item How many 2:1 muxes are needed for XOR if $\nt{B}$ is not available? For NAND?
+  \item How many 2:1 muxes make a 4:1 mux? An 8:1 mux?
+  \item Implement the 3-input majority function with a 4:1 mux using $A$ and $B$ as selects.
+  \item A 32-bit ripple-carry adder's full adders each have a 50\,ps carry delay. Estimate the worst-case carry delay.
+  \item Compute $5 - 3$ in 4-bit two's complement using addition.
+  \item In the 50-gate XOR chain of Section~\ref{sec:xorchain}, what is the output of gate 37? Of gate 37 followed by an inverter?
+  \item $Z = A + \nt{A}$, inverter delay 1\,ns. Does $Z$ glitch when $A$ \emph{rises} from 0 to 1? Explain.
+  \item In the worked example $Z = A\nt{B}$ (inverter rise 2, fall 1; AND rise 3, fall 2), the inputs now flip back: at $t = 0$, $A$ falls to 0 and $B$ rises to 1. When does $Z$ fall to 0?
+  \item How many outputs does a 3-to-8 decoder have? What size decoder selects one of 1024 memory rows?
+\end{enumerate}
+
+\subsection*{Answers}
+\begin{enumerate}
+  \item NOT: $S = A$, $I_0 = 1$, $I_1 = 0$. AND: $S = A$, $I_0 = 0$, $I_1 = B$. OR: $S = A$, $I_0 = B$, $I_1 = 1$ (or $S = B$, $I_0 = A$, $I_1 = 1$).
+  \item XOR: 2 (one makes $\nt{B}$). NAND: 2 ($S = A$, $I_0 = 1$, $I_1 = \nt{B}$, with a second mux making $\nt{B}$).
+  \item 3; 7.
+  \item Data inputs for $AB = 00, 01, 10, 11$: $0, C, C, 1$.
+  \item $32 \times 50 = 1600$\,ps $= 1.6$\,ns.
+  \item $0101 + \nt{0011} + 1 = 0101 + 1100 + 1 = 1\,0010$. Drop the carry out: $0010 = 2$.
+  \item Gate 37 is odd, so it outputs $\nt{X}$; inverted, $X$.
+  \item No. When $A$ rises, the OR gate sees $A = 1$ immediately, which already makes $Z = 1$; $\nt{A}$ falling later does not matter. The glitch happens only when $A$ falls.
+  \item $Z$ falls as soon as either AND input falls. $A$ falls at $t = 0$; $\nt{B}$ falls at $t = 1$\,ns (inverter fall delay). The earliest falling input is $A$ at $t = 0$, so $Z$ falls after the AND gate's fall delay: $t = 2$\,ns.
+  \item 8 outputs. A 10-to-1024 decoder.
+\end{enumerate}

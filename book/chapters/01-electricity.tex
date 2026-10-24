@@ -1,0 +1,319 @@
+\chapter{Charge, Current, Voltage and Resistance}
+\label{ch:electricity}
+
+Every chip, from a calculator to a GPU, is a machine for moving tiny amounts of electric charge around. Before we can talk about transistors or logic gates, we need four words that every later chapter uses: \emph{charge}, \emph{current}, \emph{voltage} and \emph{resistance}. This chapter builds each one from scratch, then uses them to analyze simple circuits.
+
+\section{Charge: the thing that moves}
+
+All matter is made of atoms. An atom has a small, heavy center (the \term{nucleus}, made of protons and neutrons) surrounded by much lighter \term{electrons}. Protons carry a positive electric \term{charge}; electrons carry an equal amount of negative charge. Neutrons carry none.
+
+Charges push and pull on each other:
+\begin{itemize}
+  \item Opposite charges attract (a positive and a negative pull together).
+  \item Like charges repel (two negatives push apart, as do two positives).
+\end{itemize}
+
+Charge is measured in \term{coulombs} (C). One electron carries $1.6 \times 10^{-19}$\,C, so one coulomb is about $6.2 \times 10^{18}$ electrons. That is a huge number of electrons, which is why everyday electricity feels continuous rather than like individual particles.
+
+In some materials, the outermost electrons are only loosely held by their atoms and can wander from atom to atom. These materials are \term{conductors}: metals such as copper, aluminum, gold and silver. In other materials every electron is tightly bound, so charge cannot move; these are \term{insulators}: glass, plastic, rubber, air, and silicon dioxide (which matters a lot later). Between the two are \term{semiconductors}, like silicon, whose ability to conduct can be controlled. Semiconductors get their own chapter (Chapter~\ref{ch:semis}).
+
+\section{Current: how fast charge flows}
+
+\term{Current} is the rate at which charge flows past a point. If 1 coulomb passes a point every second, the current is 1 \term{ampere} (A), usually shortened to ``amp.''
+\[
+  I = \frac{\Delta Q}{\Delta t} \qquad \text{(current = charge per unit time)}
+\]
+
+Typical sizes:
+\begin{itemize}
+  \item A single logic gate switching: microamps ($10^{-6}$\,A) or less.
+  \item A phone charging: about 1--3\,A.
+  \item A large GPU at full load: hundreds of amps, delivered at around 1\,V.
+\end{itemize}
+
+\begin{everyday}
+Think of a wire as a pipe full of water. Current is how much water flows past a point each second. A wide river moving slowly and a narrow jet moving fast can carry the same flow.
+\end{everyday}
+
+\paragraph{Which direction does current flow?} By an old convention (chosen before electrons were discovered), current is drawn flowing from the positive terminal, through the circuit, to the negative terminal. Electrons, being negative, actually drift the opposite way. Engineers always use the convention, \term{conventional current}, and so does this book. The direction almost never matters for understanding a circuit, as long as you are consistent.
+
+\section{Voltage: the push}
+
+Charge does not move on its own; something has to push it. \term{Voltage} is that push. More precisely, voltage is the \emph{energy per unit charge} available between two points:
+\[
+  V = \frac{\text{energy}}{\text{charge}}, \qquad 1~\text{volt} = 1~\text{joule per coulomb}.
+\]
+
+\begin{everyday}
+Voltage is like water pressure, or like height. Water flows from high pressure to low pressure, and a ball rolls from high ground to low ground. Charge flows from high voltage to low voltage. A battery is a pump that keeps one end at high pressure and the other at low pressure.
+\end{everyday}
+
+The most important fact about voltage is this:
+
+\begin{bigidea}
+Voltage is always measured \emph{between two points}. ``This wire is at 5 volts'' really means ``this wire is 5 volts higher than some reference point.''
+\end{bigidea}
+
+A height of ``100 meters'' only means something if you know where you measured from (sea level? the floor?). Voltage is the same.
+
+\section{Ground: the reference point}
+\label{sec:ground}
+
+Because voltage is always relative, every circuit picks one node as the reference and calls it 0\,V. That node is called \term{ground}, written GND, and drawn with this symbol:
+\begin{center}
+\begin{circuitikz}
+  \draw (0,0) -- (0,-0.5) node[ground]{};
+\end{circuitikz}
+\end{center}
+When someone says a chip's supply is ``1.0\,V'', they mean the supply wire is 1.0\,V above that chip's ground.
+
+Ground is not magic. It is just a wire (or, on a circuit board, a large copper plane) that everything agrees to measure from. Several practical rules follow from this.
+
+\paragraph{Every connected device must share ground.} Suppose board A sends a ``1'' to board B as 3.3\,V. That 3.3\,V is measured relative to A's ground. If B's ground is not connected to A's ground, B has no idea what A's 3.3\,V means: the two boards have no common reference, and the signal is meaningless. This is why every cable between two devices carries a ground wire as well as the signal wires, and why a missing ground connection is one of the most common reasons a circuit ``does nothing.''
+
+\paragraph{Current needs a return path.} Charge flows in loops. Current that leaves a power supply through the supply wire must come back through ground. If the ground path is broken, no current flows at all, just as water cannot circulate in a pipe loop with a gap in it.
+
+\paragraph{Floating inputs.} An input that is connected to nothing (neither a voltage nor ground) is called \term{floating}. Its voltage is undefined: it drifts with stray charge and electrical noise, so a digital input reads randomly as 0 or 1. Never leave a logic input floating. Tie it to the supply or to ground, directly or through a resistor.
+
+\paragraph{Pull-up and pull-down resistors.} A common fix for a floating input is a resistor to the supply (a \term{pull-up}) or to ground (a \term{pull-down}). In Figure~\ref{fig:pullup}, when the button is open, no current flows through the resistor, so the input sits at $\VDD$ and reads 1. When the button is pressed, the input is connected straight to ground and reads 0. The resistor limits the current that flows from the supply to ground while the button is pressed.
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (0,3) node[vdd]{$V_{DD}$} to[R, l=$10\,\mathrm{k}\Omega$] (0,1.2)
+        to[push button, l=button] (0,-0.4) node[ground]{};
+  \draw (0,1.2) to[short,*-o] (2,1.2) node[right]{to logic input};
+\end{circuitikz}
+\caption{A pull-up resistor keeps the input at a defined 1 until the button connects it to ground.}
+\label{fig:pullup}
+\end{figure}
+
+\paragraph{Ground is not perfectly 0\,V everywhere.} Real ground wires have a little resistance. When large currents flow through them, different points on ``ground'' end up at slightly different voltages. This effect, called \term{ground bounce} when it happens quickly, returns in Chapters~\ref{ch:capind} and~\ref{ch:pvt}.
+
+\begin{onoa}
+Candidates have reported questions about GND connections. Whatever the exact wording, the ideas above are the ones being tested: ground is the shared reference, current needs a return path through it, devices must share ground to communicate, and inputs must never float.
+\end{onoa}
+
+\section{Resistance and Ohm's law}
+
+Even in a good conductor, moving charge bumps into atoms and loses energy as heat. \term{Resistance} measures how strongly a component opposes current. It is measured in \term{ohms} ($\Omega$).
+
+For many materials, current is proportional to the voltage across them. This is \term{Ohm's law}:
+\[
+  \boxed{V = I R}
+  \qquad\text{equivalently}\qquad I = \frac{V}{R}, \quad R = \frac{V}{I}.
+\]
+
+\begin{everyday}
+Resistance is how narrow the pipe is. For the same pressure (voltage), a narrow pipe (high resistance) lets less water (current) through.
+\end{everyday}
+
+\begin{worked}{Ohm's law}
+A 1\,k$\Omega$ resistor (1000 ohms) is connected across a 5\,V battery. What current flows?
+\[
+  I = \frac{V}{R} = \frac{5~\text{V}}{1000~\Omega} = 0.005~\text{A} = 5~\text{mA}.
+\]
+\end{worked}
+
+\paragraph{What sets a wire's resistance?} A wire's resistance depends on its material and shape:
+\[
+  R = \rho \frac{L}{A}
+\]
+where $L$ is the length, $A$ is the cross-sectional area, and $\rho$ (rho) is the material's \term{resistivity}. Copper's resistivity is about $1.7 \times 10^{-8}~\Omega\cdot$m; aluminum's is about $2.7 \times 10^{-8}$. So:
+\begin{itemize}
+  \item A wire twice as long has twice the resistance (charge must travel further).
+  \item A wire with twice the cross-section has half the resistance (more room to flow).
+  \item Copper conducts better than aluminum, which is one reason modern chips use copper wiring.
+\end{itemize}
+Resistivity also changes with temperature; for metals it rises as they heat up. That fact is central to Chapter~\ref{ch:pvt}.
+
+\section{Power: how fast energy is used}
+
+When current flows through a resistance, electrical energy turns into heat. \term{Power} is the rate of energy use, measured in \term{watts} (W): one watt is one joule per second.
+\[
+  \boxed{P = V I}
+\]
+Combining with Ohm's law gives two more forms that are useful when you know only two of the three quantities:
+\[
+  P = I^2 R = \frac{V^2}{R}.
+\]
+
+\begin{worked}{power in a GPU}
+A GPU runs at a supply of 0.9\,V and draws 400\,A. How much power does it use?
+\[
+  P = V I = 0.9 \times 400 = 360~\text{W}.
+\]
+All 360\,W ends up as heat that the cooling system must remove (Chapter~\ref{ch:heat}).
+\end{worked}
+
+\paragraph{Energy versus power.} Energy is power multiplied by time: a 360\,W GPU running for one hour uses $360 \times 3600 = 1.3$ million joules. Power is how fast you spend energy; energy is how much you spent in total. Batteries are rated in energy; chips are usually rated in power. This distinction matters in Chapter~\ref{ch:power}.
+
+\section{Circuits: closed loops, opens and shorts}
+
+A \term{circuit} is a closed loop through which current can flow: from a source, through components, and back. Two failure modes appear constantly:
+
+\begin{itemize}
+  \item An \term{open circuit} is a break in the loop. No current flows, no matter how high the voltage. A switch that is ``off'' is an open circuit.
+  \item A \term{short circuit} is a path with (nearly) zero resistance. By Ohm's law, $I = V/R$ becomes very large. A short across a power supply can melt wires or destroy the supply.
+\end{itemize}
+
+\section{Series and parallel}
+
+Components can be connected in two basic ways (Figure~\ref{fig:seriespar}).
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (0,0) to[battery1, l=$V$] (0,2) to[R, l=$R_1$] (2.5,2) to[R, l=$R_2$] (2.5,0) -- (0,0);
+  \node at (1.25,-0.6) {series};
+  \draw (5,0) to[battery1, l=$V$] (5,2) -- (8,2);
+  \draw (6.5,2) to[R, l_=$R_1$] (6.5,0);
+  \draw (8,2) to[R, l=$R_2$] (8,0);
+  \draw (5,0) -- (8,0);
+  \node at (6.5,-0.6) {parallel};
+\end{circuitikz}
+\caption{Series (left): one path, same current through both. Parallel (right): two paths, same voltage across both.}
+\label{fig:seriespar}
+\end{figure}
+
+\paragraph{Series.} Components in series sit one after another on a single path. The \emph{same current} flows through each, and their voltages add up. Resistances in series add:
+\[
+  R_{\text{series}} = R_1 + R_2 + \cdots
+\]
+
+\paragraph{Parallel.} Components in parallel connect across the same two nodes. Each has the \emph{same voltage}, and their currents add. Resistances in parallel combine as
+\[
+  \frac{1}{R_{\text{parallel}}} = \frac{1}{R_1} + \frac{1}{R_2} + \cdots,
+  \qquad\text{and for two:}\quad R_{\text{parallel}} = \frac{R_1 R_2}{R_1 + R_2}.
+\]
+Parallel resistance is always \emph{smaller} than the smallest resistor, because each new path gives current another way through. Two equal resistors $R$ in parallel give $R/2$.
+
+\begin{bigidea}
+Series: same current, resistances add. Parallel: same voltage, the result is smaller than either. This exact pattern returns when we build logic gates: transistors in series make it \emph{harder} for current to flow, and transistors in parallel make it \emph{easier}.
+\end{bigidea}
+
+\begin{worked}{series and parallel together}
+A 100\,$\Omega$ resistor is in series with two 200\,$\Omega$ resistors that are in parallel with each other. A 12\,V source drives the combination. Find the total current.
+
+The parallel pair: $200 \parallel 200 = 100~\Omega$. Add the series resistor: $100 + 100 = 200~\Omega$. Current: $I = 12/200 = 0.06$\,A $= 60$\,mA. Each parallel resistor carries half of it, 30\,mA.
+\end{worked}
+
+\section{Kirchhoff's laws}
+
+Two rules, both forms of ``nothing is created or lost,'' let you solve any circuit.
+
+\paragraph{Kirchhoff's current law (KCL).} The total current flowing into a node equals the total current flowing out. Charge does not pile up in a wire junction.
+\[
+  \sum I_{\text{in}} = \sum I_{\text{out}}.
+\]
+
+\paragraph{Kirchhoff's voltage law (KVL).} Around any closed loop, the voltage rises (from sources) equal the voltage drops (across components). If you walk around a loop and return to your start, you are back at the same ``height.''
+\[
+  \sum V_{\text{around a loop}} = 0.
+\]
+
+\section{The voltage divider}
+
+The single most useful small circuit is the \term{voltage divider}: two resistors in series across a voltage, with the output taken from the middle (Figure~\ref{fig:divider}).
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (0,0) to[battery1, l=$V_{\text{in}}$] (0,3) -- (2,3) to[R, l=$R_1$] (2,1.5) to[R, l=$R_2$] (2,0) -- (0,0);
+  \draw (2,1.5) to[short,*-o] (3.5,1.5) node[right]{$V_{\text{out}}$};
+  \draw (0,0) node[ground]{};
+\end{circuitikz}
+\caption{A voltage divider.}
+\label{fig:divider}
+\end{figure}
+
+The same current $I = V_{\text{in}}/(R_1 + R_2)$ flows through both resistors (they are in series). The output is the voltage across $R_2$:
+\[
+  \boxed{V_{\text{out}} = V_{\text{in}} \cdot \frac{R_2}{R_1 + R_2}}
+\]
+
+\begin{worked}{divider}
+$V_{\text{in}} = 5$\,V, $R_1 = 3$\,k$\Omega$, $R_2 = 2$\,k$\Omega$. Then $V_{\text{out}} = 5 \times 2/(3+2) = 2$\,V.
+\end{worked}
+
+You will meet the divider idea again and again: whenever two things ``fight'' over a node, one pulling up and one pulling down, the node settles where their strengths balance. This is exactly what happens inside a logic gate when both transistors are partly on (Chapter~\ref{ch:cmos}) and inside an SRAM cell during a read (Chapter~\ref{ch:memory}).
+
+\section{Real sources and IR drop}
+\label{sec:irdrop}
+
+A real power supply is not a perfect voltage source. The supply itself, and every wire, connector, board trace and package pin between the supply and the chip, has some resistance. Current flowing through that resistance causes a voltage drop, $V = IR$, called \term{IR drop} (I times R).
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (0,0) to[battery1, l=$1.00$\,V regulator] (0,2.5) to[R, l=$R_{\text{path}}$, i=$I$] (4,2.5) -- (4,2.2);
+  \draw (3.4,0.3) rectangle (4.6,2.2); \node at (4,1.25) {chip};
+  \draw (4,0.3) -- (4,0) -- (0,0);
+  \draw (0,0) node[ground]{};
+\end{circuitikz}
+\caption{Every bit of resistance between the regulator and the chip steals some voltage.}
+\end{figure}
+
+\begin{worked}{voltage at the chip's power pins}
+A voltage regulator outputs 1.00\,V. The path to the chip has a total resistance of 0.25\,m$\Omega$ ($0.25 \times 10^{-3}~\Omega$). The chip draws 200\,A. What voltage reaches the chip?
+\[
+  V_{\text{drop}} = I R = 200 \times 0.00025 = 0.05~\text{V}, \qquad
+  V_{\text{chip}} = 1.00 - 0.05 = 0.95~\text{V}.
+\]
+A quarter of a milliohm sounds like nothing, but at hundreds of amps it costs 5\% of the supply. Lower voltage makes transistors slower (Chapter~\ref{ch:pvt}), so power delivery design matters.
+\end{worked}
+
+Notice why high-power chips are hard: power is $V \times I$, and chip voltages are low (around 1\,V), so a few hundred watts means a few hundred amps. Large currents make even tiny resistances matter.
+
+\section{Measuring voltage and current}
+
+A \term{voltmeter} measures the voltage between two points, so it connects \emph{across} (in parallel with) the thing being measured. A good voltmeter has very high resistance so it draws almost no current and does not disturb the circuit.
+
+An \term{ammeter} measures the current through a wire, so the wire must be broken and the meter placed \emph{in series}. A good ammeter has very low resistance so it does not add a voltage drop. Connecting an ammeter across a power supply (in parallel) creates a short circuit, a classic lab mistake.
+
+\section{DC, AC and frequency}
+
+A \term{DC} (direct current) signal stays at a constant value, like a battery. An \term{AC} (alternating current) signal changes over time and repeats, like the mains power in a wall outlet or a clock signal in a chip.
+
+A repeating signal has a \term{period} $T$, the time for one full repetition, and a \term{frequency} $f$, the number of repetitions per second, measured in \term{hertz} (Hz):
+\[
+  f = \frac{1}{T}.
+\]
+A 2\,GHz clock ($2 \times 10^9$ cycles per second) has a period of $1/(2\times 10^9) = 0.5$\,ns. Square-wave signals that switch between a low and a high level also have a \term{duty cycle}: the fraction of each period spent high. A clock that is high for half its period has a 50\% duty cycle.
+
+\section{Summary}
+
+\begin{itemize}
+  \item Charge (coulombs) is what moves. Current (amps) is how fast it flows. Voltage (volts) is the push, always measured between two points.
+  \item Ground is the shared 0\,V reference. Connected devices must share ground, current returns through it, and inputs must never float.
+  \item Ohm's law: $V = IR$. Power: $P = VI = I^2R = V^2/R$.
+  \item Series: same current, resistances add. Parallel: same voltage, resistance falls.
+  \item KCL: current in equals current out at a node. KVL: voltages around a loop sum to zero.
+  \item Voltage divider: $V_{\text{out}} = V_{\text{in}} R_2/(R_1+R_2)$.
+  \item IR drop: big currents through small resistances still lose voltage.
+\end{itemize}
+
+\section{Exercises}
+
+\begin{enumerate}
+  \item A 470\,$\Omega$ resistor has 2.35\,V across it. What current flows through it?
+  \item Three 300\,$\Omega$ resistors are connected in parallel. What is the total resistance?
+  \item A 10\,$\Omega$ resistor carries 2\,A. How much power does it dissipate?
+  \item In a voltage divider, $V_{\text{in}} = 3.3$\,V, $R_1 = 10$\,k$\Omega$, $R_2 = 20$\,k$\Omega$. Find $V_{\text{out}}$.
+  \item True or false: if a wire is made twice as long and twice as wide (in cross-sectional area), its resistance is unchanged.
+  \item A microcontroller on board A sends signals to board B over two wires: one signal wire and nothing else. Board B reads random values. What is the most likely problem?
+  \item A chip draws 150\,A from a 0.80\,V regulator through 0.4\,m$\Omega$ of path resistance. What voltage reaches the chip, and how much power is wasted in the path?
+  \item Why is an unconnected (floating) digital input a problem, and what are two ways to fix it?
+\end{enumerate}
+
+\subsection*{Answers}
+\begin{enumerate}
+  \item $I = V/R = 2.35/470 = 0.005$\,A $= 5$\,mA.
+  \item Three equal resistors in parallel: $300/3 = 100~\Omega$.
+  \item $P = I^2R = 2^2 \times 10 = 40$\,W.
+  \item $V_{\text{out}} = 3.3 \times 20/(10+20) = 2.2$\,V.
+  \item True. $R = \rho L/A$: doubling $L$ doubles $R$, doubling $A$ halves it; the effects cancel.
+  \item There is no shared ground. Board A's signal voltage is relative to A's ground, so without a ground wire B has no reference (and the current has no return path). Add a ground connection between the boards.
+  \item Drop $= 150 \times 0.0004 = 0.06$\,V, so the chip sees $0.74$\,V. Power lost in the path $= I^2R = 150^2 \times 0.0004 = 9$\,W.
+  \item Its voltage is undefined, so noise makes it read randomly as 0 or 1 (and it can also make the input circuit waste power). Fix it with a pull-up resistor to the supply or a pull-down resistor to ground, or by tying it directly to a defined level.
+\end{enumerate}

@@ -1,0 +1,69 @@
+\chapter{A Twelve-Month Plan and Resources}
+\label{app:plan}
+
+The goal: by the time next year's postings open, you can explain every idea in this book from first principles, write and verify Verilog, solve coding problems quickly, and point to finished projects. Recent Ignite windows were short: September 16 to October 18, 2024 (for 2025 internships), October 6 to 19, 2025 (for 2026), and October 5 to 18, 2026 (for 2027). Before applying, check the posting's eligibility rules: Ignite has been open only to first- and second-year undergraduates (see Appendix~\ref{app:projects}).
+
+\section*{The weekly routine}
+
+About 4 to 6 hours a week of study, plus 4 to 8 hours of building once the projects start. In heavy exam weeks, keep only the study.
+\begin{enumerate}
+  \item \textbf{Read} one chapter section by section. After each section, close the book and explain its big idea out loud in two sentences.
+  \item \textbf{Do every exercise} before looking at the answer. Mark the ones you missed.
+  \item \textbf{Redo} the missed ones a week later.
+  \item \textbf{Build}: the HDLBits exercises, the companion books' modules, or the current project (Appendix~\ref{app:projects}).
+\end{enumerate}
+
+\section*{Month by month}
+
+``Book 1,'' ``Book 2'' and ``Book 3'' are the companion books listed in Appendix~\ref{app:projects}; projects are numbered as in that appendix.
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+\toprule
+Month & Study & Build \\
+\midrule
+Nov 2026 & Chapters~\ref{ch:electricity}--\ref{ch:semis}: electricity, capacitors, heat, semiconductors. & Book 1, chapters 1--5, with HDLBits ``Getting Started'' and ``Verilog Language''. Install the free tools. \\
+Dec 2026 & Chapters~\ref{ch:mosfet}--\ref{ch:analog}: reread the strong/weak level section until it is obvious. & Book 1, chapters 6--11; HDLBits through basic sequential circuits. \\
+Jan 2027 & Chapters~\ref{ch:binary}--\ref{ch:comb}: build every gate from 2:1 muxes on paper. & Finish Book 1. Project 5, experiments 1--2 (the inverter, the pass transistor, the swapped inverter). \\
+Feb 2027 & Chapters~\ref{ch:latch}--\ref{ch:fsm}: latches, flip-flops, timing, counters, FSMs. & Book 2, chapters 1--6. Start Project 1 with a single-cycle processor. \\
+Mar 2027 & Chapters~\ref{ch:delay}--\ref{ch:pvt}: drill power and setup/hold calculations until each takes under a minute. & Book 2 projects (ALU, timer, FIFO). Pipeline Project 1. Project 5, experiments 3--7. \\
+Apr 2027 & Chapters~\ref{ch:wires}--\ref{ch:memory}: wires, manufacturing, memory. & Finish Book 2. Verify Project 1, add branch prediction, run it on an FPGA. \\
+May 2027 & Chapters~\ref{ch:rtl}--\ref{ch:arith}: Verilog, verification, architecture, GPUs and computer arithmetic. Work every floating-point example by hand. & Book 3, chapters 1--11. Project 2: one PE, then the $4 \times 4$ array. \\
+Jun 2027 & Chapters~\ref{ch:prog}--\ref{ch:aptitude}; three coding problems a week. & Book 3, chapters 12--19 (learn its methods; skip its networking capstone). Project 2's host interface and BF16 variant. Project 3 if a shuttle is open. \\
+Jul 2027 & The practice assessment (Chapter~\ref{ch:exam}) under timed conditions; reread the chapters behind every miss. & Project 4 (CUDA). \\
+Aug 2027 & Second pass through every exercise; formula-sheet flash cards (Appendix~\ref{app:formulas}); mock interviews with Book 3's drills. & Finish every README and results table. Projects 6--7 only if you are targeting those teams. \\
+Sep 2027 & Keep coding practice warm. & Polish the resume; apply as soon as postings open. \\
+Oct 2027 & Take the assessment within its window, rested. & Interview prep: gates and flip-flops from muxes, the five-stage pipeline, setup and hold, clock dividers, and a two-minute deep dive on each project. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section*{Projects}
+
+Appendix~\ref{app:projects} describes eight projects mapped to the Ignite job description, the minimum set to complete, and how to present them on a resume.
+
+\section*{Resources}
+
+\paragraph{Books.}
+\begin{itemize}
+  \item Harris and Harris, \emph{Digital Design and Computer Architecture} (RISC-V edition): the most beginner-friendly path from gates to a processor, and a guide for Project 1.
+  \item Weste and Harris, \emph{CMOS VLSI Design: A Circuits and Systems Perspective}: the standard reference for transistors, gates, delay, power, memories and reliability (Chapters~\ref{ch:mosfet}--\ref{ch:memory} of this book).
+  \item Rabaey, Chandrakasan and Nikoli\'c, \emph{Digital Integrated Circuits}: an alternative to Weste and Harris.
+  \item Patterson and Hennessy, \emph{Computer Organization and Design}: pipelines, caches and memory.
+  \item Parhami, \emph{Computer Arithmetic: Algorithms and Hardware Designs}, or Koren, \emph{Computer Arithmetic Algorithms}: multipliers, dividers and floating point.
+  \item Sedra and Smith, \emph{Microelectronic Circuits}: devices and analog circuits in depth.
+  \item Horowitz and Hill, \emph{The Art of Electronics}: practical electronics.
+\end{itemize}
+
+\paragraph{Free online.}
+\begin{itemize}
+  \item HDLBits: hundreds of small Verilog exercises with an online simulator.
+  \item MIT OpenCourseWare 6.004, \emph{Computation Structures}: digital design and architecture lectures.
+  \item Nand2Tetris: build a computer starting from NAND gates.
+  \item Ben Eater's video series building an 8-bit computer on breadboards.
+  \item NPTEL's free digital VLSI courses.
+  \item NVIDIA's \emph{CUDA C++ Programming Guide}.
+  \item The Tiny Tapeout website, and the OpenLane/OpenROAD documentation with the SkyWater SKY130 PDK.
+  \item LeetCode problems tagged ``linked list,'' ``bit manipulation,'' ``hash table'' and ``heap'' (easy, then medium).
+\end{itemize}

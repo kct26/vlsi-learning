@@ -1,0 +1,87 @@
+\chapter{Glossary}
+\label{app:glossary}
+
+\begin{description}[style=nextline,leftmargin=1.2em,itemsep=0.25em]
+\small
+\item[Activity factor ($\alpha$)] Fraction of clock cycles in which a node makes a 0-to-1 transition. A clock has $\alpha = 1$.
+\item[AMAT] Average memory access time: hit time plus miss rate times miss penalty.
+\item[Antenna effect] Damage to a gate oxide from charge collected by a long wire during plasma etching. Limited by the antenna ratio (metal area / gate area).
+\item[Arbiter] Circuit that grants a shared resource to one of several requesters.
+\item[Arithmetic intensity] FLOPs performed per byte moved from memory.
+\item[Assertion] A rule, written in the design or testbench, that must always hold (for example, ``never write a full FIFO''); the simulator reports the moment it is broken.
+\item[Bistable] Having two stable states; the basis of every latch, flip-flop and SRAM cell.
+\item[Bitline / wordline] In a memory array, the column wire carrying data / the row wire selecting a row.
+\item[Body effect] Increase of a MOSFET's threshold voltage when its source is above its body.
+\item[Booth recoding] Rewriting a multiplier as digits in $\{-2,-1,0,1,2\}$ so that an $n$-bit multiply needs only about $n/2$ partial products.
+\item[Carry-save adder] A row of independent full adders that turns three numbers into two (a sum vector and a carry vector) with one full-adder delay; the core of fast multipliers.
+\item[Clock domain crossing (CDC)] A signal passing between parts of a chip on unrelated clocks.
+\item[Clock gating] Stopping the clock to idle registers to save dynamic power.
+\item[Clock skew] Difference in clock arrival time between two flip-flops.
+\item[Clock-to-Q ($t_{cq}$)] Delay from a clock edge to a flip-flop's output changing.
+\item[CMOS] Complementary MOS: logic using PMOS pull-up and NMOS pull-down networks.
+\item[Coalescing] Combining the memory requests of a GPU warp into a few wide transactions.
+\item[Constrained-random testing] Verification with random inputs restricted by rules (constraints) that keep them legal and steer them toward interesting cases.
+\item[Contamination delay ($t_{cd}$)] Shortest time from an input change until an output starts to change.
+\item[Coverage] A measure of how thoroughly tests exercised a design: code coverage (lines, branches, toggles, FSM states) or functional coverage (scenarios from the verification plan).
+\item[Critical path] The slowest register-to-register path; it sets the maximum clock frequency.
+\item[Crosstalk] Interference between neighboring wires through coupling capacitance.
+\item[Decoupling capacitor] Capacitor near a chip's power pins that supplies fast bursts of current.
+\item[Dennard scaling] The historical rule that shrinking transistors kept power density constant; it ended around 2005.
+\item[Depletion region] Region at a PN junction with no free carriers.
+\item[Divergence] Threads in one GPU warp taking different branches, forcing both paths to execute.
+\item[Doping] Adding impurity atoms to silicon to create n-type (electrons) or p-type (holes) material.
+\item[DRAM] Dynamic RAM: one transistor and one capacitor per bit; needs refresh.
+\item[DRC / LVS] Design rule check (layout geometry rules) / layout versus schematic (layout matches netlist).
+\item[DVFS] Dynamic voltage and frequency scaling.
+\item[ECC] Error-correcting code; SECDED corrects one error and detects two.
+\item[Electromigration] Gradual movement of metal atoms by electron current, creating voids and shorts.
+\item[Elmore delay] Estimate of RC network delay: sum of each resistance times all downstream capacitance.
+\item[ESD] Electrostatic discharge; protection diodes guard every pin.
+\item[FIFO] First-in first-out queue between a producer and a consumer.
+\item[Fixed point] Storing fractions in integers with an agreed binary point; a Q$m$.$n$ number is the stored integer divided by $2^n$.
+\item[Flip-flop] Edge-triggered storage element; samples its input only at a clock edge.
+\item[FO4 delay] Delay of an inverter driving four copies of itself; a yardstick of process speed.
+\item[Formal verification] Proving with mathematical tools that a property holds for every possible input sequence (within a bound), or finding an exact counterexample.
+\item[Forwarding] Passing a result directly between pipeline stages to avoid waiting for write-back.
+\item[FSM] Finite state machine: state register plus next-state and output logic. Moore outputs depend on state; Mealy on state and inputs.
+\item[Fused multiply-add (FMA)] Computing $a \times b + c$ with a single rounding at the end; faster and more accurate than a separate multiply and add.
+\item[Gray code] Binary ordering in which consecutive values differ in exactly one bit.
+\item[Ground (GND)] The shared 0\,V reference node of a circuit.
+\item[Hold time ($t_h$)] How long a flip-flop's input must stay stable after the clock edge.
+\item[Hole] The absence of an electron in a bond, behaving as a positive charge carrier.
+\item[IR drop] Voltage lost across the resistance of the power-delivery path.
+\item[Latch] Level-sensitive storage element; transparent while enabled.
+\item[Latch-up] Parasitic p-n-p-n thyristor turning on and shorting the supply to ground.
+\item[Leakage] Current that flows through transistors that are supposed to be off.
+\item[Logical effort] How much worse a gate is at driving current than an inverter with the same input capacitance.
+\item[Metastability] A flip-flop output hanging between 0 and 1 for an unpredictable time after a setup or hold violation.
+\item[Mobility ($\mu$)] How fast carriers drift per unit electric field; decreases with temperature.
+\item[MOSFET] Metal--oxide--semiconductor field-effect transistor; a voltage-controlled switch.
+\item[Multiplexer (mux)] Selects one of several inputs based on select lines.
+\item[NaN] ``Not a number'': the floating-point result of undefined operations such as $0/0$ or $\infty - \infty$.
+\item[Noise margin] How much noise a logic level can tolerate before being misread.
+\item[Pass transistor] A transistor used as a switch to pass a signal; NMOS passes a weak 1, PMOS a weak 0.
+\item[Pipelining] Splitting logic into stages separated by registers to raise clock frequency and throughput.
+\item[Power gating] Cutting the supply to an idle block to remove its leakage.
+\item[Propagation delay ($t_{pd}$)] Longest time from an input change until an output is final.
+\item[PVT] Process, voltage and temperature: the three sources of variation.
+\item[Reference model] A simple, trusted description of correct behaviour that a testbench uses to compute expected results (also called a golden model).
+\item[Round to nearest, ties to even] The default IEEE 754 rounding mode: round to the nearer representable value, and on an exact tie to the one whose last bit is 0.
+\item[Saturating arithmetic] Arithmetic that clamps a result that does not fit to the largest or smallest representable value instead of wrapping around.
+\item[Scoreboard] The part of a testbench that compares what the design produced with what the reference model expected.
+\item[Setup time ($t_{su}$)] How long a flip-flop's input must be stable before the clock edge.
+\item[SIMT] Single instruction, multiple threads: one instruction executed by all 32 threads of a warp.
+\item[Slack] Timing margin of a path; negative slack is a violation.
+\item[SRAM] Static RAM: six-transistor cell of cross-coupled inverters; no refresh needed.
+\item[Subnormal number] A floating-point value below the smallest normal number, with no hidden leading 1; gives gradual underflow toward zero.
+\item[Synchronizer] Two flip-flops in series that bring an asynchronous single bit safely into a clock domain.
+\item[Temperature inversion] At low supply voltage, circuits get faster when hot because threshold voltage falls.
+\item[Testbench] Non-synthesized code that drives a design under test's inputs and checks its outputs.
+\item[Threshold voltage ($\Vt$)] Gate-to-source voltage at which a MOSFET's channel forms.
+\item[Transmission gate] Parallel NMOS and PMOS switch that passes both 0 and 1 at full strength.
+\item[Transmission line] A wire long enough that signals travel along it as waves and can reflect.
+\item[ULP] Unit in the last place: the gap between a floating-point number and its neighbour. It grows with the number's size.
+\item[UVM] Universal Verification Methodology: a standard SystemVerilog class library for reusable testbenches (sequencers, drivers, monitors, agents, scoreboards).
+\item[Warp] Group of 32 GPU threads that execute together.
+\item[Yield] Fraction of manufactured dies that work; falls exponentially with die area.
+\end{description}

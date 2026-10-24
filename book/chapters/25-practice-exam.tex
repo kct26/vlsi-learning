@@ -1,0 +1,285 @@
+\chapter{A Full Practice Assessment}
+\label{ch:exam}
+
+This chapter is a practice assessment modeled on what candidates report: hardware multiple-choice and true/false questions, short C output questions, a few aptitude questions, and two coding problems. Take it under real conditions: no notes, a timer, and no checking answers until the end.
+
+\begin{remember}
+Suggested timing: 60 minutes for Parts A to C, then 30 minutes for Part D. If your assessment uses negative marking, skip questions you cannot narrow down to two options.
+\end{remember}
+
+\newcommand{\opts}[4]{\par\hspace*{1em}(a) #1\quad (b) #2\quad (c) #3\quad (d) #4}
+
+\section{Part A: Hardware (multiple choice and true/false)}
+
+\begin{enumerate}
+  \item An NMOS pass transistor with its gate at $\VDD = 1.0$\,V and $\Vtn = 0.3$\,V passes a logic 1 to a capacitive load. The load settles at:
+  \opts{1.0\,V}{0.3\,V}{0.7\,V}{0\,V}
+
+  \item In a static CMOS gate, the network that connects the output to $\VDD$ is made of:
+  \opts{NMOS in series}{PMOS transistors}{NMOS in parallel}{resistors}
+
+  \item An inverter is built with its NMOS connected to $\VDD$ and its PMOS to ground (gates tied together as the input, sources tied as the output). For input 1, the output is approximately:
+  \opts{0\,V}{$|\Vtp|$}{$\VDD$}{$\VDD - \Vtn$}
+
+  \item The circuit in question 3 behaves as:
+  \opts{an inverter with full swing}{an oscillator}{a non-inverting buffer with degraded levels}{an output stuck at 0}
+
+  \item One advantage of a flip-flop over a latch is that a flip-flop:
+  \opts{uses fewer transistors}{allows time borrowing}{has a lower clock load}{captures its input only at the clock edge, so data cannot race through}
+
+  \item A 2:1 mux has $S = B$, $I_0 = A$, $I_1 = 1$. Its output is:
+  \opts{$A + B$}{$AB$}{$A \oplus B$}{$\nt{A}$}
+
+  \item The minimum number of 2:1 muxes needed to build XOR, if only $A$, $B$, 0 and 1 are available, is:
+  \opts{1}{2}{3}{4}
+
+  \item The clock frequency and supply voltage of a chip both double. Dynamic power becomes:
+  \opts{$2\times$}{$4\times$}{$16\times$}{$8\times$}
+
+  \item Supply voltage rises 10\% and frequency rises 20\%. Dynamic power rises by about:
+  \opts{30\%}{45\%}{32\%}{21\%}
+
+  \item As temperature increases, carrier mobility \underline{\hspace{1.5cm}} and metal wire resistance \underline{\hspace{1.5cm}}.
+  \opts{increases; increases}{increases; decreases}{decreases; increases}{decreases; decreases}
+
+  \item True or false: for the antenna rule, connecting a long wire to a \emph{smaller} gate reduces the risk of oxide damage.
+
+  \item Which of these fixes an antenna violation?
+  \opts{adding a reverse-biased diode near the gate}{making the gate smaller}{making the lower-layer wire longer}{raising $\VDD$}
+
+  \item A path has a hold violation. Which fixes it?
+  \opts{lowering the clock frequency}{raising the clock frequency}{removing buffers from the short path}{adding delay to the short path}
+
+  \item $t_{cq} = 50$\,ps, $t_{pd} = 350$\,ps, $t_{su} = 100$\,ps, no skew. The maximum clock frequency is:
+  \opts{1\,GHz}{2\,GHz}{2.5\,GHz}{2.86\,GHz}
+
+  \item The capture flip-flop's clock arrives later than the launch flip-flop's. This:
+  \opts{helps setup and hurts hold}{hurts setup and helps hold}{helps both}{affects neither}
+
+  \item A T flip-flop with $T = 1$ is clocked at 25\,kHz. Its output frequency is:
+  \opts{50\,kHz}{25\,kHz}{12.5\,kHz}{6.25\,kHz}
+
+  \item A binary counter's clock period is 2\,ns and its most significant bit has a period of 128\,ns. It has how many flip-flops?
+  \opts{5}{6}{7}{64}
+
+  \item The minimum number of flip-flops for a state machine with 60 states is:
+  \opts{5}{60}{6}{7}
+
+  \item For the same sequence detector, which usually needs more states?
+  \opts{Mealy}{Moore}{they always need the same}{it depends only on the clock frequency}
+
+  \item How many transistors are in a static CMOS 3-input NAND?
+  \opts{3}{4}{6}{8}
+
+  \item PMOS transistors are usually drawn wider than NMOS transistors because:
+  \opts{holes have lower mobility than electrons}{PMOS always has a higher threshold}{it is required for ESD protection}{it reduces leakage}
+
+  \item NAND gates are generally preferred over NOR gates because:
+  \opts{NAND uses fewer transistors}{NOR is not universal}{NAND has no parasitic capacitance}{NOR puts slow PMOS transistors in series}
+
+  \item A 50\,$\Omega$ transmission line ends in a 25\,$\Omega$ load. The reflection coefficient is:
+  \opts{$+1/3$}{$-1/3$}{$-1/2$}{0}
+
+  \item Which best supplies a chip's power pins during a current step lasting a few nanoseconds?
+  \opts{a large capacitor far from the chip}{no capacitor; the regulator responds instantly}{a small, low-inductance capacitor right at the pins}{an inductor in series at the pins}
+
+  \item The main purpose of a heat sink's fins is to:
+  \opts{store heat}{increase thermal resistance}{insulate the chip}{increase surface area for convection}
+
+  \item A 300\,W chip has 0.2\,\textdegree C/W total thermal resistance to 30\,\textdegree C air. Its junction temperature is:
+  \opts{60\,\textdegree C}{75\,\textdegree C}{90\,\textdegree C}{120\,\textdegree C}
+
+  \item True or false: two boards exchanging digital signals must share a ground connection.
+
+  \item In a 6T SRAM cell, read stability requires:
+  \opts{access NMOS stronger than pull-down NMOS}{pull-up PMOS stronger than access NMOS}{pull-down NMOS stronger than access NMOS}{all transistors the same size}
+
+  \item DRAM needs periodic refresh because:
+  \opts{the stored charge leaks away}{reads are too slow}{neighboring SRAM interferes}{clock gating requires it}
+
+  \item A block will be idle for a long time. What reduces its leakage power most?
+  \opts{clock gating}{lowering only the frequency}{power gating}{adding decoupling capacitors}
+
+  \item In the classic five-stage pipeline, loads read data memory in which stage?
+  \opts{IF}{ID}{EX}{MEM}
+
+  \item A cache has a 1\,ns hit time, a 10\% miss rate and a 50\,ns miss penalty. The AMAT is:
+  \opts{5\,ns}{51\,ns}{6\,ns}{50\,ns}
+
+  \item A two-flop synchronizer is appropriate for crossing:
+  \opts{a 32-bit data bus}{a single-bit level signal}{the clock itself}{a multi-bit counter in binary}
+
+  \item A writer at 100\,MHz sends bursts of 200 words; a reader at 50\,MHz reads one word per cycle. The minimum FIFO depth is:
+  \opts{100}{50}{150}{200}
+
+  \item An unbuffered wire's length doubles. Its delay becomes about:
+  \opts{the same}{$2\times$}{$4\times$}{$8\times$}
+
+  \item A divide-by-3 clock divider with a 50\% duty cycle requires:
+  \opts{only rising clock edges}{both clock edges}{a PLL}{an asynchronous reset}
+
+  \item Electromigration gets worse with:
+  \opts{lower temperature}{lower supply voltage}{wider wires}{higher current density and temperature}
+
+  \item Latch-up is prevented by:
+  \opts{guard rings and frequent well and substrate taps}{lowering the clock frequency}{adding decoupling capacitors}{using NOR instead of NAND}
+
+  \item BF16 has the same number of exponent bits as:
+  \opts{FP16}{FP32}{INT8}{FP8 E4M3}
+
+  \item In steady state, an ideal CMOS inverter draws:
+  \opts{only leakage current, nearly zero}{a large current}{its saturation current}{a current that depends on the input}
+
+  \item[\textbf{Challenge.}]\vspace{-0.5em}
+
+  \item A chain of 50 XOR gates: gate 1 has inputs 1 and $X$; every later gate has inputs (previous gate's output) and $X$. The output of gate 50 is:
+  \opts{$X$}{$\nt{X}$}{1}{0}
+
+  \item Identical NMOS transistors, $\VDD = 5$\,V, $\Vt = 2$\,V. An input of 4\,V passes through one NMOS whose gate is at 5\,V. The output node reaches:
+  \opts{4\,V}{3\,V}{2\,V}{5\,V}
+
+  \item A 1\,MB, 4-way set-associative cache has 64-byte lines and 32-bit addresses. The tag is how many bits?
+  \opts{12}{14}{16}{20}
+
+  \item A 202-byte read starts at address \code{0x31121133}. Replies carry at most 64 bytes and may not cross 64-byte boundaries. How many reply packets?
+  \opts{3}{4}{5}{6}
+
+  \item A design moves from $(f, 2V)$ to $(4f, 3V)$. Dynamic power changes by a factor of:
+  \opts{6}{9}{4}{12}
+
+  \item Net A can switch between 1.0 and 1.6\,ns; adjacent net B between 1.4 and 2.2\,ns. Crosstalk between them is possible during:
+  \opts{no time}{1.0 to 2.2\,ns}{1.4 to 1.6\,ns}{1.6 to 2.2\,ns}
+\end{enumerate}
+
+\section{Part B: What does this C code print?}
+
+Assume a 64-bit machine.
+
+\begin{enumerate}
+  \item What does this print?
+\begin{lstlisting}[language=C,numbers=none]
+#define SQ(x) x*x
+printf("%d", SQ(1+2));
+\end{lstlisting}
+  \item What does this print?
+\begin{lstlisting}[language=C,numbers=none]
+int f(void) { static int a = 12; return a++; }
+int main(void) { f(); f(); printf("%d", f()); return 0; }
+\end{lstlisting}
+  \item What does this print?
+\begin{lstlisting}[language=C,numbers=none]
+int i = 8, j = 2;
+printf("%d %d", i << j, i >> j);
+\end{lstlisting}
+  \item What does this print?
+\begin{lstlisting}[language=C,numbers=none]
+struct S { char c; void *p; };
+printf("%zu", sizeof(struct S));
+\end{lstlisting}
+  \item What does this print?
+\begin{lstlisting}[language=C,numbers=none]
+unsigned char c = 250;
+c += 10;
+printf("%d", c);
+\end{lstlisting}
+\end{enumerate}
+
+\section{Part C: Aptitude}
+
+\begin{enumerate}
+  \item How many trailing zeros does $50!$ have?
+  \item Six ants on the corners of a hexagon each pick a random direction along the edges. What is the probability that none collide?
+  \item One pipe fills a tank in 4 hours and another in 12 hours. How long do both together take?
+  \item What is the maximum number of comparisons binary search needs on 4096 sorted elements?
+  \item 1000 bulbs start off; person $k$ toggles every $k$th bulb, for $k = 1$ to 1000. How many bulbs end up on?
+\end{enumerate}
+
+\section{Part D: Coding}
+
+\begin{enumerate}
+  \item \textbf{Reverse a linked list.} Given the head of a singly linked list, reverse it and return the new head. Use $O(1)$ extra memory.
+  \item \textbf{XOR subarrays.} Given an integer array and an integer $k$, return the number of contiguous subarrays whose elements XOR to $k$. The array can have up to $10^5$ elements.
+\end{enumerate}
+
+\section{Answer key}
+
+\subsection*{Part A}
+
+\begin{enumerate}
+  \item \textbf{(c)} NMOS passes a weak 1: $\VDD - \Vtn = 0.7$\,V.
+  \item \textbf{(b)} The pull-up network is PMOS, which passes a strong 1.
+  \item \textbf{(d)} The top NMOS pulls up but stops one threshold below $\VDD$.
+  \item \textbf{(c)} Input 1 gives a weak 1, input 0 gives a weak 0: non-inverting with degraded levels.
+  \item \textbf{(d)} Edge triggering prevents race-through; (a), (b) and (c) are latch advantages.
+  \item \textbf{(a)} $\nt{B}A + B = A + B$.
+  \item \textbf{(b)} One mux makes $\nt{B}$; one selects $B$ or $\nt{B}$ by $A$.
+  \item \textbf{(d)} $2 \times 2^2 = 8$.
+  \item \textbf{(b)} $1.1^2 \times 1.2 = 1.452$.
+  \item \textbf{(c)} More phonon scattering in both silicon and metal.
+  \item \textbf{False.} A smaller gate raises the metal-to-gate area ratio, increasing the risk.
+  \item \textbf{(a)} The diode drains plasma charge to the substrate.
+  \item \textbf{(d)} Hold does not depend on the clock period.
+  \item \textbf{(b)} $50 + 350 + 100 = 500$\,ps, so 2\,GHz.
+  \item \textbf{(a)} The data gets extra time before the capture edge, but the hold window closes later.
+  \item \textbf{(c)} A toggle flip-flop divides by 2.
+  \item \textbf{(b)} $128/2 = 64 = 2^6$.
+  \item \textbf{(c)} $\lceil\log_2 60\rceil = 6$.
+  \item \textbf{(b)} Moore outputs are attached to states, which usually needs an extra state.
+  \item \textbf{(c)} $2n$ for $n$ inputs.
+  \item \textbf{(a)} Lower hole mobility is compensated by width.
+  \item \textbf{(d)} Series PMOS is slow or must be very wide.
+  \item \textbf{(b)} $(25-50)/(25+50) = -1/3$.
+  \item \textbf{(c)} Fast steps are limited by inductance; small, close capacitors have the least.
+  \item \textbf{(d)} Fins add area for the air to carry heat away.
+  \item \textbf{(c)} $30 + 300 \times 0.2 = 90$\,\textdegree C.
+  \item \textbf{True.} Voltages are only meaningful relative to a shared reference, and currents need a return path.
+  \item \textbf{(c)} Otherwise the 0 node rises during a read and the cell can flip.
+  \item \textbf{(a)} The capacitor leaks.
+  \item \textbf{(c)} Power gating cuts the supply and thus most leakage; clock gating only stops switching.
+  \item \textbf{(d)} MEM.
+  \item \textbf{(c)} $1 + 0.1 \times 50 = 6$\,ns.
+  \item \textbf{(b)} Buses and binary counters need Gray code, handshakes or FIFOs.
+  \item \textbf{(a)} Burst lasts 2\,$\mu$s; 100 words are read in that time; $200 - 100 = 100$.
+  \item \textbf{(c)} Delay grows with the square of length.
+  \item \textbf{(b)} A falling-edge flip-flop provides the half-cycle delay.
+  \item \textbf{(d)} Black's equation: worse with current density and exponentially with temperature.
+  \item \textbf{(a)} Taps and guard rings keep the parasitic bipolar transistors off.
+  \item \textbf{(b)} BF16 keeps FP32's 8-bit exponent.
+  \item \textbf{(a)} One transistor is always off.
+  \item[] \textbf{Challenge}
+  \item \textbf{(c)} Odd gates output $\nt{X}$, even gates output 1.
+  \item \textbf{(b)} $\min(4, 5 - 2) = 3$\,V.
+  \item \textbf{(b)} Offset 6, index 12 (4096 sets), tag $32 - 18 = 14$.
+  \item \textbf{(b)} 13 bytes to the first boundary, then 64, 64 and 61.
+  \item \textbf{(b)} $4 \times (3/2)^2 = 9$.
+  \item \textbf{(c)} The intersection of the two windows.
+\end{enumerate}
+
+\subsection*{Part B}
+
+\begin{enumerate}
+  \item \textbf{5.} \code{SQ(1+2)} expands to \code{1+2*1+2}.
+  \item \textbf{14.} The calls return 12, 13, 14 (post-increment returns the old value; the static keeps counting).
+  \item \textbf{32 2.}
+  \item \textbf{16.} One byte, seven bytes of padding, an eight-byte pointer.
+  \item \textbf{4.} $250 + 10 = 260$, which wraps modulo 256 to 4.
+\end{enumerate}
+
+\subsection*{Part C}
+
+\begin{enumerate}
+  \item \textbf{12.} $\lfloor 50/5\rfloor + \lfloor 50/25\rfloor = 10 + 2$.
+  \item \textbf{1/32.} $2/2^6$.
+  \item \textbf{3 hours.} Rates $\tfrac14 + \tfrac1{12} = \tfrac13$ per hour.
+  \item \textbf{13.} $\lceil\log_2 4097\rceil = 13$.
+  \item \textbf{31.} Perfect squares up to 1000: $1^2$ through $31^2 = 961$.
+\end{enumerate}
+
+\subsection*{Part D}
+
+\begin{enumerate}
+  \item The iterative \code{prev}/\code{cur}/\code{next} solution of Chapter~\ref{ch:prog}: $O(n)$ time, $O(1)$ space. Test it on an empty list, a single node and two nodes.
+  \item Prefix XOR with a hash map counting earlier prefixes (Chapter~\ref{ch:prog}): for each prefix $P_j$, add the number of earlier prefixes equal to $P_j \oplus k$. Initialize the map with $\{0: 1\}$. $O(n)$ time; use a 64-bit counter because the answer can exceed $2^{31}$.
+\end{enumerate}
+
+\paragraph{Scoring yourself.} If you missed a question, do not just memorize the answer. Go back to the chapter that teaches it, reread the idea behind it, and redo the chapter's exercises. The real assessment will ask a different twist on the same idea.

@@ -1,0 +1,123 @@
+\chapter{Aptitude and Puzzles}
+\label{ch:aptitude}
+
+Some NVIDIA hardware tests mix in general aptitude questions: work rates, travel times, counting, probability and classic puzzles. They test careful reasoning under time pressure more than knowledge. Each has a standard method, and once you know it these become quick points.
+
+\section{Work and rates}
+
+\begin{bigidea}
+Convert everything to a \emph{rate}: the fraction of the job done per unit time. Rates of people working together \emph{add}. Work done $=$ rate $\times$ time.
+\end{bigidea}
+
+\begin{worked}{workers who quit}
+A can finish a job alone in 10 days, B in 15 days, C in 30 days. All three work together for 4 days, then A and B quit. How many more days does C need?
+
+Rates: $\tfrac1{10} + \tfrac1{15} + \tfrac1{30} = \tfrac{3 + 2 + 1}{30} = \tfrac15$ of the job per day. In 4 days: $\tfrac45$ done. Remaining: $\tfrac15$. C alone does $\tfrac1{30}$ per day, so $\tfrac15 \div \tfrac1{30} = 6$ more days.
+\end{worked}
+
+\section{Speed, distance and time}
+
+$\text{distance} = \text{speed} \times \text{time}$. For a boat in a river with still-water speed $b$ and current $s$: downstream speed is $b + s$, upstream speed is $b - s$.
+
+\begin{worked}{a round trip on a river}
+A rower moves at 5\,km/h in still water; the river flows at 1\,km/h. A round trip to a place and back takes 75 minutes. How far is the place?
+
+Downstream 6\,km/h, upstream 4\,km/h, total time 1.25\,h:
+\[
+  \frac{d}{6} + \frac{d}{4} = 1.25 \;\Rightarrow\; \frac{2d + 3d}{12} = 1.25 \;\Rightarrow\; d = 3~\text{km}.
+\]
+\end{worked}
+
+\section{Percentages and compound growth}
+
+Growing by $r$ per period for $n$ periods multiplies by $(1 + r)^n$. Going backward in time divides by it.
+
+\begin{worked}{working backward}
+A chip's area grows 5\% per year and is 2300 units in 2020. What was it in 2018?
+\[
+  \frac{2300}{1.05^2} = \frac{2300}{1.1025} \approx 2086~\text{units}.
+\]
+\end{worked}
+
+\section{Factorials and trailing zeros}
+
+Each trailing zero of $n!$ comes from a factor of 10 $= 2 \times 5$. Factors of 2 are plentiful, so count factors of 5. Multiples of 25 contribute an extra 5, multiples of 125 another, and so on:
+\[
+  \text{zeros} = \left\lfloor \frac{n}{5} \right\rfloor + \left\lfloor \frac{n}{25} \right\rfloor + \left\lfloor \frac{n}{125} \right\rfloor + \left\lfloor \frac{n}{625} \right\rfloor + \cdots
+\]
+
+\begin{worked}{trailing zeros of 2021!}
+$\lfloor 2021/5 \rfloor = 404$, $\lfloor 2021/25 \rfloor = 80$, $\lfloor 2021/125 \rfloor = 16$, $\lfloor 2021/625 \rfloor = 3$, $\lfloor 2021/3125 \rfloor = 0$. Total: $404 + 80 + 16 + 3 = 503$.
+\end{worked}
+
+\section{Probability}
+
+\begin{itemize}
+  \item For equally likely outcomes: probability $=$ favorable outcomes / total outcomes.
+  \item Independent events: multiply probabilities.
+  \item ``At least one'' is usually easiest through the complement: $P(\text{at least one}) = 1 - P(\text{none})$.
+\end{itemize}
+
+\begin{worked}{ants on a polygon}
+Eight ants sit at the corners of a regular octagon. Each picks a direction (clockwise or counterclockwise) at random and walks along the edges. What is the probability that no two ants collide?
+
+There are $2^8 = 256$ equally likely choices. The ants avoid collisions only if they all walk the same way: all clockwise or all counterclockwise, 2 outcomes. Probability: $2/256 = 1/128$. (For a triangle: $2/8 = 1/4$.)
+\end{worked}
+
+\begin{worked}{at least one}
+A test chip has 10 independent blocks, each working with probability 0.95. The probability that \emph{all} work is $0.95^{10} \approx 0.60$, so the probability that at least one fails is about 0.40.
+\end{worked}
+
+\section{Counting}
+
+\begin{itemize}
+  \item Ordered arrangements of $n$ distinct items: $n!$.
+  \item Ordered choices of $k$ from $n$: $n!/(n-k)!$.
+  \item Unordered choices of $k$ from $n$: $\binom{n}{k} = \dfrac{n!}{k!\,(n-k)!}$.
+\end{itemize}
+For example, the number of 8-bit values with exactly three 1s is $\binom{8}{3} = 56$.
+
+\section{Classic puzzles}
+
+\paragraph{100 bulbs (or doors).} 100 bulbs start off. Person 1 toggles every bulb, person 2 every second bulb, person 3 every third, and so on up to person 100. Which bulbs end up on? Bulb $n$ is toggled once for each divisor of $n$. Divisors come in pairs ($d$ and $n/d$), except when $n$ is a perfect square, where one divisor pairs with itself. So only perfect squares have an odd number of toggles and end up on: bulbs 1, 4, 9, \ldots, 100. That is 10 bulbs.
+
+\paragraph{Three switches, one bulb.} Three switches outside a closed room control one bulb inside; you may enter once. Turn on switch 1 for a few minutes, turn it off, turn on switch 2, and enter. If the bulb is on, it is switch 2; if it is off but warm, switch 1; if off and cold, switch 3. (Using a second property, heat, gives more information than on/off alone.)
+
+\paragraph{Two eggs, 100 floors.} With two eggs, find the highest floor from which an egg survives, minimizing the worst-case number of drops. Drop the first egg from floors spaced so that each new gap is one smaller than the last: 14, 27, 39, \ldots. Since $14 + 13 + \cdots + 1 = 105 \ge 100$, the worst case is 14 drops.
+
+\section{Binary search}
+
+Each comparison in binary search halves the remaining candidates. After $N$ comparisons, at most $M/2^N$ of $M$ elements remain, and finding an element (or proving it is absent) takes about $\lceil \log_2(M+1) \rceil$ comparisons.
+
+\begin{worked}{what is left after 6 comparisons?}
+$M = 32768 = 2^{15}$ elements. After 6 comparisons, at most $2^{15}/2^6 = 512$ elements remain. Finding any element takes at most 16 comparisons.
+\end{worked}
+
+\section{Estimation}
+
+Interviewers sometimes ask for rough estimates (``how many transistors switch per second in a GPU?''). Break the quantity into factors you can guess, round to powers of ten, multiply, and state your assumptions. For instance: $10^{10}$ transistors $\times$ about 10\% active per cycle $\times\ 2\times10^9$ cycles per second $\approx 2\times10^{18}$ switching events per second. Being organized matters more than being exact.
+
+\section{Exercises}
+
+\begin{enumerate}
+  \item A can paint a wall in 6 hours and B in 3 hours. How long do they take together?
+  \item A train travels 120\,km at 60\,km/h and returns at 40\,km/h. What is its average speed for the whole trip?
+  \item How many trailing zeros does $100!$ have?
+  \item A population of 1000 grows 10\% per year. What is it after 3 years?
+  \item Four ants on the corners of a square each pick a random direction. What is the probability that none collide?
+  \item How many 5-bit strings contain exactly two 1s?
+  \item In the 100-bulbs puzzle with 50 bulbs instead, how many end up on?
+  \item How many comparisons does binary search need, at most, for 1000 sorted elements?
+\end{enumerate}
+
+\subsection*{Answers}
+\begin{enumerate}
+  \item Rates $\tfrac16 + \tfrac13 = \tfrac12$ per hour: 2 hours.
+  \item Total distance 240\,km; time $2 + 3 = 5$\,h; average 48\,km/h (not 50: average speed is total distance over total time).
+  \item $20 + 4 = 24$.
+  \item $1000 \times 1.1^3 = 1331$.
+  \item $2/2^4 = 1/8$.
+  \item $\binom{5}{2} = 10$.
+  \item Perfect squares up to 50: 1, 4, 9, 16, 25, 36, 49: 7 bulbs.
+  \item $\lceil\log_2 1001\rceil = 10$.
+\end{enumerate}

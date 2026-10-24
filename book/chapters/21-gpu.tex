@@ -1,0 +1,148 @@
+\chapter{GPUs and Parallel Computing}
+\label{ch:gpu}
+
+NVIDIA builds GPUs, so it is worth understanding what makes a GPU different from a CPU and why it is so good at graphics and AI. This chapter ties together many earlier ideas: parallelism to save power (Chapter~\ref{ch:power}), memory bandwidth (Chapter~\ref{ch:wires}), caches (Chapter~\ref{ch:arch}) and number formats (Chapter~\ref{ch:binary}). The Ignite posting lists familiarity with GPU programming (CUDA or OpenCL) as a plus.
+
+\section{Two philosophies: latency and throughput}
+
+A \textbf{CPU} is designed to finish \emph{one} thread of instructions as fast as possible. It spends its transistors on large caches, branch prediction, and complex out-of-order logic that finds independent instructions to run early. It has a handful of powerful cores.
+
+A \textbf{GPU} is designed to finish a \emph{huge number} of similar, independent tasks at the greatest total rate. It spends its transistors on thousands of simple arithmetic units, and it tolerates slow memory not by avoiding waits but by always having other work ready.
+
+\begin{everyday}
+A CPU is a few expert chefs who can cook any dish quickly. A GPU is a giant kitchen with thousands of line cooks, each doing the same simple step on a different plate. For one complicated dish, the expert wins. For ten thousand identical burgers, the kitchen wins by a mile.
+\end{everyday}
+
+Graphics and AI are full of identical, independent work: every pixel on the screen, every element of a large matrix multiplication. That is why GPUs excel at both.
+
+\section{How a GPU is organized}
+
+\begin{itemize}
+  \item The chip contains many \term{streaming multiprocessors} (SMs). Each SM has many arithmetic units (``CUDA cores''), special units for matrix math (tensor cores), a very large \term{register file}, and a fast on-chip SRAM called \term{shared memory} (configurable together with the L1 cache).
+  \item All SMs share a large \term{L2 cache}, which connects to high-bandwidth DRAM (HBM or GDDR) through very wide memory interfaces.
+  \item Threads are grouped into \term{warps} of 32 threads. All 32 threads of a warp execute the same instruction at the same time, each on its own data. NVIDIA calls this \term{SIMT}: single instruction, multiple threads.
+\end{itemize}
+
+\section{Hiding latency with many threads}
+
+A memory access to DRAM takes hundreds of cycles. A CPU tries to avoid that wait with big caches and prediction. A GPU instead keeps many warps resident on each SM, with all of their registers held in the large register file. When one warp stalls waiting for memory, the warp scheduler simply issues an instruction from another warp that is ready, with no cost to switch. As long as there are enough ready warps, the arithmetic units stay busy. The fraction of the maximum possible warps actually resident on an SM is called \term{occupancy}.
+
+\section{Two performance pitfalls}
+
+\paragraph{Divergence.} The 32 threads of a warp share one instruction stream. If an \code{if} statement sends some threads one way and others the other way, the warp must execute \emph{both} paths, one after the other, with the inactive threads masked off. In the worst case, half the threads are idle for each path, halving throughput. GPU code is fastest when threads in a warp follow the same path.
+
+\paragraph{Uncoalesced memory access.} When the 32 threads of a warp read memory, the hardware combines (\term{coalesces}) their requests into as few wide memory transactions as possible. If thread $i$ reads element $i$ of an array, the 32 reads fall into a few consecutive lines: perfectly coalesced. If each thread reads an element far from its neighbors' (a large stride), every thread may need its own transaction, wasting most of the bandwidth.
+
+\section{The CUDA programming model}
+
+In CUDA, the programmer writes a \term{kernel}: a function that one thread runs. The kernel is launched on a \term{grid} of \term{thread blocks}, each block containing many threads (up to 1024). Blocks are assigned to SMs; threads within a block can cooperate through shared memory and synchronize with \code{\_\_syncthreads()}. Each thread finds its own piece of work from its indices.
+
+\begin{lstlisting}[language=C]
+// Each thread adds one pair of elements: c[i] = a[i] + b[i]
+__global__ void vec_add(const float *a, const float *b, float *c, int n) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;   // global thread index
+    if (i < n)                                       // guard the last block
+        c[i] = a[i] + b[i];
+}
+
+// Launch enough blocks of 256 threads to cover n elements:
+// vec_add<<<(n + 255) / 256, 256>>>(a, b, c, n);
+\end{lstlisting}
+
+Consecutive threads touch consecutive elements, so the accesses are coalesced, and there is no divergence except in the final partial block.
+
+\section{Matrix multiplication and tensor cores}
+
+Neural networks spend most of their time multiplying matrices. Multiplying an $M \times K$ matrix by a $K \times N$ matrix takes $M N K$ multiply-adds, which is $2MNK$ floating-point operations (FLOPs).
+
+\begin{worked}{counting FLOPs}
+Multiplying two $4096 \times 4096$ matrices takes $2 \times 4096^3 \approx 1.37\times10^{11}$ FLOPs. A GPU sustaining 500 TFLOP/s ($5\times10^{14}$ per second) does it in about 0.27\,ms.
+\end{worked}
+
+\term{Tensor cores} are hardware units that compute a whole small matrix multiply-and-add ($D = A \times B + C$ on small tiles) in one instruction, often using reduced-precision inputs. They deliver many times the throughput of ordinary arithmetic units for this one operation, which is why they dominate AI performance.
+
+\section{Number formats}
+
+\paragraph{Floating point.} A floating-point number is stored as a sign bit $s$, an exponent $e$ and a fraction (mantissa) $m$, and represents
+\[
+  (-1)^s \times 1.m \times 2^{\,e - \text{bias}}.
+\]
+For 32-bit IEEE floating point (FP32), the exponent has 8 bits with a bias of 127, and the fraction has 23 bits. The exponent sets the \emph{range} (how large or small a number can be); the fraction sets the \emph{precision} (how many significant digits).
+
+\begin{worked}{decoding an FP32 number}
+\code{0x40400000} $= 0\;10000000\;10000000000000000000000_2$. Sign 0 (positive). Exponent $128 - 127 = 1$. Fraction $.1_2 = 0.5$, so $1.m = 1.5$. Value: $1.5 \times 2^1 = 3.0$. Likewise \code{0x3F800000} is $1.0$, and \code{0xC0000000} is $-2.0$.
+\end{worked}
+
+Special patterns represent zero, infinity and NaN (``not a number,'' for results like $0/0$).
+
+\begin{center}
+\begin{tabular}{lcccl}
+\toprule
+Format & Sign & Exponent & Fraction & Notes \\
+\midrule
+FP32 & 1 & 8 & 23 & standard single precision \\
+FP16 & 1 & 5 & 10 & half precision; smaller range \\
+BF16 & 1 & 8 & 7 & same range as FP32, less precision \\
+FP8 (E4M3) & 1 & 4 & 3 & more precision, less range \\
+FP8 (E5M2) & 1 & 5 & 2 & more range, less precision \\
+INT8 & \multicolumn{3}{c}{8-bit two's complement integer} & used with a scale factor \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Smaller formats move half or a quarter of the bytes and let each multiplier be much smaller, so throughput and energy efficiency rise sharply. AI training and inference tolerate reduced precision well, which is why GPUs keep adding smaller formats. \textbf{BF16} keeps FP32's 8-bit exponent, so it covers the same range of values and rarely overflows, at the cost of precision.
+
+\section{Compute-bound or memory-bound?}
+
+Every computation needs both arithmetic and data. Its \term{arithmetic intensity} is the number of FLOPs it performs per byte moved from memory. A GPU with peak compute $P$ (FLOP/s) and memory bandwidth $B$ (bytes/s) is balanced at an intensity of $P/B$:
+\begin{itemize}
+  \item below that, the program is \term{memory-bound}: the arithmetic units wait for data;
+  \item above it, the program is \term{compute-bound}.
+\end{itemize}
+Plotting achievable performance against intensity gives the \term{roofline model}.
+
+\begin{worked}{is vector add compute-bound?}
+A GPU delivers 100 TFLOP/s and 2\,TB/s, so it balances at $100\times10^{12}/2\times10^{12} = 50$ FLOP per byte. Vector add (\code{c[i] = a[i] + b[i]} in FP32) does 1 FLOP per 12 bytes (two 4-byte loads and one 4-byte store): about 0.08 FLOP/byte, far below 50. It is heavily memory-bound; only bandwidth matters. A large matrix multiply reuses each loaded value many times, reaching high intensity, so it can use the full compute.
+\end{worked}
+
+This is why GPUs need enormous memory bandwidth (HBM, Chapter~\ref{ch:memory}) and why so much GPU programming is about reusing data held in registers and shared memory.
+
+\section{Summary}
+
+\begin{itemize}
+  \item CPUs optimize latency for a few threads; GPUs optimize throughput for many.
+  \item GPUs are built from SMs; threads run in warps of 32 under SIMT.
+  \item GPUs hide memory latency by switching among many resident warps.
+  \item Divergence serializes branches within a warp; uncoalesced accesses waste bandwidth.
+  \item CUDA: a kernel runs per thread, over a grid of blocks; index $=$ \code{blockIdx.x * blockDim.x + threadIdx.x}.
+  \item Matrix multiply $= 2MNK$ FLOPs; tensor cores accelerate it.
+  \item Floating point $= (-1)^s \times 1.m \times 2^{e-\text{bias}}$; exponent bits set range, fraction bits set precision. BF16 has FP32's range.
+  \item Arithmetic intensity versus the GPU's FLOP/byte balance decides compute-bound or memory-bound.
+\end{itemize}
+
+\section{Exercises}
+
+\begin{enumerate}
+  \item In one sentence each, what is a CPU optimized for and what is a GPU optimized for?
+  \item How many threads are in a warp? What does SIMT mean?
+  \item Half the threads of a warp take the \code{if} branch and half take the \code{else}. Roughly what fraction of the warp's peak throughput is achieved during that code?
+  \item Thread $i$ reads \code{a[i * 64]} (4-byte floats). Is this coalesced? Why or why not?
+  \item How many FLOPs does a $1024 \times 1024$ by $1024 \times 1024$ matrix multiply take?
+  \item What is the arithmetic intensity of \code{y[i] = a * x[i] + y[i]} in FP32? Is it compute-bound or memory-bound on a typical GPU?
+  \item Decode the FP32 bit pattern \code{0x40400000}.
+  \item What does BF16 keep from FP32, and what does it give up?
+  \item How are the 8 bits of FP8 E4M3 divided?
+\end{enumerate}
+
+\subsection*{Answers}
+\begin{enumerate}
+  \item A CPU minimizes the time to finish a single thread (latency); a GPU maximizes the total amount of parallel work finished per second (throughput).
+  \item 32. One instruction is issued for all threads of a warp, each thread applying it to its own data.
+  \item About half: the warp runs both paths one after the other, with half the threads idle in each.
+  \item No. Consecutive threads are 256 bytes apart, so each thread's access falls in a different memory line, requiring many separate transactions.
+  \item $2 \times 1024^3 \approx 2.15\times10^9$.
+  \item 2 FLOPs (a multiply and an add) per 12 bytes (load $x$, load $y$, store $y$): about 0.17 FLOP/byte. Memory-bound.
+  \item $3.0$ (sign 0, exponent $128 - 127 = 1$, significand 1.5).
+  \item It keeps FP32's 8-bit exponent, and therefore its range. It gives up precision: 7 fraction bits instead of 23.
+  \item 1 sign bit, 4 exponent bits, 3 fraction (mantissa) bits.
+\end{enumerate}
