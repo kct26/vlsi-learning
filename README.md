@@ -4,8 +4,9 @@ A study kit for hardware engineering online assessments (built while preparing f
 
 - **Hardware from the Ground Up**: a 233-page beginner's book, written in LaTeX, that builds hardware from electricity to GPUs: transistors, CMOS gates, timing, power, PVT, manufacturing, memory, Verilog and verification, architecture, GPUs and computer arithmetic. Every chapter ends with exercises and answers.
 - **Ground Up Hardware Trainer**: a single-page web app for practicing it:
-  - a 22-quest learning path with interactive widgets;
-  - a 609-problem multiple-choice and true/false list with solved/total progress;
+  - a 23-quest learning path with interactive widgets;
+  - a 682-problem multiple-choice and true/false list with solved/total progress, covering hardware theory plus Linux, git, scripting, DFT, physical-design flow and signal integrity;
+  - a Coding tab with 64 hands-on problems (RTL in Verilog, SystemVerilog and cocotb verification, C and C++, Python, Bash, Tcl and SDC, Perl, CUDA, MATLAB) in Easy, Medium and Hard, with hints and reference solutions; the 12 Python problems run their tests in the browser;
   - weekly sets and timed mock assessments;
   - a review of how the material maps to the job posting.
 
@@ -27,7 +28,8 @@ FIREBASE_SETUP.md                   how to turn on Google sign-in
 trainer/
   build.js                          checks the data and builds docs/index.html
   src/
-    questions.js                    the problem bank
+    questions.js                    the multiple-choice bank
+    coding.js                       the coding problems, solutions and Python tests
     lessons.js                      quests and lesson cards
     widgets.js                      interactive lesson widgets
     app.js                          the app
@@ -65,6 +67,11 @@ Each problem in `trainer/src/questions.js` is one line:
   - `b`: beyond the book (the explanation is the lesson);
   - `a`: computer arithmetic.
 
+Coding problems live in `trainer/src/coding.js`. Each one has:
+- `id`, difficulty `d`, `lang` and `area`;
+- a statement `p`, an optional example `ex`, `starter` code, `hints`, a reference solution `sol` and an explanation `why`;
+- for Python only, optional `run` tests (`{fn, tests: [[args], expected]}`). The site runs these in the browser with Pyodide.
+
 Then rebuild (needs [Node.js](https://nodejs.org)):
 
 ```bash
@@ -88,7 +95,8 @@ This builds the page and clicks through it in headless Google Chrome:
 - weekly sets, resuming them, and the timed mock;
 - the job-match review;
 - deep links and phone-width layout;
-- importing a backup, and Google sign-in and sync (against a simulated Firebase).
+- importing a backup, and Google sign-in and sync (against a simulated Firebase);
+- the Coding tab: filters, hints, solutions, saving your code, and running Python tests for real (this phase waits in real time, because Python downloads in the background).
 
 Set `CHROME=/path/to/chrome` if Chrome is not at the macOS default location.
 

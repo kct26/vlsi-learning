@@ -24,4 +24,6 @@ for p in 1 2 3 4 5; do
     if (!/ 0 failed, 0 errors/.test(head)) process.exit(1);
   ' "$OUT/result$p.html" "$p" || status=1
 done
+# Phase 6 runs Python in a Web Worker, so it needs real time rather than virtual time.
+node tests/realtime.js "file://$OUT/test6.html" 240 || status=1
 exit $status

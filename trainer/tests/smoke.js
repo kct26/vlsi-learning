@@ -56,8 +56,8 @@ const solvedHeader = () => +(($('#solved b') || {}).textContent || 0);
 function phase1(){
   const visible = () => $('.topbar').innerText + ' ' + $('#main').innerText;
   ok(!/\bXP\b|\bLV\b|Level \d|[Bb]adge|Achievement|streak/.test(visible()), 'no XP, levels, badges, streaks or achievements on the quest map');
-  ok($$('.path > .node').length === 22, '22 quest nodes on the map');
-  ok($$('.path > .node.locked').length === 21, 'only quest 1 is open at the start');
+  ok($$('.path > .node').length === UNITS.length, UNITS.length + ' quest nodes on the map');
+  ok($$('.path > .node.locked').length === UNITS.length - 1, 'only quest 1 is open at the start');
   ok(new RegExp('0/' + RAW.length).test($('#solved').textContent), 'header shows solved/total: ' + $('#solved').textContent.trim());
   click('[data-act="open-unit"][data-u="1"]');
   ok(/Charge, current and voltage/.test(h1()), 'quest 1 page opens');
@@ -73,7 +73,7 @@ function phase1(){
   click('[data-act="done-results"]');
   ok(/Charge, current/.test(h1()), 'done returns to the quest page');
   click('[data-act="to-quest"]');
-  ok($$('.path > .node.locked').length === 20, 'quest 2 unlocked');
+  ok($$('.path > .node.locked').length === UNITS.length - 2, 'quest 2 unlocked');
   const sh = solvedHeader();
   ok(sh >= 5, 'header solved count went up to ' + sh);
 
@@ -173,7 +173,7 @@ function phase1(){
   ok(!/\bXP\b|\bLV\b|Level \d|[Bb]adge|Achievement|streak/.test(visible()), 'no XP, levels, badges or streaks on the weekly page');
   // Job match review
   tab('jobs');
-  ok($$('.review').length === 14, '14 job-posting requirements reviewed');
+  ok($$('.review').length === 14 + 11, '14 job-posting requirements and 11 other NVIDIA roles reviewed');
   ok($$('.rtable')[0].tBodies[0].rows.length === 6, 'OA topic table: 6 topics');
   ok($$('.rtable')[1].tBodies[0].rows.length === 21, 'reported-topics table: 21 topics');
   ok($$('.rtable')[1].textContent.match(/\d+ problems/g).every(t => parseInt(t, 10) >= 4), 'every reported topic has at least 4 problems');
@@ -203,7 +203,7 @@ function phase1(){
 
 function phase2(){
   let total = 0, widgets = 0;
-  for (let u = 1; u <= 22; u++) {
+  for (let u = 1; u <= UNITS.length; u++) {
     tab('quest');
     click(`.path [data-act="open-unit"][data-u="${u}"]`);
     if (u === 9) {
@@ -251,6 +251,48 @@ async function phase3b(){
   ok(solvedHeader() === before + 2, 'import merged 2 solved problems (' + before + ' -> ' + solvedHeader() + ')');
   ok(st().q['03-01'] && st().q['03-01'].c === 1, 'imported progress saved locally');
 }
+async function phase6(){
+  // The Coding tab: list, filters, a write-and-mark problem, the weekly card, and real Python runs.
+  tab('coding');
+  ok($$('#crows tr').length === CODING.length, 'coding list shows all ' + CODING.length);
+  click('[data-act="cf-area"][data-v="RTL design"]');
+  ok($$('#crows tr').length === CODING.filter(p => p.area === 'RTL design').length, 'area chip filters to RTL design');
+  const d = $('#cf-d'); d.value = 'H'; d.dispatchEvent(new Event('input', {bubbles:true}));
+  ok($$('#crows .c-df').every(c => c.textContent === 'Hard'), 'difficulty filter on coding');
+  click('[data-act="cf-reset"]');
+  click('#crows a[data-copen="rtl-07"]');
+  ok($('#code-editor') && /module div3/.test($('#code-editor').value), 'editor opens with the starter code');
+  click('[data-act="c-hint"]'); click('[data-act="c-hint"]');
+  ok($$('.hintbox p').length === 2, 'two hints revealed one at a time');
+  click('[data-act="c-sol"]');
+  ok($('.sol pre.code') && /negedge clk/.test($('.sol pre.code').textContent), 'solution revealed');
+  const ed = $('#code-editor'); ed.value = '// my attempt\n' + ed.value; ed.dispatchEvent(new Event('input', {bubbles:true}));
+  await wait(800);
+  ok(st().code['rtl-07'] && /my attempt/.test(st().code['rtl-07'].src), 'editor text is saved as you type');
+  click('[data-act="c-mark"]');
+  ok(st().code['rtl-07'].solved > 0 && /Solved/.test($('.cstate .pvhead').textContent), 'mark as solved');
+  ok(/my attempt/.test($('#code-editor').value), 'your code survives re-rendering');
+  click('[data-act="c-back"]');
+  ok($('#crows tr[data-copen="rtl-07"] .st.solved'), 'list shows the solved status');
+  ok(/1<\/b><span class="muted">\/\d+<\/span> code/.test($('#solved').innerHTML), 'top bar counts solved coding problems');
+  tab('weekly');
+  ok($$('#main tr[data-copen][data-from="weekly"]').length === 3, "this week's coding lists 3 problems");
+  tab('coding');
+  click('#crows a[data-copen="py-04"]');
+  $('#code-editor').value = 'def gray_codes(n):\n    print("checking", n)\n    return list(range(1 << n))\n';
+  click('[data-act="c-run"]');
+  for (let k = 0; k < 300 && !$('#run-out .verdict'); k++) await wait(500);
+  ok($('#run-out .verdict.bad') && /tests passed/.test($('#run-out').textContent), 'a wrong Python answer gets Wrong Answer: ' + $('#run-out').textContent.replace(/\s+/g, ' ').trim().slice(0, 50));
+  ok(/checking 2/.test($('#run-out').textContent), 'printed output is shown');
+  $('#code-editor').value = 'def gray_codes(n):\n    return [i ^ (i >> 1) for i in range(1 << n)]\n';
+  click('[data-act="c-run"]');
+  for (let k = 0; k < 120 && !$('#run-out .verdict.ok'); k++) await wait(500);
+  ok($('#run-out .verdict.ok') && st().code['py-04'].solved > 0, 'a correct Python answer is Accepted and marked solved');
+  $('#code-editor').value = 'def gray_codes(n):\n    return [i for i in range(1 << n) if 1/0]\n';
+  click('[data-act="c-run"]');
+  for (let k = 0; k < 120 && !(/ZeroDivisionError/.test($('#run-out').textContent)); k++) await wait(500);
+  ok(/ZeroDivisionError/.test($('#run-out').textContent), 'a runtime error is reported per test');
+}
 async function phase5(){
   // Sign-in and sync, against a simulated Firebase (defined before the app loads).
   await wait(300);
@@ -274,7 +316,7 @@ async function phase5(){
   ok($('#acct .acctbtn') && /Saved in this browser/.test($('#sync').textContent), 'signing out returns to browser-only saving');
 }
 setTimeout(async () => {
-  try { await [null, phase1, phase2, phase3b, phase4, phase5][PHASE](); } catch (e) { errors.push('THROW ' + e.message + ' ' + (e.stack || '').split('\n')[1]); }
+  try { await [null, phase1, phase2, phase3b, phase4, phase5, phase6][PHASE](); } catch (e) { errors.push('THROW ' + e.message + ' ' + (e.stack || '').split('\n')[1]); }
   const fails = log.filter(l => l.startsWith('FAIL')).length;
   const pre = document.createElement('pre'); pre.id = 'testlog';
   pre.textContent = `PHASE ${PHASE}: ${log.length - fails} passed, ${fails} failed, ${errors.length} errors\n` + errors.join('\n') + '\n' + log.filter(l => l.startsWith('FAIL')).join('\n') + '\n===\n' + log.join('\n');

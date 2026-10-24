@@ -7,7 +7,8 @@ const PARTS = [
   {n:4, name:"Memory and time", units:[10,11,12]},
   {n:5, name:"Speed, power and the real world", units:[13,14,15]},
   {n:6, name:"Building real chips", units:[16,17,18]},
-  {n:7, name:"Digital systems", units:[19,20,21,22]}
+  {n:7, name:"Digital systems", units:[19,20,21,22]},
+  {n:8, name:"Tools of the trade", units:[23]}
 ];
 
 const UNITS = [
@@ -135,5 +136,13 @@ const UNITS = [
   {t:"Fixed point", b:["A Qm.n number is an integer with n fraction bits: its value is the integer ÷ 2ⁿ, and its step is 2⁻ⁿ. Multiplying Qa.b by Qc.d gives b + d fraction bits, so shift back afterwards.","Store a few values and watch the rounding error, and what happens when a value does not fit."], w:"fixq", q:"22-23"},
   {t:"Floating-point arithmetic", b:["To add: compare exponents, shift the smaller significand right to align, add, normalize, round. To multiply: XOR the signs, add the exponent fields and subtract 127, multiply the significands, normalize, round.","Exponent field 0 means zero or a subnormal; 255 means infinity or NaN. Decode some special values."], w:"fp32", q:"22-27"},
   {t:"Rounding and order", b:["The default rounding is round to nearest, ties to even. Every operation rounds, so floating-point addition is not associative: in FP32, (10⁸ + 1) − 10⁸ is 0.","A fused multiply-add rounds only once. AI hardware multiplies in narrow formats but accumulates in FP32 so small terms are not lost."], q:"22-30"}
+]},
+{id:23, title:"Programming, Linux and scripting", goal:"Use the everyday tools of a hardware engineer: C for hardware, Python, the Linux shell, git, make and Tcl.", cards:[
+  {t:"C that talks to hardware", b:["Firmware reaches hardware through memory-mapped registers: a pointer to volatile data at a fixed address, so every read and write really happens.","Watch for C's traps: shifting by the full width is undefined, macros need parentheses, and struct members are padded to their alignment."], q:"23-02"},
+  {t:"Python for automation", b:["Python glues chip work together: parsing timing reports and logs, generating test vectors, and driving simulations (for example with cocotb).","Its integers never overflow, so mask explicitly (x & 0xFFFF) to model fixed-width hardware. Dicts count and look things up in O(1)."], q:"23-11"},
+  {t:"The Linux shell", b:["Chip design runs on Linux. Small tools joined with pipes answer most questions: find files, grep for patterns, awk for columns, sort and wc to summarize.","2>&1 sends errors along with normal output, and PATH decides which programs the shell can find."], q:"23-13"},
+  {t:"git and make", b:["RTL lives in version control. Work on a branch, commit small changes with clear messages, and merge after review.","make rebuilds only what changed, by comparing file timestamps. Recipe lines start with a tab."], q:"23-19"},
+  {t:"Tcl and EDA tools", b:["Synthesis, place and route, and timing tools are driven by Tcl. Square brackets run a command and substitute its result; braces keep text literal.","Timing constraints (SDC) are Tcl too: create_clock, set_input_delay, set_clock_groups and multicycle paths."], q:"23-24"},
+  {t:"From script to regression", b:["A regression runs thousands of tests with different random seeds on a compute farm (LSF or Slurm), collects pass/fail, and groups failures by their error messages.","Practice the hands-on half in the Coding tab: RTL, testbenches, C, Python, shell, Tcl and CUDA problems."], q:"23-30"}
 ]}
 ];

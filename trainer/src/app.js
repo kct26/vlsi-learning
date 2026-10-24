@@ -2,9 +2,9 @@
 'use strict';
 
 // ---------- data ----------
-const TOPICS = {1:'Electricity',2:'Capacitors & signals',3:'Heat',4:'Semiconductors',5:'MOSFETs',6:'Analog',7:'Binary & number formats',8:'CMOS gates',9:'Combinational logic',10:'Latches & flip-flops',11:'Timing',12:'Counters & FSMs',13:'Delay',14:'Power',15:'PVT & temperature',16:'Wires & links',17:'Manufacturing',18:'Memory circuits',19:'RTL & verification',20:'Architecture',21:'GPUs & number formats',22:'Computer arithmetic'};
+const TOPICS = {1:'Electricity',2:'Capacitors & signals',3:'Heat',4:'Semiconductors',5:'MOSFETs',6:'Analog',7:'Binary & number formats',8:'CMOS gates',9:'Combinational logic',10:'Latches & flip-flops',11:'Timing',12:'Counters & FSMs',13:'Delay',14:'Power',15:'PVT & temperature',16:'Wires & links',17:'Manufacturing',18:'Memory circuits',19:'RTL & verification',20:'Architecture',21:'GPUs & number formats',22:'Computer arithmetic',23:'Programming & Linux'};
 const DIFF = {E:'Easy', M:'Medium', H:'Hard'};
-const ROMAN = ['I','II','III','IV','V','VI','VII'];
+const ROMAN = ['I','II','III','IV','V','VI','VII','VIII'];
 const BANK = RAW.map((r, i) => {
   const [id, d, q, ans, e, tags] = r, t = tags || '';
   const Q = {id, n:i + 1, ch:parseInt(id.slice(0, 2), 10), d, q, e, tags:t, oa:t.includes('o'), beyond:t.includes('b')};
@@ -62,7 +62,8 @@ const SKILLS = [
   {key:'sk-arch', name:'Computer architecture', ch:[18, 20, 21]},
   {key:'sk-arith', name:'Computer arithmetic', tag:'a'},
   {key:'sk-hdl', name:'Verilog and verification', ch:[10, 12, 19]},
-  {key:'sk-gpu', name:'GPUs and CUDA', ch:[21]}
+  {key:'sk-gpu', name:'GPUs and CUDA', ch:[21]},
+  {key:'sk-prog', name:'Programming, Linux and scripting', ch:[23]}
 ];
 const LISTS = {
   'oa': {name:'Your OA questions', test:Q => hasTag(Q, 'o')},
@@ -83,7 +84,7 @@ const REVIEW = [
     {req:'First- or second-year undergrad in EE, CE, CS, math or a related field, with the graduation month and year on the resume', v:'na', book:'Not applicable', list:null, todo:'This is eligibility and resume formatting. Put your expected graduation month and year near the top of your resume.'},
     {req:'Passion shown through clubs, leadership roles and projects', v:'partial', book:'Appendix D gives resume projects matched to the NVIDIA teams in this posting', list:null, todo:'Study material cannot show this on your resume. Finish one Appendix D project before applications open.'},
     {req:'Courses geared toward hardware basics', v:'strong', book:'Chapters 1–12 build hardware from zero; the Drexel course list maps them to classes', list:'sk-basics', todo:'Do Quests 1–12 in order, then keep up the weekly sets.'},
-    {req:'Basic C, C++, Python, Perl or MATLAB', v:'partial', book:'Chapter 23 covers C and Python for hardware engineers; Perl and MATLAB are not taught', list:null, todo:'This trainer is hardware only, as you asked. Keep coding practice separate (your OA coding question was a linked list).'},
+    {req:'Basic C, C++, Python, Perl or MATLAB', v:'good', book:'Chapter 23 covers C and Python basics. Linux, git, make, Tcl, Perl and MATLAB are taught here as beyond-the-book problems', list:'sk-prog', code:['C and C++', 'Python and MATLAB', 'Linux and scripting'], todo:'Do Quest 23 and the Coding tab. Keep solving one LeetCode-style linked-list or bit problem a week; your OA coding question was a linked list.'},
     {req:'Problem solving, adaptability, and the desire to learn new concepts and tools', v:'good', book:'Chapter 24 (aptitude and puzzles) and Chapter 25 (a full practice assessment)', list:null, todo:'Weekly sets and the timed mock build this habit.'}
   ]},
   {group:'Ways to stand out', items:[
@@ -91,12 +92,26 @@ const REVIEW = [
     {req:'Understanding of VLSI design', v:'strong', book:'Chapters 8, 13, 16, 17 and 18 (gates, delay, wires, manufacturing, memory)', list:'sk-vlsi', todo:'Deeper topics (DIBL, subthreshold slope, CRPR, keepers) are in the trainer as beyond-the-book problems.'},
     {req:'Understanding of computer architecture', v:'good', book:'Chapters 18, 20 and 21 (memory, pipelines, caches, GPUs)', list:'sk-arch', todo:'Out-of-order execution and register renaming appear only as beyond-the-book problems.'},
     {req:'Understanding of computer arithmetic', v:'strong', book:'Chapter 22: overflow and saturation, shifters, fast and carry-save adders, multipliers and Booth recoding, division, fixed point, floating-point addition, multiplication and rounding. Number formats in Chapters 7 and 21', list:'sk-arith', todo:'Do Quest 22, then build the BF16 processing element of Appendix D Project 2 and check it against a reference model.'},
-    {req:'Basic Verilog, SystemVerilog or VHDL', v:'good', book:'Chapter 19: Verilog, SystemVerilog, CDC, FIFOs, and a verification section (self-checking testbenches, constrained-random tests, assertions, coverage, formal, UVM). VHDL is not taught', list:'sk-hdl', todo:'Multiple choice cannot teach you to write RTL. Keep writing and verifying it in HDLBits and the companion books; VHDL is easy to pick up once Verilog is solid.'},
-    {req:'Background in CUDA or OpenCL', v:'good', book:'Chapter 21 (CUDA model, warps, memory hierarchy); OpenCL is only named', list:'sk-gpu', todo:'Write and profile one small CUDA kernel, as in the Appendix D GPU project.'},
+    {req:'Basic Verilog, SystemVerilog or VHDL', v:'good', book:'Chapter 19: Verilog, SystemVerilog, CDC, FIFOs, and a verification section (self-checking testbenches, constrained-random tests, assertions, coverage, formal, UVM). VHDL is not taught', list:'sk-hdl', code:['RTL design', 'Verification'], todo:'Solve the Coding tab\'s RTL and verification problems and run them in Icarus Verilog or EDA Playground. VHDL is easy to pick up once Verilog is solid.'},
+    {req:'Background in CUDA or OpenCL', v:'good', book:'Chapter 21 (CUDA model, warps, memory hierarchy); OpenCL is only named', list:'sk-gpu', code:['GPU and CUDA'], todo:'Do the Coding tab\'s CUDA problems on a real GPU (Google Colab works), then the Appendix D CUDA project.'},
     {req:'Initiative in AI, machine learning, computer vision, robotics or parallel computing', v:'partial', book:'Chapters 20–21 cover parallelism and AI hardware (tensor cores, low-precision formats, roofline). Machine learning itself, vision and robotics are not covered', list:'sk-gpu', todo:'Show this with a project rather than a quiz.'},
     {req:'Basic mechanical CAD (CATIA, Siemens NX, SolidWorks, Creo)', v:'none', book:'Not taught. Appendix D Project 7 suggests a heat-sink design in SolidWorks or Onshape, sized with Chapter 3', list:null, todo:'This matters for mechanical and thermal teams, not for the OA. Do Project 7 only if those teams interest you.'},
     {req:'Looking for a first industry internship', v:'na', book:'Not applicable', list:null, todo:'Eligibility, not study material.'}
   ]}
+];
+// NVIDIA hardware roles beyond Ignite, with the quests and coding track that prepare for each.
+const ROLES = [
+  {name:'ASIC Design (RTL)', fit:'Strong', ch:[9, 10, 11, 12, 19, 22], code:'RTL design', add:'Write RTL every week and build the Appendix D processor and systolic-array projects.'},
+  {name:'ASIC / GPU Verification', fit:'Good', ch:[19, 12, 10], code:'Verification', add:'Real SystemVerilog testbenches, assertions and coverage, then UVM or cocotb; verify your own projects.'},
+  {name:'Physical Design and Timing', fit:'Good', ch:[11, 13, 15, 16, 17], code:'Physical design', add:'Run an open flow (OpenLane/OpenROAD or Tiny Tapeout) and read its timing reports; script in Tcl.'},
+  {name:'Power Architect / Power and Thermal', fit:'Strong', ch:[3, 14, 15], code:'Python and MATLAB', add:'Measure GPU power and fit it to the power model (Appendix D Project 6); analyze data in Python.'},
+  {name:'GPU / Hardware Architecture and Performance', fit:'Good', ch:[18, 20, 21], code:'GPU and CUDA', add:'Build performance models in C++ or Python and optimize CUDA kernels (Appendix D Project 4).'},
+  {name:'Hardware / CPU Infrastructure', fit:'Good', ch:[20, 23], code:'Linux and scripting', add:'Automate flows with Python, Perl and Linux tools; learn job schedulers and regression systems.'},
+  {name:'Firmware and Embedded C', fit:'Good', ch:[7, 20, 23], code:'C and C++', add:'Write drivers for a microcontroller or FPGA soft core: registers, interrupts and ring buffers.'},
+  {name:'Circuit Design (custom, SRAM, SerDes)', fit:'Medium', ch:[5, 6, 8, 18], code:null, add:'Deeper analog design (Razavi) and SPICE simulation (Appendix D Project 5).'},
+  {name:'DFT (Design for Test)', fit:'Medium', ch:[17, 10], code:'RTL design', add:'Scan insertion, ATPG and memory BIST in depth.'},
+  {name:'Signal / Power Integrity and Boards', fit:'Medium', ch:[2, 16], code:'Python and MATLAB', add:'PCB design (KiCad), SI/PI simulation and lab measurements with an oscilloscope.'},
+  {name:'Mechanical / Thermal', fit:'Light', ch:[3], code:null, add:'CAD and thermal simulation (Appendix D Project 7).'}
 ];
 const AREAS = [
   {name:'AI Developer Technology', ch:[20, 21, 22]},
@@ -141,7 +156,7 @@ function ring(frac, size, stroke, label){
 
 // ---------- state and saving ----------
 const LS_KEY = 'ground-up-trainer-v1';
-const emptyState = () => ({v:2, updatedAt:0, q:{}, weeks:{}, hist:[], learn:{cards:{}, units:{}, mux:{}}});
+const emptyState = () => ({v:2, updatedAt:0, q:{}, weeks:{}, hist:[], learn:{cards:{}, units:{}, mux:{}}, code:{}, codeWeek:null});
 function normalize(s){
   const e = emptyState();
   if (!s || typeof s !== 'object') return e;
@@ -151,6 +166,8 @@ function normalize(s){
   if (Array.isArray(s.hist)) e.hist = s.hist;
   const l = s.learn || {};
   e.learn = {cards:l.cards || {}, units:l.units || {}, mux:l.mux || {}};
+  if (s.code && typeof s.code === 'object') e.code = s.code;
+  if (s.codeWeek && s.codeWeek.wk) e.codeWeek = s.codeWeek;
   return e;
 }
 let state = emptyState();
@@ -213,6 +230,10 @@ function mergeStates(a, b){
   Object.keys(o.learn.units).forEach(k => {
     const x = m.learn.units[k] || {}, y = o.learn.units[k];
     m.learn.units[k] = {best:Math.max(x.best || 0, y.best || 0), passed:x.passed || y.passed || 0};
+  });
+  Object.keys(o.code).forEach(id => {
+    const x = m.code[id], y = o.code[id];
+    m.code[id] = !x ? y : {src:(y.at || 0) > (x.at || 0) ? y.src : x.src, solved:x.solved || y.solved || 0, at:Math.max(x.at || 0, y.at || 0)};
   });
   m.updatedAt = Math.max(m.updatedAt, o.updatedAt);
   return m;
@@ -310,11 +331,12 @@ function toast(text){
 }
 
 // ---------- UI state ----------
-const TABS = ['quest', 'problems', 'weekly', 'jobs'];
+const TABS = ['quest', 'problems', 'coding', 'weekly', 'jobs'];
 const blankFilters = () => ({q:'', ch:'all', d:'all', status:'all', type:'all', list:'all'});
-const ui = {tab:'quest', view:'tab', session:null, unit:null, pv:null, back:null, cardPick:{}, cardPerm:{}, f:blankFilters(), confirmReset:false, timer:null};
+const ui = {tab:'quest', view:'tab', session:null, unit:null, pv:null, back:null, cardPick:{}, cardPerm:{}, f:blankFilters(), confirmReset:false, timer:null, cf:null, cp:null, cback:null, codeTimer:null};
 function setHash(h){ try { history.replaceState(null, '', '#' + h); } catch (e) { /* ignore */ } }
 function goTab(t){
+  saveEditorNow();
   ui.tab = t; ui.view = 'tab'; stopTimer(); setHash(t);
   render(); window.scrollTo(0, 0);
 }
@@ -322,7 +344,9 @@ function goTab(t){
 // ---------- shared pieces ----------
 function renderHeader(){
   const solved = solvedIn(BANK.map(Q => Q.id));
-  $('#solved').innerHTML = ring(solved / BANK.length, 22, 3.5, `${solved} of ${BANK.length} solved`) + `<span><b>${solved}</b><span class="muted">/${BANK.length}</span> solved</span>`;
+  const cs = codeSolvedIn(CODING);
+  $('#solved').innerHTML = ring(solved / BANK.length, 22, 3.5, `${solved} of ${BANK.length} solved`) + `<span><b>${solved}</b><span class="muted">/${BANK.length}</span> solved</span>` +
+    `<span class="codecount"><b>${cs}</b><span class="muted">/${CODING.length}</span> code</span>`;
   document.querySelectorAll('.navlinks button').forEach(b => b.setAttribute('aria-current', b.dataset.tab === ui.tab && ui.view === 'tab' ? 'page' : 'false'));
 }
 function statusCell(id){
@@ -371,11 +395,13 @@ function verdictHTML(Q, chosen){
 function render(){
   renderHeader();
   const m = $('#main');
-  m.className = 'wrap main' + (ui.view === 'tab' && ui.tab === 'problems' ? ' wide' : '');
+  m.className = 'wrap main' + ((ui.view === 'tab' && (ui.tab === 'problems' || ui.tab === 'coding')) || ui.view === 'code' ? ' wide' : '');
   if (ui.view === 'quiz') { m.innerHTML = viewQuiz(); updateTimer(); }
   else if (ui.view === 'results') m.innerHTML = viewResults();
   else if (ui.view === 'unit') { m.innerHTML = viewUnit(); afterUnitRender(); }
   else if (ui.view === 'problem') m.innerHTML = viewProblem();
+  else if (ui.view === 'code') m.innerHTML = viewCode();
+  else if (ui.tab === 'coding') m.innerHTML = viewCoding();
   else if (ui.tab === 'quest') m.innerHTML = viewQuest();
   else if (ui.tab === 'problems') m.innerHTML = viewProblems();
   else if (ui.tab === 'weekly') m.innerHTML = viewWeekly();
@@ -721,12 +747,19 @@ function viewWeekly(){
         <div class="slists"><button type="button" class="slist" data-act="review-attempted"${attemptedIds.length ? '' : ' disabled'}><span>Attempted, not solved</span><span class="mono">${attemptedIds.length}</span></button>
         <button type="button" class="slist" data-act="review-oa"><span>Your OA + variants (20 at random)</span><span class="mono">${solvedIn(oavIds)}/${oavIds.length}</span></button></div></section>
     </div>
+    ${weekCodingHTML(wi)}
     <section class="card"><h2>Past weeks</h2>${weeks.length ? `<div class="hist">${weeks.map(k => `<div><span>${k.replace('-W', ' · week ')}</span><span class="mono">${state.weeks[k].score}/${state.weeks[k].ids.length}</span></div>`).join('')}</div>` : '<p class="muted">Finished weekly sets show up here.</p>'}</section>
     <section class="card" id="progress-card"><div class="row between"><div><h2>Your progress</h2><p class="muted">${esc(store.status)}.</p></div>
       ${ui.confirmReset ? '<div class="row"><span>Erase all progress?</span><button type="button" class="btn small" data-act="reset-yes">Erase everything</button><button type="button" class="btn small primary" data-act="reset-no">Keep my progress</button></div>' : '<button type="button" class="btn small ghost" data-act="reset">Reset progress</button>'}</div>
       ${acct.ready ? (acct.user ? `<div class="row between acctrow"><span>Signed in as <b>${esc(acct.user.email || acct.user.displayName || 'you')}</b>. Progress syncs to every device where you sign in.</span><button type="button" class="btn small" data-act="signout">Sign out</button></div>`
         : '<div class="row between acctrow"><span>Sign in with Google to keep your progress on every device.</span><button type="button" class="btn small primary" data-act="signin">Sign in with Google</button></div>') : ''}
       ${STANDALONE ? '<div class="row between acctrow"><span class="muted">Backup: download your progress as a file, or load one from another device (it merges, nothing is lost).</span><div class="row"><button type="button" class="btn small" data-act="export">Export progress</button><button type="button" class="btn small" data-act="import">Import progress</button><input type="file" id="import-file" accept=".json,application/json" hidden></div></div>' : ''}</section>`;
+}
+function weekCodingHTML(wi){
+  const cw = weekCoding().map(id => CODE_BY_ID[id]);
+  return `<section class="card"><div class="row between"><div><p class="eyebrow">Coding · week ${wi.num}</p><h2>This week's coding</h2></div><span class="pill">${cw.filter(p => codeStatus(p.id) === 'solved').length}/${cw.length} solved</span></div>
+    <p class="muted">One easy, one medium and one hard problem from the Coding tab, picked from the ones you have not solved yet.</p>
+    <div class="tablewrap"><table class="ptable compact ctable"><tbody>${cw.map(p => `<tr data-copen="${p.id}" data-from="weekly"><td class="c-st">${codeStatusCell(p.id)}</td><td class="c-ti"><a href="#code${p.n}" data-copen="${p.id}" data-from="weekly">${esc(p.title)}</a></td><td class="c-ty">${esc(LANGS[p.lang])}</td><td class="c-df d-${p.d}">${DIFF[p.d]}</td></tr>`).join('')}</tbody></table></div></section>`;
 }
 function topicIds(ch){
   const ids = CH_IDS[ch];
@@ -753,10 +786,10 @@ function viewJobs(){
   const repRows = REPORTED.map(r => `<tr><td>${esc(r.name)}</td><td>Ch ${r.ch}</td><td>${listCell(r.key)}</td></tr>`).join('');
   let html = `<section class="card hero"><div><p class="eyebrow">Job match review</p><h1>Does this match what NVIDIA asks for?</h1>
     <p class="muted">Every requirement in <a href="${JD.url}" target="_blank" rel="noopener">${esc(JD.title)}</a> (${JD.req}), checked against <em>Hardware from the Ground Up</em> and this trainer. Problem counts update as you solve.</p>
-    <p><b>Bottom line:</b> every hardware topic in the posting (CMOS, VLSI, timing, power, computer architecture, computer arithmetic, Verilog and verification, GPUs) is taught in the book and practiced here, and every question from your OA has many variants. What remains is outside multiple choice: VHDL, Perl and MATLAB are not taught, mechanical CAD is only a suggested project, and clubs, projects and coding are things you show on your resume.</p></div></section>
+    <p><b>Bottom line:</b> every hardware topic in the posting (CMOS, VLSI, timing, power, computer architecture, computer arithmetic, Verilog and verification, GPUs) is taught in the book and practiced here, every question from your OA has many variants, and the Coding tab covers the hands-on side: RTL, testbenches, C, Python, Linux, Tcl and CUDA. What remains: VHDL is not taught, mechanical CAD is only a suggested project, and clubs and projects are things you show on your resume.</p></div></section>
     <section class="card"><h2>Your OA questions</h2><p class="muted">Every question you reported is in the bank word for word, plus variants that test the same idea from other angles.</p>
     <div class="tablewrap"><table class="rtable"><thead><tr><th>OA topic</th><th>Book</th><th>Exact</th><th>Variants</th><th>Practice</th></tr></thead><tbody>${oaRows}</tbody></table></div>
-    <p class="muted small">Your coding question (a linked list) is taught in Chapter 23; this trainer is hardware only.</p></section>
+    <p class="muted small">Your coding question (a linked list) is taught in Chapter 23 and practiced in the Coding tab: ${codeCell(['C and C++'])}.</p></section>
     <section class="card"><h2>Topics other candidates reported</h2><p class="muted">Every topic from the book's "Seen on the assessment" boxes, where the book teaches it, and the problems that drill it. ${listCell('rep')} carry the reported tag.</p>
     <div class="tablewrap"><table class="rtable"><thead><tr><th>Reported topic</th><th>Book</th><th>Practice</th></tr></thead><tbody>${repRows}</tbody></table></div></section>`;
   REVIEW.forEach(g => {
@@ -764,13 +797,264 @@ function viewJobs(){
     g.items.forEach(it => {
       const [label, cls] = VERDICT[it.v];
       html += `<article class="review"><div class="rhead"><b>${esc(it.req)}</b><span class="vpill ${cls}">${label}</span></div>
-        <dl><div><dt>In the book</dt><dd>${esc(it.book)}</dd></div><div><dt>In this trainer</dt><dd>${listCell(it.list)}</dd></div><div><dt>What to do</dt><dd>${esc(it.todo)}</dd></div></dl></article>`;
+        <dl><div><dt>In the book</dt><dd>${esc(it.book)}</dd></div><div><dt>In this trainer</dt><dd>${listCell(it.list)}${it.code ? '<br>' + codeCell(it.code) : ''}</dd></div><div><dt>What to do</dt><dd>${esc(it.todo)}</dd></div></dl></article>`;
     });
     html += '</div></section>';
   });
   html += `<section class="card"><h2>Internship teams in the posting</h2><p class="muted">The quests that matter most for each team.</p><div class="areas">` +
     AREAS.map(a => `<div class="area"><b>${esc(a.name)}</b><div class="row">${a.ch.map(c => `<button type="button" class="topicchip" data-act="open-unit" data-u="${c}">Quest ${c} · ${esc(TOPICS[c])}</button>`).join('')}</div></div>`).join('') + '</div></section>';
+  html += `<section class="card"><h2>Other NVIDIA hardware roles</h2><p class="muted">Ignite only takes first- and second-years. These are the regular internship and new-grad roles to aim for next, with what this kit covers for each and what to add.</p><div class="reviews">` +
+    ROLES.map(r => `<article class="review"><div class="rhead"><b>${esc(r.name)}</b><span class="vpill ${r.fit === 'Strong' || r.fit === 'Good' ? 'ok' : r.fit === 'Medium' ? 'warn' : ''}">${r.fit} fit</span></div>
+      <dl><div><dt>Quests</dt><dd><div class="row">${r.ch.map(c => `<button type="button" class="topicchip" data-act="open-unit" data-u="${c}">Quest ${c} · ${esc(TOPICS[c])}</button>`).join('')}</div></dd></div>
+      <div><dt>Coding track</dt><dd>${r.code ? codeCell([r.code]) : '<span class="muted">No coding track: this role is mostly analog or mechanical</span>'}</dd></div>
+      <div><dt>Also do</dt><dd>${esc(r.add)}</dd></div></dl></article>`).join('') + '</div></section>';
   return html;
+}
+
+// ---------- Coding problems ----------
+CODING.forEach((p, i) => { p.n = i + 1; p.hay = (p.title + ' ' + p.p.join(' ') + ' ' + LANGS[p.lang] + ' ' + p.area).toLowerCase(); });
+const CODE_BY_ID = Object.fromEntries(CODING.map(p => [p.id, p]));
+const CODE_MAX = 4000;   // characters of your code kept per problem
+const blankCodeFilters = () => ({q:'', area:'all', lang:'all', d:'all', status:'all'});
+ui.cf = blankCodeFilters();
+const codeStatus = id => { const s = state.code[id]; return !s ? 'todo' : (s.solved ? 'solved' : 'attempted'); };
+const codeSolvedIn = list => list.filter(p => codeStatus(p.id) === 'solved').length;
+function setCode(id, patch){ state.code[id] = Object.assign({src:null, solved:0}, state.code[id], patch, {at:Date.now()}); }
+function inlineCode(t){ return esc(t).replace(/`([^`]+)`/g, '<code>$1</code>'); }
+function codeStatusCell(id){
+  const s = codeStatus(id);
+  return s === 'solved' ? `<span class="st solved" title="Solved">${ICON.solved}</span>` : s === 'attempted' ? `<span class="st attempted" title="Attempted">${ICON.attempted}</span>` : '<span class="st todo" title="Not tried"></span>';
+}
+function codeCell(areas){
+  return areas.map(a => { const l = CODING.filter(p => p.area === a); return `<button type="button" class="linkbtn" data-act="c-area-go" data-v="${esc(a)}">${l.length} ${esc(a)} coding problems</button><span class="muted"> · ${codeSolvedIn(l)} solved</span>`; }).join('<br>');
+}
+function codeFiltered(){
+  const f = ui.cf, term = f.q.trim().toLowerCase();
+  return CODING.filter(p => (f.area === 'all' || p.area === f.area) && (f.lang === 'all' || p.lang === f.lang) && (f.d === 'all' || p.d === f.d) &&
+    (f.status === 'all' || codeStatus(p.id) === f.status) && (!term || p.hay.indexOf(term) >= 0));
+}
+function codeRowsHTML(list){
+  return list.length ? list.map(p => `<tr data-copen="${p.id}"><td class="c-st">${codeStatusCell(p.id)}</td><td class="c-ti"><a href="#code${p.n}" data-copen="${p.id}">${p.n}. ${esc(p.title)}</a>${p.run ? '<span class="tags"><span class="tag t-run">Runs here</span></span>' : ''}</td>` +
+    `<td class="c-tp">${esc(p.area)}</td><td class="c-ty">${esc(LANGS[p.lang])}</td><td class="c-df d-${p.d}">${DIFF[p.d]}</td></tr>`).join('')
+    : '<tr><td colspan="5" class="empty">No coding problems match. Reset the filters or try another search.</td></tr>';
+}
+function viewCoding(){
+  const f = ui.cf, list = codeFiltered(), solved = codeSolvedIn(CODING);
+  const chips = `<button type="button" class="tchip${f.area === 'all' ? ' on' : ''}" data-act="cf-area" data-v="all">All areas <span>${CODING.length}</span></button>` +
+    CODE_AREAS.map(a => `<button type="button" class="tchip${f.area === a ? ' on' : ''}" data-act="cf-area" data-v="${esc(a)}">${esc(a)} <span>${CODING.filter(p => p.area === a).length}</span></button>`).join('');
+  const langOpts = [['all', 'Language'], ...Object.keys(LANGS).filter(l => CODING.some(p => p.lang === l)).map(l => [l, LANGS[l]])];
+  const byD = d => { const l = CODING.filter(p => p.d === d); return [codeSolvedIn(l), l.length]; };
+  return `<div class="pgrid"><section class="pmain">
+    <div class="chiprow" role="toolbar" aria-label="Filter by area">${chips}</div>
+    <div class="fbar cfbar">
+      <input type="search" id="cf-q" placeholder="Search coding problems" value="${esc(f.q)}" aria-label="Search coding problems">
+      ${sel('cf-lang', 'Language', f.lang, langOpts)}
+      ${sel('cf-d', 'Difficulty', f.d, [['all', 'Difficulty'], ['E', 'Easy'], ['M', 'Medium'], ['H', 'Hard']])}
+      ${sel('cf-status', 'Status', f.status, [['all', 'Status'], ['todo', 'Todo'], ['solved', 'Solved'], ['attempted', 'Attempted']])}
+      <div class="fbtns"><button type="button" class="btn small ghost" data-act="cf-reset">Reset</button><button type="button" class="btn small primary" id="cpick" data-act="cpick"${list.length ? '' : ' disabled'}>Pick one</button></div>
+    </div>
+    <p class="fcount" id="cf-count">${list.length} problems · ${codeSolvedIn(list)} solved</p>
+    <div class="tablewrap"><table class="ptable ctable"><thead><tr><th class="c-st">Status</th><th class="c-ti">Problem</th><th class="c-tp">Area</th><th class="c-ty">Language</th><th class="c-df">Difficulty</th></tr></thead><tbody id="crows">${codeRowsHTML(list)}</tbody></table></div>
+  </section>
+  <aside class="pside">
+    <section class="card progcard"><h2>Coding progress</h2><div class="progring">${ring(solved / CODING.length, 120, 9, `${solved} of ${CODING.length} solved`)}<div class="ringlabel"><b>${solved}</b><span>/${CODING.length}</span><small>Solved</small></div></div>
+      <div class="dbars">${['E', 'M', 'H'].map(d => { const [s, t] = byD(d); return `<div class="dbar"><span class="d-${d}">${DIFF[d]}</span><span class="mono">${s}/${t}</span><i class="bar d-${d}"><b style="width:${pct(s, t)}%"></b></i></div>`; }).join('')}</div>
+      <p class="muted small">Python problems run their tests right here. The rest you write here, run in a real tool (Icarus Verilog, gcc, a Linux shell), then compare with the solution.</p></section>
+    <section class="card studycard"><h2>Tracks by NVIDIA role</h2><div class="slists">${ROLES.filter(r => r.code).map(r => { const l = CODING.filter(p => p.area === r.code); return `<button type="button" class="slist${f.area === r.code ? ' on' : ''}" data-act="cf-area" data-v="${esc(r.code)}"><span>${esc(r.name)}</span><span class="mono">${codeSolvedIn(l)}/${l.length}</span></button>`; }).join('')}</div></section>
+  </aside></div>`;
+}
+function refreshCodeRows(){
+  ui.cf.q = $('#cf-q').value; ui.cf.lang = $('#cf-lang').value; ui.cf.d = $('#cf-d').value; ui.cf.status = $('#cf-status').value;
+  const list = codeFiltered();
+  $('#crows').innerHTML = codeRowsHTML(list);
+  $('#cf-count').textContent = `${list.length} problems · ${codeSolvedIn(list)} solved`;
+  $('#cpick').disabled = !list.length;
+}
+
+// Coding problem page: statement and hints on the left, your editor on the right.
+function openCode(id, list, back){
+  saveEditorNow();
+  ui.cp = {id, list:list && list.length ? list : CODING.map(p => p.id), hints:0, sol:false, run:null};
+  if (back) ui.cback = back;
+  ui.view = 'code'; setHash('code' + CODE_BY_ID[id].n); render(); window.scrollTo(0, 0);
+}
+function saveEditorNow(){
+  const ed = $('#code-editor');
+  clearTimeout(ui.codeTimer);
+  if (!ed || !ui.cp || ui.view !== 'code') return;
+  const id = ui.cp.id, s = state.code[id], v = ed.value.slice(0, CODE_MAX);
+  if (s ? s.src !== v : v !== CODE_BY_ID[id].starter) { setCode(id, {src:v}); save(); }
+}
+function codeLeftHTML(){
+  const C = ui.cp, p = CODE_BY_ID[C.id], st = codeStatus(p.id);
+  return `<article class="card cstate"><div class="pvhead"><h1>${p.n}. ${esc(p.title)}</h1>${st === 'solved' ? `<span class="solvedmark">${ICON.solved} Solved</span>` : st === 'attempted' ? '<span class="attmark">Attempted</span>' : ''}</div>
+    <div class="qmeta"><span class="dpill d-${p.d}">${DIFF[p.d]}</span><span class="topicchip">${esc(p.area)}</span><span>${esc(LANGS[p.lang])}</span>${p.run ? '<span class="tag t-run">Runs here</span>' : ''}</div>
+    <div class="body">${p.p.map(t => `<p>${inlineCode(t)}</p>`).join('')}</div>
+    ${p.ex ? `<div><p class="eyebrow">Example</p><pre class="code">${esc(p.ex)}</pre></div>` : ''}
+    <div class="hintbox">${p.hints.slice(0, C.hints).map((h, i) => `<p><b>Hint ${i + 1}.</b> ${inlineCode(h)}</p>`).join('')}
+      ${C.hints < p.hints.length ? `<button type="button" class="btn small" data-act="c-hint">Show hint ${C.hints + 1} of ${p.hints.length}</button>` : ''}</div>
+    ${C.sol ? `<section class="sol"><h2>Solution</h2><pre class="code">${esc(p.sol)}</pre>${p.why.map(t => `<p>${inlineCode(t)}</p>`).join('')}</section>`
+      : '<div><button type="button" class="btn small ghost" data-act="c-sol">Show solution</button></div>'}
+  </article>`;
+}
+function toolNote(lang){
+  return ({verilog:'Run it free with Icarus Verilog (iverilog) or online at EDA Playground, then compare with the solution.',
+    sv:'Run it in a SystemVerilog simulator (EDA Playground has free ones), then compare with the solution.',
+    c:'Compile and test it with gcc or clang, then compare with the solution.', cpp:'Compile and test it with g++ or clang++, then compare with the solution.',
+    python:'Run it with a simulator and cocotb on your computer.', bash:'Try it in a Linux or macOS terminal.', tcl:'Try it in tclsh or your EDA tool.',
+    perl:'Run it with perl on any Linux or macOS machine.', cuda:'Compile it with nvcc on a machine with an NVIDIA GPU (Google Colab works).', matlab:'Run it in MATLAB or GNU Octave.'}[lang] || '') + ' Mark it solved when your version works.';
+}
+function viewCode(){
+  const C = ui.cp, p = CODE_BY_ID[C.id], pos = C.list.indexOf(C.id), s = state.code[p.id] || {}, st = codeStatus(p.id);
+  const src = s.src != null ? s.src : p.starter;
+  const back = ui.cback && ui.cback.tab === 'weekly' ? 'Back to weekly' : 'Coding problems';
+  return `<div class="cpv-wrap"><div class="pvbar"><button type="button" class="btn ghost small" data-act="c-back">← ${back}</button>
+    <div class="row"><span class="muted mono">${pos + 1} / ${C.list.length}</span>
+    <button type="button" class="iconbtn" data-act="c-prev" aria-label="Previous problem"${pos <= 0 ? ' disabled' : ''}>‹</button>
+    <button type="button" class="iconbtn" data-act="c-next" aria-label="Next problem"${pos >= C.list.length - 1 ? ' disabled' : ''}>›</button></div></div>
+    <div class="cpv">${codeLeftHTML()}
+    <section class="card ceditor"><div class="row between"><b>Your ${esc(LANGS[p.lang])}</b><div class="row">
+      <button type="button" class="btn small ghost" data-act="c-reset">Reset code</button>
+      ${p.run ? `<button type="button" class="btn small primary" data-act="c-run"${C.run && C.run.busy ? ' disabled' : ''}>Run tests</button>`
+        : `<button type="button" class="btn small${st === 'solved' ? '' : ' primary'}" data-act="c-mark">${st === 'solved' ? 'Mark as not solved' : 'Mark as solved'}</button>`}</div></div>
+      <textarea id="code-editor" class="code-editor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your code (Tab inserts spaces; Esc leaves the editor)">${esc(src)}</textarea>
+      <div id="run-out">${runOutHTML(p)}</div>
+      ${p.run ? '<p class="muted small">Tests run in your browser with Python (Pyodide). Your code is saved as you type.</p>' : `<p class="muted small">${toolNote(p.lang)}</p>`}</section></div></div>`;
+}
+function pyRepr(v){
+  if (v === true) return 'True';
+  if (v === false) return 'False';
+  if (v === null) return 'None';
+  if (typeof v === 'string') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(pyRepr).join(', ') + ']';
+  if (typeof v === 'object') return '{' + Object.keys(v).map(k => JSON.stringify(k) + ': ' + pyRepr(v[k])).join(', ') + '}';
+  return String(v);
+}
+function runOutHTML(p){
+  const R = ui.cp.run;
+  if (!R) return '';
+  if (R.busy) return `<p class="muted runmsg">${esc(R.msg)}</p>`;
+  if (R.error) return `<div class="verdict bad" role="status"><b>Error</b></div><pre class="code err">${esc(R.error)}</pre>`;
+  const passed = R.results.filter(r => r[0]).length, total = R.results.length;
+  return `<div class="verdict ${passed === total ? 'ok' : 'bad'}" role="status"><b>${passed === total ? 'Accepted' : 'Wrong Answer'}</b><span>${passed}/${total} tests passed</span></div>
+    <ul class="tres">${R.results.map((r, i) => { const t = p.run.tests[i]; return `<li><span class="st ${r[0] ? 'solved' : 'wrongmark'}">${r[0] ? ICON.solved : ICON.wrong}</span><div><code>${esc(p.run.fn + '(' + t[0].map(pyRepr).join(', ') + ')')}</code>${r[0] ? '' : `<small>expected <code>${esc(pyRepr(t[1]))}</code>, got <code>${esc(r[1])}</code></small>`}</div></li>`; }).join('')}</ul>
+    ${R.stdout ? `<p class="eyebrow">Printed output</p><pre class="code">${esc(R.stdout)}</pre>` : ''}`;
+}
+function showRun(){
+  if (!ui.cp || ui.view !== 'code') return;
+  const o = $('#run-out'); if (o) o.innerHTML = runOutHTML(CODE_BY_ID[ui.cp.id]);
+  const b = $('[data-act="c-run"]'); if (b) b.disabled = !!(ui.cp.run && ui.cp.run.busy);
+}
+
+// Python runs in the browser with Pyodide, inside a Web Worker so a runaway loop can be stopped.
+const PYODIDE = 'https://cdn.jsdelivr.net/npm/pyodide@0.26.2/';
+const pyRun = {worker:null, ready:false, main:null};
+const PY_WORKER = `importScripts('${PYODIDE}pyodide.js');
+let py = null;
+self.onmessage = async (e) => {
+  try {
+    if (!py) { py = await loadPyodide({indexURL: '${PYODIDE}'}); self.postMessage({type: 'loaded'}); }
+    const out = [];
+    py.setStdout({batched: (s) => out.push(s)});
+    py.setStderr({batched: (s) => out.push(s)});
+    const g = py.globals.get('dict')();
+    const result = await py.runPythonAsync(e.data.code, {globals: g});
+    g.destroy();
+    self.postMessage({type: 'done', result: String(result), stdout: out.join('\\n')});
+  } catch (err) {
+    self.postMessage({type: 'error', error: String((err && err.message) || err)});
+  }
+};`;
+function harness(p, src){
+  return [src, '', 'import json as __json',
+    'def __norm(v):',
+    '    if isinstance(v, tuple): v = list(v)',
+    '    if isinstance(v, list): return [__norm(x) for x in v]',
+    '    if isinstance(v, dict): return {str(k): __norm(x) for k, x in v.items()}',
+    '    return v',
+    '__res = []',
+    `for __args, __exp in __json.loads(${JSON.stringify(JSON.stringify(p.run.tests))}):`,
+    '    try:',
+    `        __got = __norm(${p.run.fn}(*__args))`,
+    '        __res.append([__got == __exp, repr(__got)])',
+    '    except Exception as __e:',
+    '        __res.append([False, type(__e).__name__ + ": " + str(__e)])',
+    '__json.dumps(__res)'].join('\n');
+}
+function cleanPyError(s){ return s.split('\n').filter(l => !/_pyodide|pyodide\.asm|File "\/lib\//.test(l)).join('\n').trim(); }
+function setRunMsg(msg){ if (ui.cp && ui.cp.run && ui.cp.run.busy) { ui.cp.run.msg = msg; showRun(); } }
+async function execOnMain(code){
+  try {
+    if (!pyRun.main) {
+      if (!window.loadPyodide) await loadScript(PYODIDE + 'pyodide.js');
+      pyRun.main = await window.loadPyodide({indexURL:PYODIDE});
+    }
+    const py = pyRun.main, out = [];
+    py.setStdout({batched:s => out.push(s)}); py.setStderr({batched:s => out.push(s)});
+    const g = py.globals.get('dict')();
+    const result = await py.runPythonAsync(code, {globals:g});
+    g.destroy();
+    return {result:String(result), stdout:out.join('\n')};
+  } catch (e) { return {error:cleanPyError(String((e && e.message) || e)) || 'Python could not be loaded. Check your connection.'}; }
+}
+function execPython(code){
+  return new Promise(resolve => {
+    let w = pyRun.worker;
+    if (!w) {
+      try { w = pyRun.worker = new Worker(URL.createObjectURL(new Blob([PY_WORKER], {type:'text/javascript'}))); pyRun.ready = false; }
+      catch (e) { execOnMain(code).then(resolve); return; }
+    }
+    let timer = null;
+    const finish = r => { clearTimeout(timer); w.onmessage = null; w.onerror = null; resolve(r); };
+    const kill = msg => { w.terminate(); pyRun.worker = null; pyRun.ready = false; finish({error:msg}); };
+    timer = setTimeout(() => kill(pyRun.ready ? 'Time limit exceeded: your code ran for more than 8 seconds (an infinite loop?).' : 'Python did not finish loading. Check your connection and try again.'), pyRun.ready ? 8000 : 120000);
+    w.onerror = ev => { if (ev.preventDefault) ev.preventDefault(); clearTimeout(timer); w.terminate(); pyRun.worker = null; pyRun.ready = false; execOnMain(code).then(resolve); };
+    w.onmessage = ev => {
+      const m = ev.data;
+      if (m.type === 'loaded') {
+        pyRun.ready = true; clearTimeout(timer);
+        timer = setTimeout(() => kill('Time limit exceeded: your code ran for more than 8 seconds (an infinite loop?).'), 8000);
+        setRunMsg('Running tests…');
+      } else if (m.type === 'done') finish({result:m.result, stdout:m.stdout});
+      else if (m.type === 'error') finish({error:cleanPyError(m.error)});
+    };
+    w.postMessage({code});
+  });
+}
+function runCode(){
+  const C = ui.cp, p = CODE_BY_ID[C.id], src = $('#code-editor').value;
+  setCode(p.id, {src:src.slice(0, CODE_MAX)}); save();
+  C.run = {busy:true, msg:pyRun.ready || pyRun.main ? 'Running tests…' : 'Loading Python in your browser (the first run downloads about 10 MB)…'};
+  showRun();
+  const id = p.id;
+  execPython(harness(p, src)).then(res => {
+    if (!ui.cp || ui.cp.id !== id) return;
+    if (res.error) ui.cp.run = {error:res.error};
+    else {
+      let results = [];
+      try { results = JSON.parse(res.result); } catch (e) { ui.cp.run = {error:'Could not read the test results.'}; showRun(); return; }
+      ui.cp.run = {results, stdout:res.stdout};
+      if (results.length && results.every(r => r[0]) && codeStatus(id) !== 'solved') {
+        setCode(id, {solved:Date.now()}); save(); renderHeader();
+        const head = $('.cstate'); if (head) head.outerHTML = codeLeftHTML();
+        toast('Accepted: ' + p.title);
+      }
+    }
+    showRun();
+  });
+}
+// This week's coding: one easy, one medium and one hard problem, chosen once per week from unsolved ones.
+function weekCoding(){
+  const wk = isoWeek(new Date()).key;
+  if (!state.codeWeek || state.codeWeek.wk !== wk) {
+    const rnd = rngFrom('code:' + wk);
+    const ids = ['E', 'M', 'H'].map(d => {
+      const all = CODING.filter(p => p.d === d), todo = all.filter(p => codeStatus(p.id) !== 'solved'), pool = todo.length ? todo : all;
+      return pool[Math.floor(rnd() * pool.length)].id;
+    });
+    state.codeWeek = {wk, ids}; save();
+  }
+  return state.codeWeek.ids.filter(id => CODE_BY_ID[id]);
 }
 
 // ---------- events ----------
@@ -793,6 +1077,13 @@ document.addEventListener('click', e => {
   }
   const a = e.target.closest('[data-act]');
   if (a && !a.disabled) { e.preventDefault(); act(a); return; }
+  const co = e.target.closest('[data-copen]');
+  if (co) {
+    e.preventDefault();
+    if (co.dataset.from === 'weekly') openCode(co.dataset.copen, weekCoding(), {view:'tab', tab:'weekly'});
+    else openCode(co.dataset.copen, codeFiltered().map(p => p.id), {view:'tab', tab:'coding'});
+    return;
+  }
   const op = e.target.closest('[data-open]');
   if (op) {
     e.preventDefault();
@@ -835,6 +1126,31 @@ function act(a){
     case 'f-list-go': ui.f = Object.assign(blankFilters(), {list:a.dataset.v}); goTab('problems'); break;
     case 'topic-filter': ui.f = Object.assign(blankFilters(), {ch:a.dataset.ch}); goTab('problems'); break;
     case 'f-reset': ui.f = blankFilters(); $('#main').innerHTML = viewProblems(); break;
+    case 'cf-area': ui.cf.area = a.dataset.v; $('#main').innerHTML = viewCoding(); break;
+    case 'cf-reset': ui.cf = blankCodeFilters(); $('#main').innerHTML = viewCoding(); break;
+    case 'c-area-go': ui.cf = Object.assign(blankCodeFilters(), {area:a.dataset.v}); goTab('coding'); break;
+    case 'cpick': {
+      const list = codeFiltered(), todo = list.filter(p => codeStatus(p.id) !== 'solved'), pool = todo.length ? todo : list;
+      if (pool.length) openCode(pool[Math.floor(Math.random() * pool.length)].id, list.map(p => p.id), {view:'tab', tab:'coding'});
+      break;
+    }
+    case 'c-back': saveEditorNow(); goTab(ui.cback && ui.cback.tab ? ui.cback.tab : 'coding'); break;
+    case 'c-prev': case 'c-next': {
+      const C = ui.cp, i = C.list.indexOf(C.id) + (a.dataset.act === 'c-next' ? 1 : -1);
+      if (i >= 0 && i < C.list.length) openCode(C.list[i], C.list);
+      break;
+    }
+    case 'c-hint': ui.cp.hints++; $('.cstate').outerHTML = codeLeftHTML(); break;
+    case 'c-sol': ui.cp.sol = true; $('.cstate').outerHTML = codeLeftHTML(); break;
+    case 'c-reset': { const p = CODE_BY_ID[ui.cp.id]; $('#code-editor').value = p.starter; setCode(p.id, {src:p.starter}); save(); break; }
+    case 'c-run': runCode(); break;
+    case 'c-mark': {
+      saveEditorNow();
+      const id = ui.cp.id;
+      setCode(id, {solved:codeStatus(id) === 'solved' ? 0 : Date.now()}); save();
+      $('#main').innerHTML = viewCode(); renderHeader();
+      break;
+    }
     case 'pick-one': {
       const list = filtered(), todo = list.filter(Q => !isSolved(Q.id)), pool = todo.length ? todo : list;
       if (pool.length) openProblem(pool[Math.floor(Math.random() * pool.length)].id, list.map(Q => Q.id), {view:'tab', tab:'problems'});
@@ -864,7 +1180,20 @@ function returnFrom(from){
   if (from && from.view === 'unit' && ui.unit) { ui.view = 'unit'; render(); return; }
   goTab(from && from.tab ? from.tab : 'quest');
 }
-document.addEventListener('input', e => { if (e.target.closest('.fbar')) readFilters(); });
+document.addEventListener('input', e => {
+  if (e.target.id === 'code-editor') { clearTimeout(ui.codeTimer); ui.codeTimer = setTimeout(saveEditorNow, 500); return; }
+  if (e.target.closest('.cfbar')) { refreshCodeRows(); return; }
+  if (e.target.closest('.fbar')) readFilters();
+});
+// In the code editor, Tab inserts two spaces and Esc leaves the editor (so the keyboard can move on).
+document.addEventListener('keydown', e => {
+  if (e.target.id !== 'code-editor') return;
+  if (e.key === 'Escape') { e.target.blur(); return; }
+  if (e.key !== 'Tab' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+  e.preventDefault();
+  e.target.setRangeText('  ', e.target.selectionStart, e.target.selectionEnd, 'end');
+  e.target.dispatchEvent(new Event('input', {bubbles:true}));
+});
 document.addEventListener('change', e => { if (e.target.id === 'import-file' && e.target.files[0]) importProgress(e.target.files[0]); });
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -892,7 +1221,9 @@ const local = lsLoad();
 if (local) state = normalize(local);
 (function readHash(){
   const h = location.hash.replace('#', ''), m = /^p(\d+)$/.exec(h);
+  const cm = /^code(\d+)$/.exec(h);
   if (TABS.includes(h)) ui.tab = h;
+  if (cm && CODING[+cm[1] - 1]) { ui.tab = 'coding'; ui.cback = {view:'tab', tab:'coding'}; ui.cp = {id:CODING[+cm[1] - 1].id, list:CODING.map(p => p.id), hints:0, sol:false, run:null}; ui.view = 'code'; }
   else if (h === 'learn') ui.tab = 'quest';
   else if (h === 'practice') ui.tab = 'weekly';
   else if (h === 'bank') ui.tab = 'problems';

@@ -3,13 +3,13 @@
 //   node build.js --fragment out.html -> page body only (for hosts that add their own <html>/<head>, such as Claude artifacts)
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const src = path.join(__dirname, 'src'), read = f => fs.readFileSync(path.join(src, f), 'utf8');
-const SCRIPTS = ['questions.js', 'lessons.js', 'widgets.js', 'app.js'];
+const SCRIPTS = ['questions.js', 'lessons.js', 'widgets.js', 'coding.js', 'app.js'];
 
 // Load the data files and widget table into one sandbox to check them.
 const ctx = {};
 vm.createContext(ctx);
-vm.runInContext(SCRIPTS.slice(0, 3).map(read).join('\n') + '\n;this.RAW = RAW; this.PARTS = PARTS; this.UNITS = UNITS; this.WIDGETS = WIDGETS;', ctx);
-const {RAW, PARTS, UNITS, WIDGETS} = ctx;
+vm.runInContext(SCRIPTS.slice(0, 4).map(read).join('\n') + '\n;this.RAW = RAW; this.PARTS = PARTS; this.UNITS = UNITS; this.WIDGETS = WIDGETS; this.CODING = CODING; this.LANGS = LANGS; this.CODE_AREAS = CODE_AREAS;', ctx);
+const {RAW, PARTS, UNITS, WIDGETS, CODING, LANGS, CODE_AREAS} = ctx;
 const errs = [], ids = new Set(), perCh = {}, texts = new Set();
 RAW.forEach((r, i) => {
   const [id, d, q, ans, expl, tags] = r, where = `RAW[${i}] ${id}`;
@@ -42,6 +42,17 @@ UNITS.forEach((U, i) => {
     if (c.w && !WIDGETS[c.w.split(':')[0]]) errs.push(where + ': unknown widget ' + c.w);
   });
 });
+const codeIds = new Set();
+CODING.forEach((p, i) => {
+  const where = `CODING[${i}] ${p.id}`;
+  if (!p.id || codeIds.has(p.id)) errs.push(where + ': missing or duplicate id');
+  codeIds.add(p.id);
+  if (!['E', 'M', 'H'].includes(p.d)) errs.push(where + ': difficulty must be E, M or H');
+  if (!LANGS[p.lang]) errs.push(where + ': unknown language ' + p.lang);
+  if (!CODE_AREAS.includes(p.area)) errs.push(where + ': unknown area ' + p.area);
+  if (!p.title || !Array.isArray(p.p) || !p.p.length || !p.starter || !p.sol || !Array.isArray(p.hints) || !Array.isArray(p.why)) errs.push(where + ': missing title, statement, starter, hints, solution or explanation');
+  if (p.run && (p.lang !== 'python' || !p.run.fn || !Array.isArray(p.run.tests) || !p.run.tests.length || p.run.tests.some(t => !Array.isArray(t) || t.length !== 2 || !Array.isArray(t[0])))) errs.push(where + ': bad run tests');
+});
 const partUnits = PARTS.flatMap(p => p.units).sort((a, b) => a - b).join(',');
 if (partUnits !== UNITS.map(U => U.id).join(',')) errs.push('PARTS do not cover every quest exactly once');
 const scripts = SCRIPTS.map(read).join('\n');
@@ -51,7 +62,8 @@ if (errs.length) { console.error(errs.join('\n')); process.exit(1); }
 const count = f => RAW.filter(f).length, tag = t => count(r => (r[5] || '').includes(t));
 const cards = UNITS.reduce((n, U) => n + U.cards.length, 0);
 console.log(`ok: ${RAW.length} problems (E ${count(r => r[1] === 'E')}, M ${count(r => r[1] === 'M')}, H ${count(r => r[1] === 'H')}); ` +
-  `OA ${tag('o')}, variants ${tag('v')}, reported ${tag('r')}, beyond the book ${tag('b')}, arithmetic ${tag('a')}; ${UNITS.length} quests, ${cards} lessons`);
+  `OA ${tag('o')}, variants ${tag('v')}, reported ${tag('r')}, beyond the book ${tag('b')}, arithmetic ${tag('a')}; ${UNITS.length} quests, ${cards} lessons; ` +
+  `${CODING.length} coding problems (E ${CODING.filter(p => p.d === 'E').length}, M ${CODING.filter(p => p.d === 'M').length}, H ${CODING.filter(p => p.d === 'H').length}; ${CODING.filter(p => p.run).length} run in the browser)`);
 
 const body = read('shell.html')
   .replace('/*STYLE*/', () => read('style.css'))

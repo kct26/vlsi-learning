@@ -30,6 +30,7 @@
   --bad: #C9252F;
   --bad-soft: #FCE4E4;
   --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --code-bg: #F6F8FA;
   --nav-bg: #282828;
   --nav-line: #3a3a3a;
   --nav-ink: rgba(239, 241, 246, 0.62);
@@ -44,10 +45,12 @@
     --accent: #F0883E; --accent-ink: #1A1A1A; --accent-soft: #3E2B1C;
     --easy: #2CBBA7; --medium: #F2B634; --hard: #F4576C;
     --ok: #3FB950; --ok-soft: #1C3324; --warn: #E2B357; --warn-soft: #3A2F14; --bad: #F8615A; --bad-soft: #3D1F1F;
+    --code-bg: #1E1E1E;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
+  --code-bg: #1E1E1E;
   --bg: #1A1A1A; --surface: #262626; --surface-2: #2E2E2E; --row: #2B2B2B; --ink: #EDEDED; --muted: #A1A1A1; --line: #3A3A3A;
   --accent: #F0883E; --accent-ink: #1A1A1A; --accent-soft: #3E2B1C;
   --easy: #2CBBA7; --medium: #F2B634; --hard: #F4576C;
@@ -211,6 +214,27 @@ button, select, input { font: inherit; color: inherit; }
 .sol small { color: var(--muted); font-size: 0.82rem; }
 .pvactions { border-top: 1px solid var(--line); padding-top: 14px; }
 
+/* Coding */
+.ctable .c-ty { width: 120px; }
+.ctable .c-tp { width: 170px; }
+.tag.t-run { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+.codecount { margin-left: 10px; padding-left: 10px; border-left: 1px solid #4A4A4A; }
+.cpv-wrap { display: flex; flex-direction: column; gap: 12px; }
+.cpv { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
+.cstate .body { display: flex; flex-direction: column; gap: 10px; max-width: 70ch; }
+.cstate .hintbox { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.ceditor { position: sticky; top: 76px; }
+code { font-family: var(--font-mono); font-size: 0.88em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 2px; padding: 0 4px; }
+pre.code { margin: 0; font: 0.84rem/1.5 var(--font-mono); background: var(--code-bg); border: 1px solid var(--line); border-radius: 3px; padding: 12px; overflow-x: auto; white-space: pre; tab-size: 4; }
+pre.code.err { color: var(--bad); white-space: pre-wrap; }
+.code-editor { width: 100%; min-height: 380px; font: 0.86rem/1.55 var(--font-mono); background: var(--code-bg); color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 12px; resize: vertical; white-space: pre; overflow: auto; tab-size: 4; }
+.code-editor:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+.tres { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.tres li { display: flex; gap: 8px; align-items: flex-start; font-size: 0.86rem; }
+.tres li div { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.tres small { color: var(--muted); }
+.runmsg { font-size: 0.9rem; }
+
 /* Quest map */
 .hero { flex-direction: row; justify-content: space-between; align-items: center; gap: 20px; }
 .hero > div:first-child { display: flex; flex-direction: column; gap: 10px; max-width: 64ch; }
@@ -373,6 +397,8 @@ table.wave td.hi.q2 { background: var(--ok); }
 
 @media (max-width: 1000px) {
   .pgrid { grid-template-columns: minmax(0, 1fr); }
+  .cpv { grid-template-columns: minmax(0, 1fr); }
+  .ceditor { position: static; }
   .pside { position: static; order: -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
   .progcard { display: grid; grid-template-columns: 104px 1fr; gap: 6px 18px; align-items: center; }
   .progcard h2, .progcard > p { grid-column: 1 / 3; }
@@ -389,10 +415,12 @@ table.wave td.hi.q2 { background: var(--ok); }
   .brand .bname { font-size: 1.15rem; }
   .studycard { display: none; }
   .chiprow { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px 2px; }
-  .navlinks button { padding: 0 10px; min-height: 44px; font-size: 1rem; }
+  .navlinks button { padding: 0 7px; min-height: 44px; font-size: 0.95rem; }
   .ptable .c-tp, .ptable .c-ty { display: none; }
   .ptable .c-st { width: 40px; }
   .ptable th.c-st { font-size: 0; }
+  .codecount { display: none; }
+  .code-editor { min-height: 300px; }
   .ptable .c-df { width: 70px; }
   .ptable td, .ptable th { padding-left: 8px; padding-right: 8px; }
   .ptable .c-ti .tags { display: none; }
@@ -422,6 +450,7 @@ table.wave td.hi.q2 { background: var(--ok); }
     <nav class="navlinks" aria-label="Sections">
       <button type="button" data-tab="quest">Quest</button>
       <button type="button" data-tab="problems">Problems</button>
+      <button type="button" data-tab="coding">Coding</button>
       <button type="button" data-tab="weekly">Weekly</button>
       <button type="button" class="feature" data-tab="jobs">Job match</button>
     </nav>
@@ -576,6 +605,7 @@ const RAW = [
 ["06-15","M","A differential amplifier rejects noise that appears equally on both of its inputs. This is measured by its:",["CMRR (common-mode rejection ratio)","Slew rate (maximum output slope)","Gain-bandwidth product (GBW)","PSRR (power-supply rejection ratio)"],"It amplifies the difference and ignores the common part.","b"],
 ["06-16","H","A bandgap reference produces a temperature-stable voltage by adding:",["A voltage that falls with temperature and one that rises with it","Two voltages that both rise with temperature, scaled by resistors","A resistor and a capacitor whose drifts cancel at room temperature","The supply voltage and ground, divided down by matched resistors"],"The opposite slopes cancel to first order, giving about 1.2 V.","b"],
 ["06-17","M","A PLL multiplies a 100 MHz reference with a divide-by-N counter in its feedback path. With N = 20, its output is:",["2 GHz","5 MHz","100 MHz","120 MHz"],"The loop adjusts the oscillator until f_out/N = f_ref."],
+["06-18","M","A PLL's output jitter matters to a digital designer because:",["It reduces the timing margin left in every cycle","It raises the chip's supply voltage","It changes the logic function computed","It only matters for analog blocks"],"Timing analysis subtracts clock uncertainty (jitter plus margin) from the period."],
 // 7 Binary, Boolean and number formats
 ["07-01","E","Decimal 45 in hexadecimal is:",["0x2D","0x45","0x2B","0x3D"],"45 = 101101₂ = 0010 1101 = 0x2D.","a"],
 ["07-02","E","0xB7 in decimal is:",["183","187","173","117"],"11 × 16 + 7 = 183.","a"],
@@ -640,6 +670,7 @@ const RAW = [
 ["08-36","M","A 2:1 mux built from two transmission gates, plus an inverter to make the complement of the select, uses how many transistors?",["6","4","12","8"],"Two transmission gates of 2 transistors each, plus 2 for the inverter."],
 ["08-37","E","A static CMOS gate draws significant supply current mainly:",["While its output is switching","When idle with all inputs at 0","When idle with all inputs at 1","Never"],"At rest it only leaks; current flows while capacitances charge and discharge."],
 ["08-38","H","Logic built only from NMOS pass transistors usually needs a level-restoring stage because:",["NMOS passes a weak 1, which slows the next gate and can cause static current","NMOS passes a weak 0, which leaves the next gate partly on","It has too much gain, so the outputs overshoot","Pass transistors draw gate current from the previous stage"],"An inverter with a feedback PMOS restores the full 1.","v"],
+["08-39","M","Custom (full-custom) circuit design is used for blocks such as SRAM bitcells, SerDes and PLLs because:",["Hand-drawn transistors beat standard cells for these blocks","It is always the faster way to finish a design","It needs no simulation before tape-out","Standard cells cannot implement logic at all"],"Most logic uses synthesized standard cells; the most critical or analog blocks are designed transistor by transistor.","b"],
 // 9 Combinational logic and adders
 ["09-01","M","Which 2:1 mux connection implements OR (A + B)? The mux outputs I1 when S = 1 and I0 when S = 0.",["S = B, I0 = A, I1 = 1","S = B, I0 = 0, I1 = A","S = A, I0 = 1, I1 = 0","S = A, I0 = B, I1 = 0"],"B = 1 gives 1 and B = 0 gives A, so Y = B′A + B = A + B.","o"],
 ["09-02","M","A 2:1 mux with S = A, I0 = B, I1 = 1 also implements A + B.",true,"OR treats its two inputs the same way, so selecting on A works as well as selecting on B.","o"],
@@ -715,7 +746,7 @@ const RAW = [
 ["10-29","E","A glitch on a latch's D input while the latch is transparent:",["Appears on Q","Is always filtered out","Resets the latch","Is stored only at the falling edge"],"A transparent latch behaves like a buffer from D to Q.","v"],
 ["10-30","M","Compared with a flip-flop-based design, a latch-based design is generally:",["Smaller and lower power, but harder to time","Easier to design and verify than flip-flop designs","Impossible to synthesize with standard tools","Free of hold constraints, since latches are transparent"],"Transparent phases complicate timing analysis, but time borrowing and smaller cells help fast and low-power designs.","v"],
 ["10-31","E","How many 2:1 muxes does a positive-edge D flip-flop built from mux latches need?",["2","1","4","3"],"Two mux latches, master and slave, enabled on opposite clock phases.","r"],
-["10-32","M","A mux latch computes Q = EN ? D : Q. To make it the master of a positive-edge flip-flop (transparent while CLK is low), connect:",["EN to NOT CLK","EN to CLK","D to CLK","Q to CLK"],"The master is open while CLK is low and closes at the rising edge; the slave uses EN = CLK.","r"],
+["10-32","M","A mux latch computes Q = EN ? D : Q. To make it the master of a positive-edge flip-flop (transparent while CLK is low), connect:",["EN to NOT CLK","EN to CLK","D to NOT CLK","Q to NOT EN"],"The master is open while CLK is low and closes at the rising edge; the slave uses EN = CLK.","r"],
 // 11 Timing
 ["11-01","M","tcq = 50 ps, the slowest logic path is 400 ps, tsu = 30 ps, and there is no skew. What is the maximum clock frequency?",["About 2.08 GHz","2.5 GHz","About 2.27 GHz","2 GHz"],"T = 50 + 400 + 30 = 480 ps."],
 ["11-02","M","tcq = 80 ps, tpd = 600 ps and tsu = 40 ps. What is the maximum frequency?",["About 1.39 GHz","About 1.47 GHz","1.25 GHz","About 1.67 GHz"],"T = 80 + 600 + 40 = 720 ps."],
@@ -746,6 +777,10 @@ const RAW = [
 ["11-27","M","A 4-bit shift register uses D flip-flops with a positive clock-to-Q delay and zero hold time, and has no skew. Does it shift correctly?",["Yes; any positive tcq meets zero hold","No; it always has a hold violation","Only if tcq exceeds the clock period","Only if latches replace the flip-flops"],"The hold check is tcq ≥ th + skew = 0, which any positive tcq satisfies.","r"],
 ["11-28","H","In a shift register, the flip-flops have tcq = 40 ps and th = 25 ps, and each later stage's clock arrives 20 ps after the previous stage's. The hold check:",["Fails by 5 ps","Passes with 15 ps to spare","Passes with 5 ps to spare","Fails by 15 ps"],"With no logic between stages, hold needs tcq ≥ th + skew: 40 ≥ 45 fails by 5 ps.","r"],
 ["11-29","M","A shift register fails hold because of clock skew. Which fix works without touching the clock?",["Add a delay buffer between each pair of flip-flops","Lower the clock frequency","Raise the flip-flops' supply voltage","Remove the flip-flops' reset"],"Hold does not depend on the period, and a faster flip-flop makes hold worse. Delaying the data path fixes it.","r"],
+["11-30","M","In SDC, create_clock -period 2.0 [get_ports clk] defines a clock of:",["500 MHz","2 GHz","200 MHz","50 MHz"],"The period is in nanoseconds: 1/2.0 ns = 500 MHz.","b"],
+["11-31","M","set_input_delay 0.3 -clock clk on an input port tells timing analysis that:",["The signal arrives 0.3 ns after the edge, leaving less time inside","A buffer adding 0.3 ns is inserted on the input","The clock itself arrives 0.3 ns late at the port","The input no longer needs any timing check"],"Input and output delays model the logic outside the chip so the boundary paths are checked.","b"],
+["11-32","M","set_clock_groups -asynchronous between two clocks causes timing tools to:",["Skip timing between them; synchronizers handle the crossing","Check paths between them more strictly than others","Merge the two clocks into one for analysis","Stop both clocks while the other is active"],"Unrelated clocks cannot be timed meaningfully; the crossing must be handled by CDC design and checked by CDC tools.","b"],
+["11-33","H","A path has a setup multicycle of 2. To keep the hold check at the usual edge, you also set:",["A hold multicycle of 1","A hold multicycle of 2","Nothing; hold moves correctly by itself","A false path on hold"],"By default, moving the setup edge also moves the hold edge forward; the hold multicycle of 1 moves it back.","b"],
 // 12 Counters, dividers and FSMs
 ["12-01","M","A binary counter's clock period is 2 ns, and its most significant bit has a 128 ns period. How many flip-flops does it have?",["6","64","7","5"],"The MSB period is 2ⁿ × the clock period, so 2ⁿ = 64.","r"],
 ["12-02","E","A 3-bit ripple counter is clocked at 16 MHz. The frequency of its MSB is:",["2 MHz","8 MHz","4 MHz","5.33 MHz"],"16 MHz / 2³ = 2 MHz."],
@@ -883,6 +918,12 @@ const RAW = [
 ["16-22","E","Running grounded shield wires on both sides of a clock wire mainly:",["Reduces coupling noise and makes delay predictable","Speeds up the clock source driving the wire","Lowers the clock wire's own resistance","Removes the need for a clock tree entirely"],"The cost is extra routing tracks."],
 ["16-23","M","Net A switches 2.0–3.5 ns after the clock, and its neighbour, net B, 3.0–4.2 ns after the clock. During which window can A's switching add crosstalk delay to B?",["3.0–3.5 ns","2.0–4.2 ns","3.5–4.2 ns","Never; they do not overlap"],"Only the overlap of the two switching windows matters.","r"],
 ["16-24","H","Net A's edge reaches a shared stretch of wire 1.0–1.4 ns after the clock (driver delay plus wire delay). Net B switches 1.2–1.5 ns after the clock there. The crosstalk window is:",["1.2–1.4 ns","1.0–1.5 ns","0.8–1.5 ns","1.4–1.5 ns"],"Intersect the arrival windows where the wires run side by side: 1.2 to 1.4 ns.","r"],
+["16-25","M","An eye diagram that is closing (shrinking in height and width) indicates:",["Growing noise, jitter or interference between bits","A perfectly clean signal with extra margin","A lower supply voltage and nothing else","Too much termination at the receiver"],"The eye overlays every bit period; the receiver needs an open region to sample correctly.","b"],
+["16-26","M","A chip draws a 50 A current step and its supply may move by at most 25 mV. The power delivery network's target impedance is:",["0.5 mΩ","2 Ω","50 mΩ","1.25 mΩ"],"Z_target = ΔV/ΔI = 0.025/50 = 0.5 mΩ, across the frequency range of the current step.","b"],
+["16-27","M","A via stub on a high-speed board trace mainly causes:",["Reflections that degrade the signal","Lower DC resistance on the net","Better shielding from neighbours","Less crosstalk between layers"],"The unused via length acts as a small open transmission line; back-drilling removes it.","b"],
+["16-28","M","A clock-and-data-recovery (CDR) circuit in a SerDes receiver:",["Recovers the sampling clock from the data's own edges","Generates the data that the transmitter sends","Adds error-correcting codes to each packet","Stores received packets until software reads them"],"No separate clock wire is sent; the receiver locks onto the data edges, which is why line codes guarantee transitions.","b"],
+["16-29","E","Board traces for high-speed signals are designed with a controlled impedance (for example 50 Ω single-ended or 85–100 Ω differential) to:",["Match drivers and terminations, avoiding reflections","Reduce the board's weight and its cost","Lower the chip's leakage current","Make every high-speed trace shorter"],"Trace width, dielectric thickness and material set the impedance.","b"],
+["16-30","M","Pre-emphasis or equalization on a long link compensates for:",["Frequency-dependent loss that smears fast edges","A supply voltage that is set too high","Clock skew between flip-flops inside the chip","Antenna effects during board manufacture"],"Boosting high frequencies (or attenuating low ones) reopens the eye.","b"],
 // 17 Manufacturing and reliability
 ["17-01","M","For the antenna rule, as long as the metal wire is safe, a small connected transistor is good.",false,"The risk depends on the ratio of metal area to gate area. A smaller gate means a larger ratio, so more charge per unit of oxide.","o"],
 ["17-02","M","The antenna ratio compares:",["The metal area connected to a gate with that gate's area","Wire length with wire width","Gate length with gate width","The number of vias with the number of wires"],"More metal collects more charge; more gate area spreads it out.","v"],
@@ -916,6 +957,17 @@ const RAW = [
 ["17-30","M","The stuck-at-0 fault model assumes that a node:",["Is permanently tied to 0","Switches too slowly to 0","Is metastable near 0","Is pulled toward 0 by crosstalk"],"ATPG tools generate patterns that make each such fault visible at an output."],
 ["17-31","M","Chemical-mechanical polishing (CMP) is used to:",["Flatten each layer before the next","Etch the transistors' channels","Add dopants to the silicon","Test each die for defects"],"Uneven metal density causes dishing, which is why fill is added."],
 ["17-32","E","DRC (design rule checking) verifies that:",["Shapes obey width and spacing rules","The netlist matches the schematic","Every path meets its timing","Power stays within its budget"],"LVS is the check that compares layout with netlist."],
+["17-33","M","A scan chain lets a tester:",["Load and read back every flip-flop directly","Measure each transistor's threshold voltage","Run the functional clock at a higher speed","Repair broken wires found on the die"],"In test mode the flip-flops are connected into shift registers, turning a sequential circuit into easily testable combinational logic."],
+["17-34","M","At-speed (transition-fault) testing exists because:",["Some defects make a node slow rather than stuck","Stuck-at tests are not allowed on modern chips","Testers cannot apply patterns at low speed","Scan chains only shift at the full clock rate"],"Launch a transition and capture it one functional clock period later; a slow-to-rise or slow-to-fall node fails.","b"],
+["17-35","M","Memory BIST (MBIST) is:",["On-chip logic that tests the memories by itself","A manual inspection of memory under a microscope","A special kind of DRAM used for testing","A software checker that runs on the host"],"Memories are too dense to test through scan, so built-in test engines run march algorithms on them."],
+["17-36","M","JTAG (IEEE 1149.1) boundary scan is used to:",["Test board connections through a few test pins","Raise the chip's maximum clock speed","Program the DRAM timing parameters","Measure the chip's power consumption"],"Boundary-scan cells at each pin can drive and capture values, checking solder joints without physical probes.","b"],
+["17-37","M","Fault coverage of 99% means:",["The test patterns detect 99% of the modeled faults","99% of manufactured chips pass the test","The design is 99% functionally verified","99% of the scan chains are working"],"Escapes (bad chips that pass) are reduced by high coverage of stuck-at and transition faults.","b"],
+["17-38","E","The usual order of the physical design flow is:",["Floorplan, placement, clock-tree synthesis, routing, sign-off","Routing, placement, floorplan, sign-off","Sign-off, routing, synthesis, floorplan","Clock-tree synthesis, floorplan, synthesis, routing"],"Synthesis produces the netlist first; after routing come extraction, timing, power and physical verification."],
+["17-39","M","Clock-tree synthesis (CTS) builds a buffered clock network that:",["Delivers the clock to every flip-flop with small skew","Removes the need for flip-flops in the design","Generates the clock frequency from a crystal","Routes the data signals between blocks"],"Before CTS, timing assumes an ideal clock; after it, real skew and clock latency are included."],
+["17-40","M","High placement utilization (cells packed very densely) mainly risks:",["Routing congestion","Lower leakage","Faster timing","Fewer DRC checks"],"Typical utilization targets leave room for routing, buffers and later fixes.","b"],
+["17-41","M","After routing, parasitic extraction produces:",["Each wire's resistance and capacitance (SPEF)","The gate-level netlist from RTL","The floorplan and its block outlines","The manufacturing test patterns"],"Sign-off timing uses extracted parasitics instead of estimates.","b"],
+["17-42","M","An ECO (engineering change order) late in a project is:",["A small, targeted fix to the netlist or layout","The start of a new chip project","A design rule check on the layout","A change to the target clock frequency"],"Metal-only ECOs can even be made after tape-out by changing only a few mask layers.","b"],
+["17-43","M","A standard-cell library's .lib (Liberty) file describes:",["Each cell's timing, power and pin capacitance","Each cell's exact layout shapes","The chip's floorplan and pin placement","The manufacturing test patterns"],"Timing tools read .lib for delays; LEF describes the cells' physical outlines for placement and routing.","b"],
 // 18 Memory circuits
 ["18-01","H","For a 6T SRAM cell to be read without flipping, which must be stronger?",["The pull-down NMOS, compared with the access NMOS","The access NMOS, compared with the pull-down","The pull-up PMOS, compared with the pull-down","All transistors equally"],"During a read, the node storing 0 is a voltage divider between them."],
 ["18-02","H","For a 6T SRAM cell to be writable, which must be stronger?",["The access NMOS, compared with the pull-up PMOS","The pull-up PMOS, compared with the access NMOS","The pull-down, compared with the access transistor","None of them"],"The access transistor must overpower the PMOS that holds the node at 1."],
@@ -936,6 +988,7 @@ const RAW = [
 ["18-17","H","An SRAM's static noise margin shrinks at low supply voltage. This sets:",["The array's minimum voltage (Vmin)","The array's maximum capacity","The array's refresh rate","The array's address width"],"Memories often get a separate, slightly higher supply for this reason."],
 ["18-18","E","Which is denser: SRAM (6 transistors per bit) or DRAM (1 transistor and 1 capacitor per bit)?",["DRAM","SRAM","They are equal","Neither stores bits"],"DRAM is denser and cheaper per bit, but slower, and it needs refresh."],
 ["18-19","M","A Hamming SECDED code on a 64-bit word can:",["Correct single-bit errors and detect double-bit errors","Correct any double-bit error in the word","Only detect errors, never correct them","Correct any number of errors per word"],"Single-error correct, double-error detect."],
+["18-20","M","SRAM characterization across PVT corners checks:",["Read/write margins, speed and leakage at every corner","Only the nominal corner, at room temperature","Only the package and its bond wires","The RTL code coverage of the memory array"],"A memory must work at the worst process, lowest voltage and both temperature extremes, which sets Vmin.","b"],
 // 19 RTL, CDC, FIFOs and verification
 ["19-01","M","a = 3 and b = 7. After one clock edge of: always @(posedge clk) begin a = b; b = a; end (blocking), a and b are:",["7 and 7","7 and 3","3 and 7","3 and 3"],"The second statement reads the new value of a.","r"],
 ["19-02","M","a = 3 and b = 7. After one edge of a <= b; b <= a; (nonblocking), a and b are:",["7 and 3","7 and 7","3 and 3","3 and 7"],"All the right-hand sides use the old values, so the registers swap.","r"],
@@ -981,6 +1034,12 @@ const RAW = [
 ["19-42","E","A testbench compares outputs with !== rather than != because !==:",["Also treats X and Z values as mismatches","Simulates faster than the != operator","Ignores the upper bits of the result","Compares only the sign bit"],"With !=, a comparison involving X gives X, which an if treats as false, so an unknown output could slip through as a pass."],
 ["19-43","M","Glitches up to 9 ns wide must be filtered using 2 ns buffers. How many buffers are needed?",["5","4","9","18"],"The delay must exceed the glitch width: 5 × 2 = 10 ns > 9 ns.","r"],
 ["19-44","M","A filter ANDs a signal with a copy of itself delayed by 12 ns. Which glitches does it remove?",["High pulses shorter than about 12 ns","Low pulses shorter than about 12 ns","All pulses longer than 12 ns","Only pulses exactly 12 ns wide"],"A short high pulse is over before its delayed copy arrives, so the two are never high together. (ORing the copies removes short low pulses instead.)","r"],
+["19-45","M","In UVM, the component that turns pin activity back into transactions for checking is the:",["Monitor","Driver","Sequencer","Sequence"],"Driver: transactions to pins. Monitor: pins to transactions. The scoreboard compares monitored transactions with expected ones.","b"],
+["19-46","M","UVM's build, connect and run phases exist so that:",["Components are built, then connected, then run, in order","Tests run in parallel on many machines","Synthesis tools can read the testbench","Coverage is turned off during each phase"],"Phasing coordinates hundreds of components without each one managing the order itself.","b"],
+["19-47","M","cocotb lets you:",["Write testbenches in Python for a Verilog simulation","Synthesize Python code directly into gates","Run Verilog designs without any simulator","Replace SystemVerilog assertions with C code"],"The design runs in a normal simulator; Python coroutines await clock edges and check values.","b"],
+["19-48","M","A CDC (clock domain crossing) checking tool is used to:",["Find unsynchronized clock domain crossings","Measure each clock's frequency","Generate the clock trees","Replace static timing analysis"],"Simulation rarely catches CDC bugs because metastability is not modeled; structural CDC tools do.","b"],
+["19-49","M","A regression's pass rate is 100%, but functional coverage is 60%. The right conclusion is:",["40% of the planned scenarios are untested","The design is now fully verified","The coverage tool must be broken","The passing tests should be removed"],"Passing only says nothing failed in what ran. Coverage closure needs new or better-steered tests."],
+["19-50","M","A lint tool (for example Verilator --lint-only or Spyglass) on RTL finds:",["Width mismatches, latches and undriven signals","Timing violations found after routing","Manufacturing defects on the wafer","Thermal hotspots in the floorplan"],"Lint is fast static checking, run on every change before simulation.","b"],
 // 20 Architecture
 ["20-01","E","The stages of the classic 5-stage pipeline, in order, are:",["IF, ID, EX, MEM, WB","ID, IF, EX, WB, MEM","IF, EX, ID, MEM, WB","IF, ID, MEM, EX, WB"],"Fetch, decode and read registers, execute, access memory, write back.","r"],
 ["20-02","M","A load followed immediately by an instruction that uses its result needs:",["A one-cycle stall, even with forwarding","No stall, thanks to forwarding","A pipeline flush","Two cycles of branch delay"],"The loaded data arrives at the end of MEM, too late for the next instruction's EX."],
@@ -1008,6 +1067,10 @@ const RAW = [
 ["20-24","E","A structural hazard occurs when:",["Two instructions need the same resource at once","An instruction needs a result not yet ready","A branch goes the unpredicted way","A load misses in the cache"],"For example, a single memory port shared by instruction fetch and a load."],
 ["20-25","M","With total cache size fixed, using larger cache lines tends to:",["Cut compulsory misses but raise the miss penalty","Reduce every kind of miss with no downside","Increase the number of lines in the cache","Remove the need for address tags entirely"],"Fewer, larger lines exploit locality but cost more per miss."],
 ["20-26","M","On a roofline plot, a kernel is limited by memory bandwidth when:",["Its arithmetic intensity is below the balance point","Its arithmetic intensity is very high","Its clock frequency is above nominal","Its cache is disabled by the driver"],"Above the balance point, compute is the limit."],
+["20-27","M","Little's law says that to sustain bandwidth B with memory latency L, the number of requests in flight must be about:",["B × L","B / L","L / B","B + L"],"For example 1 TB/s with 500 ns latency and 64-byte requests needs about (10¹² × 500×10⁻⁹)/64 ≈ 7,800 outstanding requests. That is why GPUs keep so many warps.","b"],
+["20-28","M","A cycle-accurate performance model differs from an analytical model in that it:",["Simulates cycle by cycle, catching contention, but runs slowly","Uses only a formula, so it is instant but approximate","Runs on the real chip to measure performance","Ignores the memory system entirely"],"Architects use fast analytical models to explore and cycle-accurate models to confirm.","b"],
+["20-29","M","IPC (instructions per cycle) and CPI are related by:",["IPC = 1 / CPI","IPC = CPI","IPC = CPI × clock frequency","IPC = CPI − 1"],"A processor finishing 2 instructions per cycle has CPI 0.5."],
+["20-30","M","A CPI stack breaks the cycles per instruction into:",["Base cycles plus stalls from each cause","A list of the separate instructions","The pipeline stages and nothing else","The clock domains on the chip"],"It shows which bottleneck to attack first.","b"],
 // 21 GPUs and number formats
 ["21-01","E","How many threads are in an NVIDIA warp?",["32","16","64","1024"],"All 32 execute the same instruction together (SIMT)."],
 ["21-02","E","Which best contrasts CPUs with GPUs?",["CPUs cut latency; GPUs maximize throughput","GPUs have bigger caches per thread","CPUs have thousands of simple cores","GPUs predict branches much better"],"GPUs spend their transistors on many arithmetic units."],
@@ -1033,6 +1096,11 @@ const RAW = [
 ["21-22","E","CUDA's execution hierarchy, from smallest to largest, is:",["Thread, warp, block, grid","Block, thread, grid, warp","Grid, block, warp, thread","Warp, thread, grid, block"],"A warp is a group of 32 threads within a block."],
 ["21-26","M","The exponent bias in IEEE 754 FP32 is:",["127","128","255","1023"],"FP64 uses 1023.","a"],
 ["21-27","M","FP32 stores 23 fraction bits. Its precision is about:",["7 decimal digits","3 decimal digits","16 decimal digits","32 decimal digits"],"2⁻²⁴ ≈ 6 × 10⁻⁸.","a"],
+["21-28","M","A grid-stride loop in a CUDA kernel  for (i = idx; i < n; i += blockDim.x * gridDim.x)  lets:",["A fixed-size grid to cover an array of any length","Each thread to run exactly once and stop","Threads to skip all synchronization","The kernel to use less shared memory"],"Each thread handles several elements, one grid-width apart, keeping accesses coalesced.","b"],
+["21-29","M","cudaMemcpy from host to device is often the bottleneck because:",["PCIe is far slower than GPU memory","GPUs cannot read host memory at all","It runs on the GPU's slowest core","It always copies the data twice"],"Keep data on the GPU across kernels, and overlap copies with compute using streams and pinned memory.","b"],
+["21-30","M","CUDA streams allow:",["Copies and kernels to overlap in time","Threads in a warp to diverge freely","Kernels to run on the CPU instead","Shared memory to grow beyond its limit"],"Work in different streams can run concurrently, hiding transfer time.","b"],
+["21-31","H","A warp shuffle (__shfl_down_sync) lets threads:",["Swap register values within a warp, no shared memory","Move warps from one SM to another","Write into another block's shared memory","Reorder global memory transactions"],"Warp-level reductions with shuffles avoid shared-memory traffic and many __syncthreads() calls.","b"],
+["21-32","M","Profiling a CUDA kernel with Nsight Compute mainly tells you:",["Whether memory, compute or latency limits it","How much the GPU costs to buy","The chip's die size in square millimetres","The number of lines in the source code"],"Profile first, then optimize the measured bottleneck: the roofline idea in practice.","b"],
 // 22 Computer arithmetic
 ["22-01","M","In unsigned Q4.4 fixed point (4 integer bits, 4 fraction bits), the pattern 0010 1100 represents:",["2.75","44","2.12","11"],"0010 is 2, and 1100 is 12/16 = 0.75.","a"],
 ["22-02","M","Saturating 8-bit unsigned arithmetic computes 200 + 100 as:",["255","44","300","0"],"Instead of wrapping to 300 mod 256 = 44, the result clamps at the maximum. DSP and graphics hardware use this.","a"],
@@ -1069,7 +1137,42 @@ const RAW = [
 ["22-33","M","FP32's machine epsilon (the gap between 1.0 and the next larger number) is about:",["1.2 × 10⁻⁷","1.2 × 10⁻³⁸","1.4 × 10⁻⁴⁵","2.2 × 10⁻¹⁶"],"2⁻²³ ≈ 1.2 × 10⁻⁷: about 7 decimal digits. 1.2 × 10⁻³⁸ is the smallest normal number, 1.4 × 10⁻⁴⁵ the smallest subnormal, and 2.2 × 10⁻¹⁶ is FP64's epsilon.","a"],
 ["22-34","H","During floating-point addition, the guard, round and sticky bits exist to:",["Round correctly after the alignment shift pushes bits off the end","Detect NaN inputs before the addition starts","Hold the sign of the result during normalization","Speed up the comparison of the two exponents"],"They keep just enough information about the discarded bits to round as if the exact result were known.","a"],
 ["22-35","M","Tensor cores often multiply in BF16 or FP8 but accumulate in FP32 because:",["A long sum in a narrow format would lose small terms to rounding","FP32 multipliers are smaller than BF16 multipliers","FP32 has fewer exponent bits than BF16","Accumulating in FP32 removes the need for multipliers"],"Narrow multipliers are small and fast; a wide accumulator keeps the small products from vanishing in the sum.","a"],
-["22-36","M","INT8 quantization represents a real value as approximately:",["scale × (q − zero point)","q × 2^exponent (like floating point)","q / 127 (a fixed range of ±1)","q + scale (an offset only)"],"The scale (and zero point) is chosen per tensor or per channel so the 256 integer levels cover the values that actually occur.","a"]
+["22-36","M","INT8 quantization represents a real value as approximately:",["scale × (q − zero point)","q × 2^exponent (like floating point)","q / 127 (a fixed range of ±1)","q + scale (an offset only)"],"The scale (and zero point) is chosen per tensor or per channel so the 256 integer levels cover the values that actually occur.","a"],
+// 23 Programming, Linux and scripting
+["23-01","M","In C, what does the keyword volatile tell the compiler about a variable such as a memory-mapped register?",["Every access must really happen; the value can change by itself","The variable is kept in a CPU register for speed","The variable can never change after it is set","The variable is shared between source files"],"Without volatile, the compiler may keep a register's value in a CPU register and skip later reads, or merge writes, which breaks hardware access."],
+["23-02","M","On a 32-bit int, what is undefined behaviour in C?",["Shifting by 32 or more bits","Shifting an unsigned value right by 1","Masking with 0xFF","Adding two unsigned ints that overflow"],"A shift count of at least the type's width is undefined. Unsigned overflow, by contrast, is well defined: it wraps modulo 2ⁿ."],
+["23-03","M","What does this print?  int x = 5; int *p = &x; *p += 2; printf(\"%d\", x);",["7","5","2","An address"],"p points to x, so *p += 2 changes x itself."],
+["23-04","M","A function-local variable declared static:",["Keeps its value between calls","Is re-created on every call","Is visible to every file","Is stored on the stack"],"Static locals live for the whole program, are initialized once, and stay private to the function."],
+["23-05","H","With #define SQUARE(x) x * x, what is SQUARE(1 + 2)?",["5","9","6","3"],"It expands to 1 + 2 * 1 + 2 = 5. Macro arguments should be parenthesized: #define SQUARE(x) ((x) * (x))."],
+["23-06","M","For int a[10], what is sizeof(a) / sizeof(a[0])?",["10","40","4","1"],"40 bytes divided by 4 bytes per element gives the element count. It does not work on a pointer parameter, where sizeof gives the pointer size."],
+["23-07","E","In Python, what is 0b1011 ^ 0b0110?",["13 (0b1101)","15 (0b1111)","2 (0b0010)","−12"],"Bitwise XOR: 1011 ⊕ 0110 = 1101 = 13.","b"],
+["23-08","E","Python integers:",["Grow to any size, so they never overflow","Are always 32 bits and wrap around","Are always 64 bits and saturate","Are floating point"],"That is handy for wide hardware values, but you must mask explicitly to model fixed widths: x & 0xFFFF.","b"],
+["23-09","M","Which Python expression gives the even numbers below 10?",["[i for i in range(10) if i % 2 == 0]","[i if i % 2 for i in range(10)]","range(10).filter(even)","[i % 2 == 0 for i in range(10)]"],"A list comprehension with an if clause filters. The last option produces a list of booleans.","b"],
+["23-10","M","In Python, int('0x1F', 16) evaluates to:",["31","An error because of the 0x prefix","1F","16"],"With base 16, int accepts an optional 0x prefix. int('0x1F', 0) also works, guessing the base from the prefix.","b"],
+["23-11","M","Which data structure gives average O(1) lookup by key in Python?",["dict","list","tuple","a sorted list"],"A dict is a hash table. Counting errors per module or mapping net names to drivers uses dicts.","b"],
+["23-12","E","In a Linux shell, what does grep -r \"FAILED\" logs/ do?",["Searches all files under logs/ for FAILED","Removes lines containing FAILED","Renames files containing FAILED","Counts the files inside logs/"],"-r recurses into directories. Add -l to list only file names, or -c to count matches per file.","b"],
+["23-13","E","What does the pipe in  cat sim.log | grep ERROR | wc -l  do?",["Sends each command's output into the next command's input","Runs the three commands at the same time on separate files","Saves the output to a file named wc","Comments out the rest of the line"],"This counts ERROR lines. (grep -c ERROR sim.log does the same in one command.)","b"],
+["23-14","M","What does  ./simv > run.log 2>&1  do?",["Sends both normal output and error output to run.log","Sends only errors to run.log","Runs simv twice","Appends to run.log instead of overwriting"],"2>&1 points stderr at wherever stdout goes. Use >> to append instead of overwrite.","b"],
+["23-15","M","chmod +x run.sh is needed so that:",["The script can be executed as ./run.sh","The script can be read by others","The script runs in the background","The script is deleted on logout"],"Execute permission lets the kernel run the file; the first line (#!/usr/bin/env bash) picks the interpreter.","b"],
+["23-16","M","Which command finds every .v file under the current directory?",["find . -name \"*.v\"","ls -r *.v","grep *.v","locate --here .v"],"find walks the directory tree; quote the pattern so the shell does not expand it first.","b"],
+["23-17","M","An EDA tool is not found when you type its name. The most likely fix is:",["Add its directory to PATH","Reboot the computer","Run it with sudo","Rename the tool"],"The shell searches the directories listed in PATH. Chip-design environments often set PATH and license variables through a setup script or modules.","b"],
+["23-18","M","Which tool is best for printing the third whitespace-separated column of a report?",["awk '{print $3}' report.txt","sed -n 3p report.txt","cut -c3 report.txt","head -3 report.txt"],"awk splits lines into fields. cut -c3 would print the third character, and head -3 the first three lines.","b"],
+["23-19","M","In git, what is a branch?",["A movable pointer to a commit for separate work","A full copy of the repository on disk","A backup copy made by GitHub","A list of files that git ignores"],"Branches are cheap. Work on a branch, then merge it after review.","b"],
+["23-20","M","git merge differs from git rebase in that rebase:",["Replays your commits onto the other branch","Deletes the other branch after merging","Creates a merge commit with two parents","Uploads the branch to GitHub"],"Rebase gives a straight-line history. Never rebase commits that others already pulled.","b"],
+["23-21","E","Which command shows what changed in your files but is not yet staged?",["git diff","git log","git status --short --staged","git push"],"git diff compares the working tree with the staging area; git diff --staged shows what will be committed.","b"],
+["23-22","M","In a Makefile, a recipe line must start with:",["A tab character","Four spaces","A dollar sign","A colon"],"make requires a real tab; spaces give the error 'missing separator'.","b"],
+["23-23","M","make decides to rebuild a target when:",["Any prerequisite file is newer than the target","The target is older than one day","Every time make runs","The Makefile is newer than the computer's clock"],"Timestamp comparison lets large builds redo only what changed. Targets that are not files are marked .PHONY.","b"],
+["23-24","M","In Tcl, what does  set x [expr {3 * 4}]  do?",["Runs expr and stores 12 in x","Stores the text '[expr {3 * 4}]' in x","Prints 12","Defines a procedure named x"],"Square brackets run a command and substitute its result. Braces around expr's argument keep it from being substituted twice.","b"],
+["23-25","M","In Tcl, the difference between \"$a b\" and {$a b} is that:",["Double quotes substitute variables; braces keep the text literally","Braces substitute variables; double quotes do not","They are identical","Braces create a list of numbers"],"Braces defer substitution, which is why proc bodies and expr arguments are written in braces.","b"],
+["23-26","M","Most EDA tools (synthesis, place and route, static timing) are scripted in:",["Tcl","JavaScript","SQL","HTML"],"Commands like create_clock and report_timing are Tcl commands. SDC constraint files are Tcl too.","b"],
+["23-27","M","In Perl, $count{$m}++ does what?",["Adds 1 to the hash entry for key $m","Appends $m to the end of an array","Prints the value of $m","Compares $count with $m"],"% marks a hash, @ an array and $ a single value. Hash counting is a classic log-processing idiom.","b"],
+["23-28","M","The regular expression ^ERROR\\s+\\[(\\w+)\\] captures:",["The module name in brackets after ERROR","Every word in the line","The text after the closing bracket","Lines that do not contain ERROR"],"^ anchors at the start, \\s+ matches spaces, \\[ is a literal bracket and (\\w+) captures word characters.","b"],
+["23-29","M","Why do hardware engineers write Python or Perl scripts?",["To automate regressions and parse logs and reports","Because RTL cannot be simulated without them","To replace the synthesis tools entirely","Only to make plots of results"],"A large share of day-to-day chip work is automation: running thousands of tests, triaging failures and tracking timing and power trends.","b"],
+["23-30","H","A regression of 5,000 tests runs on a compute farm. The usual way to submit them is:",["A job scheduler such as LSF or Slurm","Opening 5,000 terminal windows","Running them one by one on a laptop","Emailing each test to a colleague"],"Farm schedulers queue jobs across many machines; scripts submit jobs and collect results.","b"],
+["23-31","E","Which file lists files that git should not track, such as simulation outputs?",[".gitignore",".gitkeep","README.md","Makefile"],"Waveforms and build directories are large and regenerable, so they stay out of the repository.","b"],
+["23-32","M","A Python script parses a 2 GB log. Which approach uses the least memory?",["Iterate over the file line by line","Read the whole file with f.read() first","Load it into a list with f.readlines()","Copy it into a string, then split"],"for line in f: streams the file, holding one line at a time.","b"],
+["23-33","H","Two shell commands: A is  grep -c PASS log ; B is  grep PASS log | wc -l . When does the answer differ?",["Never; both count matching lines","A counts words, B counts lines","B counts files instead of lines","A only works on compressed logs"],"grep -c counts matching lines per file; with a single file it equals the piped wc -l count.","b"],
+["23-34","M","In C, which declaration reads a 32-bit hardware status register at address 0x40001000 correctly?",["volatile uint32_t *status = (volatile uint32_t *)0x40001000;","uint32_t status = (uint32_t)0x40001000;","int *status = (int *)0x40001000;","const uint8_t *status = (const uint8_t *)0x40001000;"],"Casting the address to a pointer to volatile 32-bit data makes every access a real 32-bit read."]
 ];
 
 // Learning path: one unit per hardware chapter of "Hardware from the Ground Up".
@@ -1081,7 +1184,8 @@ const PARTS = [
   {n:4, name:"Memory and time", units:[10,11,12]},
   {n:5, name:"Speed, power and the real world", units:[13,14,15]},
   {n:6, name:"Building real chips", units:[16,17,18]},
-  {n:7, name:"Digital systems", units:[19,20,21,22]}
+  {n:7, name:"Digital systems", units:[19,20,21,22]},
+  {n:8, name:"Tools of the trade", units:[23]}
 ];
 
 const UNITS = [
@@ -1209,6 +1313,14 @@ const UNITS = [
   {t:"Fixed point", b:["A Qm.n number is an integer with n fraction bits: its value is the integer ÷ 2ⁿ, and its step is 2⁻ⁿ. Multiplying Qa.b by Qc.d gives b + d fraction bits, so shift back afterwards.","Store a few values and watch the rounding error, and what happens when a value does not fit."], w:"fixq", q:"22-23"},
   {t:"Floating-point arithmetic", b:["To add: compare exponents, shift the smaller significand right to align, add, normalize, round. To multiply: XOR the signs, add the exponent fields and subtract 127, multiply the significands, normalize, round.","Exponent field 0 means zero or a subnormal; 255 means infinity or NaN. Decode some special values."], w:"fp32", q:"22-27"},
   {t:"Rounding and order", b:["The default rounding is round to nearest, ties to even. Every operation rounds, so floating-point addition is not associative: in FP32, (10⁸ + 1) − 10⁸ is 0.","A fused multiply-add rounds only once. AI hardware multiplies in narrow formats but accumulates in FP32 so small terms are not lost."], q:"22-30"}
+]},
+{id:23, title:"Programming, Linux and scripting", goal:"Use the everyday tools of a hardware engineer: C for hardware, Python, the Linux shell, git, make and Tcl.", cards:[
+  {t:"C that talks to hardware", b:["Firmware reaches hardware through memory-mapped registers: a pointer to volatile data at a fixed address, so every read and write really happens.","Watch for C's traps: shifting by the full width is undefined, macros need parentheses, and struct members are padded to their alignment."], q:"23-02"},
+  {t:"Python for automation", b:["Python glues chip work together: parsing timing reports and logs, generating test vectors, and driving simulations (for example with cocotb).","Its integers never overflow, so mask explicitly (x & 0xFFFF) to model fixed-width hardware. Dicts count and look things up in O(1)."], q:"23-11"},
+  {t:"The Linux shell", b:["Chip design runs on Linux. Small tools joined with pipes answer most questions: find files, grep for patterns, awk for columns, sort and wc to summarize.","2>&1 sends errors along with normal output, and PATH decides which programs the shell can find."], q:"23-13"},
+  {t:"git and make", b:["RTL lives in version control. Work on a branch, commit small changes with clear messages, and merge after review.","make rebuilds only what changed, by comparing file timestamps. Recipe lines start with a tab."], q:"23-19"},
+  {t:"Tcl and EDA tools", b:["Synthesis, place and route, and timing tools are driven by Tcl. Square brackets run a command and substitute its result; braces keep text literal.","Timing constraints (SDC) are Tcl too: create_clock, set_input_delay, set_clock_groups and multicycle paths."], q:"23-24"},
+  {t:"From script to regression", b:["A regression runs thousands of tests with different random seeds on a compute farm (LSF or Slurm), collects pass/fail, and groups failures by their error messages.","Practice the hands-on half in the Coding tab: RTL, testbenches, C, Python, shell, Tcl and CUDA problems."], q:"23-30"}
 ]}
 ];
 
@@ -1589,13 +1701,1415 @@ function mountWidget(el, spec, ctx){
   if (fn) fn(el, variant, ctx);
 }
 
+// Coding problems: the hands-on half of a hardware engineer's job.
+// Each problem: id, d (E/M/H), lang, area, title, p (statement paragraphs; `code` in backticks),
+// ex (example, optional), starter, hints, sol (reference solution), why (explanation paragraphs),
+// run (Python only: {fn, tests: [[args], expected]} checked in the browser).
+const LANGS = {verilog:'Verilog', sv:'SystemVerilog', c:'C', cpp:'C++', python:'Python', bash:'Bash', tcl:'Tcl', perl:'Perl', cuda:'CUDA', matlab:'MATLAB'};
+const CODE_AREAS = ['RTL design', 'Verification', 'C and C++', 'Python and MATLAB', 'Linux and scripting', 'Physical design', 'GPU and CUDA'];
+const CODING = [
+// ---------------- RTL design (Verilog) ----------------
+{id:'rtl-01', d:'E', lang:'verilog', area:'RTL design', title:'Parameterized 2:1 multiplexer',
+ p:["Write a module `mux2` with a parameter `W` (default 8). Inputs `a`, `b` (W bits each) and select `s`; output `y` is `b` when `s` is 1, otherwise `a`."],
+ starter:`module mux2 #(parameter W = 8) (
+  input  wire [W-1:0] a, b,
+  input  wire         s,
+  output wire [W-1:0] y
+);
+  // your code
+endmodule`,
+ hints:["One continuous assignment with the conditional operator is enough."],
+ sol:`module mux2 #(parameter W = 8) (
+  input  wire [W-1:0] a, b,
+  input  wire         s,
+  output wire [W-1:0] y
+);
+  assign y = s ? b : a;
+endmodule`,
+ why:["`assign` describes combinational logic that is always active. The parameter lets one module serve every width: instantiate it as `mux2 #(.W(32)) u_mux (...)`."]},
+{id:'rtl-02', d:'E', lang:'verilog', area:'RTL design', title:'4-bit counter with enable and synchronous reset',
+ p:["Write `counter4`: on each rising edge of `clk`, if `rst` is 1 the count `q` becomes 0; otherwise, if `en` is 1, it increments (wrapping from 15 to 0)."],
+ starter:`module counter4 (
+  input  wire       clk, rst, en,
+  output reg  [3:0] q
+);
+  // your code
+endmodule`,
+ hints:["Use `always @(posedge clk)` and nonblocking assignments.", "Reset has priority, so check it first."],
+ sol:`module counter4 (
+  input  wire       clk, rst, en,
+  output reg  [3:0] q
+);
+  always @(posedge clk) begin
+    if (rst)     q <= 4'd0;
+    else if (en) q <= q + 4'd1;   // wraps naturally: 4'd15 + 1 = 4'd0
+  end
+endmodule`,
+ why:["A synchronous reset is just another input to the next-state logic, so it only acts on a clock edge. A 4-bit register wraps by itself because the sum is truncated to 4 bits."]},
+{id:'rtl-03', d:'E', lang:'verilog', area:'RTL design', title:'Rising-edge detector',
+ p:["Write `rise_detect`: output `pulse` is high for exactly one clock cycle each time input `d` goes from 0 to 1. Use an active-low asynchronous reset `rst_n`. Assume `d` is already synchronous to `clk`."],
+ starter:`module rise_detect (
+  input  wire clk, rst_n, d,
+  output wire pulse
+);
+  // your code
+endmodule`,
+ hints:["Remember last cycle's value of `d` in a flip-flop.", "A rising edge means: now 1, last cycle 0."],
+ sol:`module rise_detect (
+  input  wire clk, rst_n, d,
+  output wire pulse
+);
+  reg d_q;
+  always @(posedge clk or negedge rst_n)
+    if (!rst_n) d_q <= 1'b0;
+    else        d_q <= d;
+  assign pulse = d & ~d_q;   // high while d is 1 but was 0 one cycle ago
+endmodule`,
+ why:["The flip-flop holds the previous value, so `d & ~d_q` is true only in the first cycle after `d` rises. If `d` came from another clock domain, it would first need a two-flop synchronizer (Chapter 19)."]},
+{id:'rtl-04', d:'E', lang:'verilog', area:'RTL design', title:'Even parity generator',
+ p:["Write `parity8`: given an 8-bit input `d`, output `p` such that the 9 bits `{p, d}` contain an even number of 1s."],
+ starter:`module parity8 (input wire [7:0] d, output wire p);
+  // your code
+endmodule`,
+ hints:["XOR of all bits is 1 when the number of 1s is odd.", "Verilog has a reduction XOR operator."],
+ sol:`module parity8 (input wire [7:0] d, output wire p);
+  assign p = ^d;   // reduction XOR: 1 when d has an odd number of 1s
+endmodule`,
+ why:["If `d` has an odd number of 1s, `p` = 1 makes the total even; if even, `p` = 0. The receiver XORs all 9 bits: a result of 1 means a single-bit error. This is the XOR-chain idea from Chapter 9."]},
+{id:'rtl-05', d:'E', lang:'verilog', area:'RTL design', title:'3-to-8 decoder with enable',
+ p:["Write `dec3to8`: when `en` is 1, exactly the output bit `y[a]` is 1; when `en` is 0, all outputs are 0."],
+ starter:`module dec3to8 (input wire [2:0] a, input wire en, output wire [7:0] y);
+  // your code
+endmodule`,
+ hints:["Shifting a 1 left by `a` places sets exactly bit `a`."],
+ sol:`module dec3to8 (input wire [2:0] a, input wire en, output wire [7:0] y);
+  assign y = en ? (8'b1 << a) : 8'b0;
+endmodule`,
+ why:["`8'b1 << a` produces a one-hot word. A `case` statement with eight lines works too; the shift is shorter and synthesizes to the same decoder."]},
+{id:'rtl-06', d:'E', lang:'verilog', area:'RTL design', title:'8-bit maximal-length LFSR',
+ p:["Write `lfsr8`, an 8-bit Fibonacci LFSR that steps when `en` is 1 and cycles through all 255 nonzero states. Use the polynomial x⁸ + x⁶ + x⁵ + x⁴ + 1 and reset to `8'h01`."],
+ starter:`module lfsr8 (
+  input  wire       clk, rst_n, en,
+  output reg  [7:0] q
+);
+  // your code
+endmodule`,
+ hints:["The feedback bit is the XOR of the tapped bits: q[7], q[5], q[4] and q[3].", "Shift left and insert the feedback bit at the bottom."],
+ sol:`module lfsr8 (
+  input  wire       clk, rst_n, en,
+  output reg  [7:0] q
+);
+  wire fb = q[7] ^ q[5] ^ q[4] ^ q[3];   // taps for x^8 + x^6 + x^5 + x^4 + 1
+  always @(posedge clk or negedge rst_n)
+    if (!rst_n)  q <= 8'h01;              // any nonzero seed; all zeros would lock up
+    else if (en) q <= {q[6:0], fb};
+endmodule`,
+ why:["A primitive polynomial gives the maximal period 2⁸ − 1 = 255. The all-zero state maps to itself, so it must never be loaded. LFSRs are used for pseudo-random test patterns, scramblers and CRCs."]},
+{id:'rtl-07', d:'M', lang:'verilog', area:'RTL design', title:'Divide-by-3 clock with 50% duty cycle',
+ p:["Write `div3`: `clk_out` has one third of the frequency of `clk` and is high for exactly half of its period (1.5 input cycles). This is a reported NVIDIA interview question."],
+ starter:`module div3 (
+  input  wire clk, rst_n,
+  output wire clk_out
+);
+  // your code
+endmodule`,
+ hints:["A mod-3 counter on the rising edge gives a signal that is high for 1 of every 3 cycles.", "Delay that signal by half a cycle with a falling-edge flip-flop.", "OR the two together: high for 1.5 cycles."],
+ sol:`module div3 (
+  input  wire clk, rst_n,
+  output wire clk_out
+);
+  reg [1:0] cnt;
+  reg       a, b;
+  always @(posedge clk or negedge rst_n)
+    if (!rst_n)           cnt <= 2'd0;
+    else if (cnt == 2'd2) cnt <= 2'd0;
+    else                  cnt <= cnt + 2'd1;
+  always @(posedge clk or negedge rst_n)
+    if (!rst_n) a <= 1'b0;
+    else        a <= (cnt == 2'd2);   // high for one full cycle out of three
+  always @(negedge clk or negedge rst_n)
+    if (!rst_n) b <= 1'b0;
+    else        b <= a;               // the same pulse, half a cycle later
+  assign clk_out = a | b;             // high for 1.5 of every 3 cycles
+endmodule`,
+ why:["With only rising edges, a divide-by-3 output can be high for 1 or 2 cycles (33% or 67%). The falling-edge copy adds the missing half cycle. Both `a` and `b` come from flip-flops, so the OR does not glitch. In a real chip, generated clocks are built from library cells and declared to timing analysis."]},
+{id:'rtl-08', d:'M', lang:'verilog', area:'RTL design', title:'Overlapping 1011 sequence detector (Mealy)',
+ p:["Write `det1011`: input bit `x` arrives one per clock. Output `y` is 1 in the same cycle as the final 1 of every `1011` pattern, including overlapping patterns (for 1011011, `y` is high twice)."],
+ starter:`module det1011 (
+  input  wire clk, rst_n, x,
+  output wire y
+);
+  // your code
+endmodule`,
+ hints:["Use four states: nothing matched, 1, 10, 101.", "From 101, a 1 completes the match and its last 1 can start the next pattern.", "Mealy output: y depends on the state and the current input."],
+ sol:`module det1011 (
+  input  wire clk, rst_n, x,
+  output wire y
+);
+  localparam S0 = 2'd0, S1 = 2'd1, S2 = 2'd2, S3 = 2'd3;   // matched: "", "1", "10", "101"
+  reg [1:0] s, ns;
+  always @(*) begin
+    case (s)
+      S0: ns = x ? S1 : S0;
+      S1: ns = x ? S1 : S2;
+      S2: ns = x ? S3 : S0;
+      S3: ns = x ? S1 : S2;   // after 1011 the trailing 1 is a new start; 1010 leaves "10"
+      default: ns = S0;
+    endcase
+  end
+  always @(posedge clk or negedge rst_n)
+    if (!rst_n) s <= S0;
+    else        s <= ns;
+  assign y = (s == S3) & x;
+endmodule`,
+ why:["Each state records the longest suffix of the input that is also a prefix of 1011. On a mismatch you fall back to the longest prefix still matched, not always to S0: that is what makes overlap work. A Moore version would need a fifth state for 'just matched'."]},
+{id:'rtl-09', d:'M', lang:'verilog', area:'RTL design', title:'Synchronous FIFO with full and empty',
+ p:["Write `sync_fifo` with parameters `W` (data width) and `AW` (address bits, depth 2^AW). Writes happen when `wr_en` and not full; reads when `rd_en` and not empty, with `dout` registered. Provide `full` and `empty`."],
+ starter:`module sync_fifo #(parameter W = 8, AW = 3) (
+  input  wire         clk, rst_n,
+  input  wire         wr_en, rd_en,
+  input  wire [W-1:0] din,
+  output reg  [W-1:0] dout,
+  output wire         full, empty
+);
+  // your code
+endmodule`,
+ hints:["Keep read and write pointers with one extra bit.", "Equal pointers (including the extra bit) mean empty.", "Equal low bits but different extra bits mean full."],
+ sol:`module sync_fifo #(parameter W = 8, AW = 3) (
+  input  wire         clk, rst_n,
+  input  wire         wr_en, rd_en,
+  input  wire [W-1:0] din,
+  output reg  [W-1:0] dout,
+  output wire         full, empty
+);
+  reg [W-1:0] mem [0:(1<<AW)-1];
+  reg [AW:0]  wp, rp;                        // extra bit tells full from empty
+  wire do_wr = wr_en && !full;
+  wire do_rd = rd_en && !empty;
+  always @(posedge clk)                      // memory: no reset needed
+    if (do_wr) mem[wp[AW-1:0]] <= din;
+  always @(posedge clk or negedge rst_n)
+    if (!rst_n) begin
+      wp <= 0; rp <= 0;
+    end else begin
+      if (do_wr) wp <= wp + 1'b1;
+      if (do_rd) begin dout <= mem[rp[AW-1:0]]; rp <= rp + 1'b1; end
+    end
+  assign empty = (wp == rp);
+  assign full  = (wp[AW] != rp[AW]) && (wp[AW-1:0] == rp[AW-1:0]);
+endmodule`,
+ why:["The pointers wrap around the memory; the extra bit counts how many times. Equal including that bit means the writer has not lapped the reader (empty); differing only in that bit means it is exactly one lap ahead (full). Simultaneous read and write work at any fill level."]},
+{id:'rtl-10', d:'M', lang:'verilog', area:'RTL design', title:'4-way round-robin arbiter',
+ p:["Write `rr_arb4`: `req[3:0]` are requests, `gnt[3:0]` is one-hot (or zero). Priority rotates: after requester i is granted, requester i+1 has the highest priority next cycle. No requester may starve."],
+ starter:`module rr_arb4 (
+  input  wire       clk, rst_n,
+  input  wire [3:0] req,
+  output reg  [3:0] gnt
+);
+  // your code
+endmodule`,
+ hints:["Keep a 2-bit pointer to the requester with the highest priority.", "Scan from the pointer, wrapping around, and grant the first request found.", "After a grant, move the pointer to one past the winner."],
+ sol:`module rr_arb4 (
+  input  wire       clk, rst_n,
+  input  wire [3:0] req,
+  output reg  [3:0] gnt
+);
+  reg [1:0] ptr;          // highest-priority requester this cycle
+  reg [1:0] idx;
+  integer   i;
+  always @(*) begin
+    gnt = 4'b0000;
+    for (i = 0; i < 4; i = i + 1) begin
+      idx = ptr + i[1:0];                    // wraps around 3 -> 0
+      if (gnt == 4'b0000 && req[idx]) gnt[idx] = 1'b1;
+    end
+  end
+  always @(posedge clk or negedge rst_n)
+    if (!rst_n) ptr <= 2'd0;
+    else case (gnt)                          // next turn starts after the winner
+      4'b0001: ptr <= 2'd1;
+      4'b0010: ptr <= 2'd2;
+      4'b0100: ptr <= 2'd3;
+      4'b1000: ptr <= 2'd0;
+      default: ptr <= ptr;
+    endcase
+endmodule`,
+ why:["The loop describes a priority chain starting at `ptr`; synthesis unrolls it into logic. Because the winner drops to lowest priority, every requester holding its request is served within 4 cycles. A fixed-priority arbiter (always prefer bit 0) is simpler but can starve the others."]},
+{id:'rtl-11', d:'M', lang:'verilog', area:'RTL design', title:'Pulse synchronizer between clock domains',
+ p:["A one-cycle pulse `pulse_a` in domain `clk_a` must produce exactly one one-cycle pulse `pulse_b` in domain `clk_b`. The clocks are unrelated, and pulses are at least a few `clk_b` cycles apart. Write `pulse_sync`."],
+ starter:`module pulse_sync (
+  input  wire clk_a, rst_a_n, pulse_a,
+  input  wire clk_b, rst_b_n,
+  output wire pulse_b
+);
+  // your code
+endmodule`,
+ hints:["A short pulse can fall between clk_b edges. Convert it into a level that toggles.", "Synchronize the toggle level with two flip-flops in clk_b.", "Detect a change of the synchronized level with one more flip-flop and an XOR."],
+ sol:`module pulse_sync (
+  input  wire clk_a, rst_a_n, pulse_a,
+  input  wire clk_b, rst_b_n,
+  output wire pulse_b
+);
+  reg tog_a;                                  // flips once per source pulse
+  always @(posedge clk_a or negedge rst_a_n)
+    if (!rst_a_n)     tog_a <= 1'b0;
+    else if (pulse_a) tog_a <= ~tog_a;
+  reg [2:0] sync_b;                           // 2 flops synchronize, the 3rd remembers
+  always @(posedge clk_b or negedge rst_b_n)
+    if (!rst_b_n) sync_b <= 3'b000;
+    else          sync_b <= {sync_b[1:0], tog_a};
+  assign pulse_b = sync_b[2] ^ sync_b[1];     // one pulse per change of the level
+endmodule`,
+ why:["A level cannot be missed, only delayed, so the toggle is safe to synchronize. The first flop may go metastable; the second gives it a full cycle to settle. If pulses can arrive faster than the destination can see two changes, use a handshake or an asynchronous FIFO instead."]},
+{id:'rtl-12', d:'M', lang:'verilog', area:'RTL design', title:'Binary to Gray and Gray to binary',
+ p:["Write two parameterized modules: `bin2gray` (N-bit binary `b` to Gray `g`) and `gray2bin` (back again)."],
+ starter:`module bin2gray #(parameter N = 4) (input wire [N-1:0] b, output wire [N-1:0] g);
+  // your code
+endmodule
+
+module gray2bin #(parameter N = 4) (input wire [N-1:0] g, output reg [N-1:0] b);
+  // your code
+endmodule`,
+ hints:["Gray = binary XOR (binary shifted right by 1).", "Going back, each binary bit is the XOR of all Gray bits at and above it: b[i] = b[i+1] ^ g[i]."],
+ sol:`module bin2gray #(parameter N = 4) (input wire [N-1:0] b, output wire [N-1:0] g);
+  assign g = b ^ (b >> 1);
+endmodule
+
+module gray2bin #(parameter N = 4) (input wire [N-1:0] g, output reg [N-1:0] b);
+  integer i;
+  always @(*) begin
+    b[N-1] = g[N-1];
+    for (i = N-2; i >= 0; i = i - 1)
+      b[i] = b[i+1] ^ g[i];
+  end
+endmodule`,
+ why:["Consecutive Gray codes differ in one bit, which is why asynchronous FIFO pointers cross clock domains in Gray code. The conversion back is a prefix XOR from the top bit down."]},
+{id:'rtl-13', d:'M', lang:'verilog', area:'RTL design', title:'8-bit ALU with flags',
+ p:["Write `alu8`. `op`: 0 add, 1 subtract, 2 AND, 3 OR, 4 XOR, 5 shift left by 1, 6 shift right by 1, 7 set-less-than (signed). Outputs: result `y`, and flags `z` (zero), `n` (negative), `c` (carry, or borrow for subtract), `v` (signed overflow, for add and subtract)."],
+ starter:`module alu8 (
+  input  wire [7:0] a, b,
+  input  wire [2:0] op,
+  output reg  [7:0] y,
+  output wire       z, n,
+  output reg        c, v
+);
+  // your code
+endmodule`,
+ hints:["Compute add and subtract in 9 bits so bit 8 is the carry.", "Overflow on add: operands have the same sign and the result's sign differs.", "Give every output a default at the top of the always block so no latches appear."],
+ sol:`module alu8 (
+  input  wire [7:0] a, b,
+  input  wire [2:0] op,
+  output reg  [7:0] y,
+  output wire       z, n,
+  output reg        c, v
+);
+  reg [8:0] t;
+  always @(*) begin
+    t = 9'd0; y = 8'd0; c = 1'b0; v = 1'b0;      // defaults: no latches
+    case (op)
+      3'd0: begin t = a + b; y = t[7:0]; c = t[8]; v = (a[7] == b[7]) && (y[7] != a[7]); end
+      3'd1: begin t = a - b; y = t[7:0]; c = t[8]; v = (a[7] != b[7]) && (y[7] != a[7]); end
+      3'd2: y = a & b;
+      3'd3: y = a | b;
+      3'd4: y = a ^ b;
+      3'd5: y = a << 1;
+      3'd6: y = a >> 1;
+      default: y = {7'd0, $signed(a) < $signed(b)};
+    endcase
+  end
+  assign z = (y == 8'd0);
+  assign n = y[7];
+endmodule`,
+ why:["For subtraction, bit 8 of the 9-bit difference is 1 when a < b as unsigned numbers (a borrow). Signed overflow is detected from the signs, as in Chapter 22. `$signed` makes the comparison treat the operands as two's complement."]},
+{id:'rtl-14', d:'M', lang:'verilog', area:'RTL design', title:'Leading-zero counter',
+ p:["Write `lzc16`: `count` is the number of leading zeros in the 16-bit input `x` (16 when `x` is 0). Floating-point normalization uses exactly this."],
+ starter:`module lzc16 (input wire [15:0] x, output reg [4:0] count);
+  // your code
+endmodule`,
+ hints:["Scan from bit 15 down and stop at the first 1.", "A `found` flag inside a combinational loop works."],
+ sol:`module lzc16 (input wire [15:0] x, output reg [4:0] count);
+  integer i;
+  reg found;
+  always @(*) begin
+    count = 5'd16; found = 1'b0;
+    for (i = 15; i >= 0; i = i - 1)
+      if (!found && x[i]) begin
+        count = 15 - i;
+        found = 1'b1;
+      end
+  end
+endmodule`,
+ why:["This is a priority encoder. Synthesis turns the loop into a chain; for speed, real designs build a tree (count leading zeros of each half, then combine), giving log₂ n delay."]},
+{id:'rtl-15', d:'H', lang:'verilog', area:'RTL design', title:'Asynchronous FIFO with Gray-coded pointers',
+ p:["Write `async_fifo`: a writer on `wclk` and a reader on `rclk` (unrelated clocks). Depth 2^AW. Pointers must cross domains safely. Provide `full` in the write domain and `empty` in the read domain."],
+ starter:`module async_fifo #(parameter W = 8, AW = 4) (
+  input  wire         wclk, wrst_n, wr_en,
+  input  wire [W-1:0] din,
+  output wire         full,
+  input  wire         rclk, rrst_n, rd_en,
+  output wire [W-1:0] dout,
+  output wire         empty
+);
+  // your code
+endmodule`,
+ hints:["Each side keeps a binary pointer (to address memory) and a Gray copy (to send across).", "Synchronize the other side's Gray pointer with two flip-flops.", "Empty: Gray pointers equal. Full: equal except the top two bits are inverted."],
+ sol:`module async_fifo #(parameter W = 8, AW = 4) (
+  input  wire         wclk, wrst_n, wr_en,
+  input  wire [W-1:0] din,
+  output wire         full,
+  input  wire         rclk, rrst_n, rd_en,
+  output wire [W-1:0] dout,
+  output wire         empty
+);
+  reg  [W-1:0] mem [0:(1<<AW)-1];
+  reg  [AW:0]  wbin, wgray, rbin, rgray;     // binary and Gray pointers, one extra bit
+  reg  [AW:0]  rgray_w1, rgray_w2;           // read pointer, synchronized into wclk
+  reg  [AW:0]  wgray_r1, wgray_r2;           // write pointer, synchronized into rclk
+  wire [AW:0]  wbin_nxt  = wbin + (wr_en & ~full);
+  wire [AW:0]  rbin_nxt  = rbin + (rd_en & ~empty);
+
+  always @(posedge wclk) if (wr_en && !full) mem[wbin[AW-1:0]] <= din;
+  assign dout = mem[rbin[AW-1:0]];
+
+  always @(posedge wclk or negedge wrst_n)
+    if (!wrst_n) begin wbin <= 0; wgray <= 0; rgray_w1 <= 0; rgray_w2 <= 0; end
+    else begin
+      wbin <= wbin_nxt;
+      wgray <= wbin_nxt ^ (wbin_nxt >> 1);
+      {rgray_w2, rgray_w1} <= {rgray_w1, rgray};
+    end
+
+  always @(posedge rclk or negedge rrst_n)
+    if (!rrst_n) begin rbin <= 0; rgray <= 0; wgray_r1 <= 0; wgray_r2 <= 0; end
+    else begin
+      rbin <= rbin_nxt;
+      rgray <= rbin_nxt ^ (rbin_nxt >> 1);
+      {wgray_r2, wgray_r1} <= {wgray_r1, wgray};
+    end
+
+  assign empty = (rgray == wgray_r2);
+  assign full  = (wgray == {~rgray_w2[AW:AW-1], rgray_w2[AW-2:0]});
+endmodule`,
+ why:["Only Gray-coded pointers cross the clock boundary, so a sample taken mid-change is either the old or the new value. The synchronized pointer lags, which can only make the FIFO look fuller (to the writer) or emptier (to the reader): always safe. The full test inverts the top two Gray bits because in Gray code the 'one lap ahead' pattern differs in both."]},
+{id:'rtl-16', d:'H', lang:'verilog', area:'RTL design', title:'Valid/ready skid buffer',
+ p:["Write `skid_buffer`: a pipeline register between an upstream (`s_valid`, `s_ready`, `s_data`) and a downstream (`m_valid`, `m_ready`, `m_data`) valid/ready interface. `s_ready` must come from a flip-flop (not combinationally from `m_ready`), no data may be lost or duplicated, and full throughput must be possible."],
+ starter:`module skid_buffer #(parameter W = 8) (
+  input  wire         clk, rst_n,
+  input  wire         s_valid,
+  output wire         s_ready,
+  input  wire [W-1:0] s_data,
+  output wire         m_valid,
+  input  wire         m_ready,
+  output wire [W-1:0] m_data
+);
+  // your code
+endmodule`,
+ hints:["Because s_ready is registered, the upstream may send one more word in the cycle the downstream stalls. You need somewhere to park it.", "Keep an output register plus one extra 'skid' register.", "s_ready = the skid register is empty."],
+ sol:`module skid_buffer #(parameter W = 8) (
+  input  wire         clk, rst_n,
+  input  wire         s_valid,
+  output wire         s_ready,
+  input  wire [W-1:0] s_data,
+  output wire         m_valid,
+  input  wire         m_ready,
+  output wire [W-1:0] m_data
+);
+  reg         full;          // skid register holds a word
+  reg [W-1:0] skid;
+  reg         out_valid;
+  reg [W-1:0] out_data;
+  assign s_ready = !full;
+  assign m_valid = out_valid;
+  assign m_data  = out_data;
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      full <= 1'b0; out_valid <= 1'b0;
+    end else if (!out_valid || m_ready) begin      // output register can take a word
+      if (full) begin
+        out_data <= skid; out_valid <= 1'b1; full <= 1'b0;
+      end else begin
+        out_data <= s_data; out_valid <= s_valid;
+      end
+    end else if (s_valid && s_ready) begin         // output stalled: park the word
+      skid <= s_data; full <= 1'b1;
+    end
+  end
+endmodule`,
+ why:["Registering `s_ready` breaks the long combinational ready path that would otherwise run backward through every pipeline stage. The price is one extra register to catch the word already in flight when the stall arrives. This pattern appears in nearly every high-speed datapath."]},
+
+// ---------------- Verification (SystemVerilog, cocotb) ----------------
+{id:'ver-01', d:'E', lang:'sv', area:'Verification', title:'Self-checking testbench for an adder',
+ p:["`adder8` has inputs `a`, `b` (8 bits) and output `sum` (9 bits). Write `tb_adder8` that checks the corner cases 0+0, 255+1 and 255+255, then 10,000 random pairs, counts mismatches and prints the total."],
+ starter:`module tb_adder8;
+  logic [7:0] a, b;
+  logic [8:0] sum;
+  adder8 dut (.a(a), .b(b), .sum(sum));
+  // your code
+endmodule`,
+ hints:["Write a task that drives inputs, waits a moment, and compares against `x + y`.", "Use `!==` so X and Z outputs count as failures.", "`$urandom` gives random 32-bit values; assigning to 8 bits keeps the low byte."],
+ sol:`module tb_adder8;
+  logic [7:0] a, b;
+  logic [8:0] sum;
+  int errors = 0;
+  adder8 dut (.a(a), .b(b), .sum(sum));
+
+  task automatic check(input logic [7:0] x, y);
+    a = x; b = y;
+    #1;                                    // let the combinational logic settle
+    if (sum !== x + y) begin               // reference model: the + operator in 9 bits
+      errors++;
+      $display("FAIL: %0d + %0d gave %0d", x, y, sum);
+    end
+  endtask
+
+  initial begin
+    check(8'd0, 8'd0);
+    check(8'd255, 8'd1);
+    check(8'd255, 8'd255);
+    repeat (10000) check($urandom, $urandom);
+    $display("%0d errors", errors);
+    $finish;
+  end
+endmodule`,
+ why:["The comparison is 9 bits wide because `sum` is 9 bits, so `x + y` keeps its carry. Corner cases go first: they are where bugs live. The final count lets a regression script decide pass or fail without reading waveforms."]},
+{id:'ver-02', d:'M', lang:'sv', area:'Verification', title:'Assertions for an arbiter',
+ p:["Write a checker module `arb_checks` (inputs `clk`, `rst_n`, `req[3:0]`, `gnt[3:0]`) with SystemVerilog Assertions: (1) a grant only goes to a requester; (2) at most one grant at a time; (3) a requester that keeps requesting is granted within 4 cycles."],
+ starter:`module arb_checks (input logic clk, rst_n, input logic [3:0] req, gnt);
+  // your assertions
+endmodule`,
+ hints:["`(gnt & ~req) == 0` says no grant without a request.", "`$onehot0` is true for zero or one bits set.", "Use a `generate` loop for one liveness property per requester."],
+ sol:`module arb_checks (input logic clk, rst_n, input logic [3:0] req, gnt);
+  a_gnt_needs_req: assert property (@(posedge clk) disable iff (!rst_n)
+                                    (gnt & ~req) == 4'b0000);
+  a_one_grant:     assert property (@(posedge clk) disable iff (!rst_n)
+                                    $onehot0(gnt));
+  for (genvar i = 0; i < 4; i++) begin : g_live
+    // if req[i] stays high, gnt[i] must arrive within 0 to 3 more cycles
+    a_no_starve: assert property (@(posedge clk) disable iff (!rst_n)
+                                  req[i] |-> req[i][*0:3] ##0 gnt[i]);
+  end
+endmodule`,
+ why:["Bind the checker to the design (`bind rr_arb4 arb_checks u_chk (.*);`) and the rules are checked in every test, and formal tools can try to prove them. `disable iff` turns checking off during reset. Writing the property forces you to state precisely what 'no starvation' means."]},
+{id:'ver-03', d:'M', lang:'sv', area:'Verification', title:'Functional coverage for a FIFO',
+ p:["Write a covergroup `fifo_cg`, sampled every clock, that records whether the FIFO level was empty, in the middle, and full; all four combinations of `wr_en` and `rd_en`; and specifically a write and a read in the same cycle while full."],
+ starter:`// signals available: clk, count (0..DEPTH), wr_en, rd_en, full
+covergroup fifo_cg @(posedge clk);
+  // your coverpoints
+endgroup`,
+ hints:["Use bins on `count` for 0, 1..DEPTH-1 and DEPTH.", "`cross` two coverpoints to get all combinations.", "A coverpoint on an expression can target one specific scenario."],
+ sol:`covergroup fifo_cg @(posedge clk);
+  level: coverpoint count {
+    bins empty  = {0};
+    bins middle = {[1:DEPTH-1]};
+    bins full   = {DEPTH};
+  }
+  wr: coverpoint wr_en;
+  rd: coverpoint rd_en;
+  ops: cross wr, rd;                                  // all four write/read combinations
+  rw_while_full: coverpoint (full && wr_en && rd_en) {
+    bins hit = {1};
+  }
+endgroup
+fifo_cg cg = new();`,
+ why:["Coverage answers 'did my tests reach the scenarios that matter?' Random tests rarely fill a deep FIFO; a coverage hole on the `full` bin tells you to bias the stimulus (more writes than reads). Code coverage would never show this gap."]},
+{id:'ver-04', d:'M', lang:'sv', area:'Verification', title:'Constrained-random packets',
+ p:["Write a class `packet` with random fields `len` (8 bits), `addr` (32 bits) and `corrupt` (1 bit). Constraints: length 1 to 64; address word-aligned; about 10% of packets corrupt; a packet never crosses a 4 KB page."],
+ starter:`class packet;
+  // your fields and constraints
+endclass`,
+ hints:["`inside {[1:64]}` limits a range.", "`dist` sets relative weights.", "Not crossing a page: the address offset within the page plus the length must not exceed 4096."],
+ sol:`class packet;
+  rand bit [7:0]  len;
+  rand bit [31:0] addr;
+  rand bit        corrupt;
+  constraint c_len     { len inside {[1:64]}; }
+  constraint c_align   { addr[1:0] == 2'b00; }
+  constraint c_corrupt { corrupt dist {1 := 1, 0 := 9}; }        // about 10% bad
+  constraint c_page    { addr[11:0] + len <= 13'd4096; }        // stays inside one 4 KB page
+endclass
+
+// use:  packet p = new();  repeat (100) begin  assert(p.randomize());  drive(p);  end`,
+ why:["The solver picks random values that satisfy every constraint at once. The 13-bit constant makes the sum 13 bits wide so it cannot wrap. Constraints keep stimulus legal; `dist` and extra constraints steer it toward interesting cases."]},
+{id:'ver-05', d:'H', lang:'sv', area:'Verification', title:'FIFO testbench with a queue reference model',
+ p:["Write `tb_fifo` for the `sync_fifo` (depth 8, registered `dout`). Drive random writes and reads for 2,000 cycles, keep a SystemVerilog queue as the reference model, and check every value read."],
+ starter:`module tb_fifo;
+  logic clk = 0, rst_n = 0, wr_en = 0, rd_en = 0;
+  logic [7:0] din, dout;
+  logic full, empty;
+  sync_fifo dut (.*);
+  always #5 clk = ~clk;
+  // your code
+endmodule`,
+ hints:["Mirror every accepted write with `push_back` and every accepted read with `pop_front`.", "dout is registered, so compare it one cycle after the read.", "Change inputs on the falling edge to avoid races with the design."],
+ sol:`module tb_fifo;
+  logic clk = 0, rst_n = 0, wr_en = 0, rd_en = 0;
+  logic [7:0] din, dout;
+  logic full, empty;
+  logic [7:0] model[$];                  // reference model: a queue
+  logic [7:0] expected;
+  logic       check_next = 0;
+  int errors = 0;
+  sync_fifo dut (.*);
+  always #5 clk = ~clk;
+
+  always @(posedge clk) begin
+    if (check_next && dout !== expected) begin
+      errors++;
+      $display("FAIL at %0t: got %0h, expected %0h", $time, dout, expected);
+    end
+    check_next <= 1'b0;
+    if (rst_n) begin
+      if (rd_en && !empty) begin expected <= model.pop_front(); check_next <= 1'b1; end
+      if (wr_en && !full)  model.push_back(din);
+    end
+  end
+
+  initial begin
+    repeat (2) @(posedge clk);
+    rst_n = 1;
+    repeat (2000) begin
+      @(negedge clk);
+      wr_en = $urandom_range(0, 1);
+      rd_en = $urandom_range(0, 1);
+      din   = $urandom;
+    end
+    $display("%0d errors, %0d words left", errors, model.size());
+    $finish;
+  end
+endmodule`,
+ why:["The queue is a trivially correct FIFO, so any difference is a design bug. Checking one cycle later matches the registered output. Extend it by also comparing `empty` and `full` against `model.size()`, and add the covergroup from the coverage problem to prove the full case was reached."]},
+{id:'ver-06', d:'M', lang:'python', area:'Verification', title:'cocotb test for a counter',
+ p:["Write a cocotb test (Python) for `counter4` (`clk`, `rst`, `en`, `q`): start a 10 ns clock, reset for one cycle, enable counting, and check `q` for 20 cycles including the wrap from 15 to 0. (Run it with a simulator such as Icarus Verilog or Verilator; it cannot run in the browser.)"],
+ starter:`import cocotb
+from cocotb.clock import Clock
+from cocotb.triggers import RisingEdge, ReadOnly
+
+@cocotb.test()
+async def counts_up(dut):
+    # your code
+    pass`,
+ hints:["`cocotb.start_soon(Clock(dut.clk, 10, units='ns').start())` starts the clock.", "After `await RisingEdge(dut.clk)`, wait for `ReadOnly()` before reading values updated on that edge.", "Expected value: the cycle number modulo 16."],
+ sol:`import cocotb
+from cocotb.clock import Clock
+from cocotb.triggers import RisingEdge, ReadOnly
+
+@cocotb.test()
+async def counts_up(dut):
+    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+    dut.rst.value = 1
+    dut.en.value = 0
+    await RisingEdge(dut.clk)
+    dut.rst.value = 0
+    dut.en.value = 1
+    for expected in range(1, 21):
+        await RisingEdge(dut.clk)
+        await ReadOnly()                                   # values after this edge
+        got = int(dut.q.value)
+        assert got == expected % 16, f"cycle {expected}: q={got}, expected {expected % 16}"`,
+ why:["cocotb drives a Verilog simulation from Python, so the reference model can be any Python code. It is popular for open-source flows and is a quick way to build self-checking tests without SystemVerilog classes."]},
+
+// ---------------- C and C++ ----------------
+{id:'c-01', d:'E', lang:'c', area:'C and C++', title:'Count the set bits',
+ p:["Write `int popcount(unsigned int x)` returning the number of 1 bits in `x`, using the `x & (x - 1)` trick."],
+ starter:`int popcount(unsigned int x) {
+    /* your code */
+}`,
+ hints:["`x & (x - 1)` clears the lowest set bit.", "Count how many times you can do that before x is 0."],
+ sol:`int popcount(unsigned int x) {
+    int n = 0;
+    while (x) {
+        x &= x - 1;   /* clears the lowest set bit */
+        n++;
+    }
+    return n;
+}`,
+ why:["The loop runs once per 1 bit, not once per bit. Hardware has a dedicated instruction (`__builtin_popcount` in GCC), and the same trick appears in parity and Hamming-distance problems."]},
+{id:'c-02', d:'E', lang:'c', area:'C and C++', title:'Is it a power of two?',
+ p:["Write `int is_pow2(unsigned int x)` that returns 1 if `x` is a power of two and 0 otherwise (0 is not a power of two)."],
+ starter:`int is_pow2(unsigned int x) {
+    /* your code */
+}`,
+ hints:["A power of two has exactly one 1 bit.", "Clearing the lowest set bit of such a number leaves 0."],
+ sol:`int is_pow2(unsigned int x) {
+    return x != 0 && (x & (x - 1)) == 0;
+}`,
+ why:["Cache sizes, FIFO depths and alignments are powers of two because masking replaces division: `addr & (size - 1)` is the offset when size is a power of two."]},
+{id:'c-03', d:'E', lang:'c', area:'C and C++', title:'Reverse a linked list',
+ p:["Given `struct node { int val; struct node *next; };`, write `struct node *reverse(struct node *head)` that reverses the list in place and returns the new head. (A linked-list problem was the coding question on your OA.)"],
+ starter:`#include <stddef.h>
+
+struct node { int val; struct node *next; };
+
+struct node *reverse(struct node *head) {
+    /* your code */
+}`,
+ hints:["Walk the list keeping a `prev` pointer.", "Save `next` before you overwrite `head->next`."],
+ sol:`#include <stddef.h>
+
+struct node { int val; struct node *next; };
+
+struct node *reverse(struct node *head) {
+    struct node *prev = NULL;
+    while (head) {
+        struct node *next = head->next;   /* save before overwriting */
+        head->next = prev;
+        prev = head;
+        head = next;
+    }
+    return prev;                          /* the old tail */
+}`,
+ why:["O(n) time, O(1) extra space. Draw three boxes and trace the pointers once; interviewers often ask for the recursive version too."]},
+{id:'c-04', d:'E', lang:'c', area:'C and C++', title:'Same 4 KB page?',
+ p:["Write `int same_page(uint32_t a, uint32_t b)` that returns 1 if both addresses lie in the same 4 KB page. This was reported as an Ignite coding question."],
+ starter:`#include <stdint.h>
+
+int same_page(uint32_t a, uint32_t b) {
+    /* your code */
+}`,
+ hints:["A 4 KB page has a 12-bit offset.", "Compare everything above the offset."],
+ sol:`#include <stdint.h>
+
+int same_page(uint32_t a, uint32_t b) {
+    return (a >> 12) == (b >> 12);
+}`,
+ why:["0x12345FFF and 0x12346000 differ by 1 but are on different pages. `(a ^ b) < 4096` is an equivalent test."]},
+{id:'c-05', d:'M', lang:'c', area:'C and C++', title:'Bit mask from lo to hi as hex',
+ p:["Write `void mask_hex(int lo, int hi, char *out)` that writes a 32-bit mask with ones in bits lo..hi (inclusive, 0 ≤ lo ≤ hi ≤ 31) as `0x` plus 8 uppercase hex digits. Example: lo = 4, hi = 7 gives `0x000000F0`. Reported as an Ignite coding question."],
+ starter:`#include <stdio.h>
+#include <stdint.h>
+
+void mask_hex(int lo, int hi, char *out) {   /* out has room for 11 bytes */
+    /* your code */
+}`,
+ hints:["Width = hi − lo + 1; a run of `w` ones is (1 << w) − 1.", "When w = 32, `1u << 32` is undefined in C. Do the shift in 64 bits."],
+ sol:`#include <stdio.h>
+#include <stdint.h>
+
+void mask_hex(int lo, int hi, char *out) {
+    uint64_t width = (uint64_t)(hi - lo + 1);
+    uint32_t mask  = (uint32_t)(((1ULL << width) - 1) << lo);
+    sprintf(out, "0x%08X", mask);
+}`,
+ why:["Shifting a 32-bit value by 32 or more is undefined behaviour in C, a classic trap. Doing the arithmetic in 64 bits and truncating makes lo = 0, hi = 31 work."]},
+{id:'c-06', d:'M', lang:'c', area:'C and C++', title:'Detect a cycle in a linked list',
+ p:["Write `int has_cycle(struct node *head)` that returns 1 if the list loops back on itself, using O(1) extra memory."],
+ starter:`struct node { int val; struct node *next; };
+
+int has_cycle(struct node *head) {
+    /* your code */
+}`,
+ hints:["Move one pointer one step and another two steps at a time.", "If there is a loop, the fast one eventually lands on the slow one."],
+ sol:`struct node { int val; struct node *next; };
+
+int has_cycle(struct node *head) {
+    struct node *slow = head, *fast = head;
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+        if (slow == fast) return 1;
+    }
+    return 0;
+}`,
+ why:["Floyd's tortoise and hare: inside a loop, the gap shrinks by one each step, so they must meet. No hash set needed."]},
+{id:'c-07', d:'M', lang:'c', area:'C and C++', title:'Merge two sorted lists',
+ p:["Write `struct node *merge(struct node *a, struct node *b)` that merges two ascending lists into one ascending list by relinking nodes (no allocation)."],
+ starter:`#include <stddef.h>
+
+struct node { int val; struct node *next; };
+
+struct node *merge(struct node *a, struct node *b) {
+    /* your code */
+}`,
+ hints:["A dummy head node removes the special case for the first element.", "Append the smaller head each time; at the end attach whatever remains."],
+ sol:`#include <stddef.h>
+
+struct node { int val; struct node *next; };
+
+struct node *merge(struct node *a, struct node *b) {
+    struct node dummy = {0, NULL}, *tail = &dummy;
+    while (a && b) {
+        if (a->val <= b->val) { tail->next = a; a = a->next; }
+        else                  { tail->next = b; b = b->next; }
+        tail = tail->next;
+    }
+    tail->next = a ? a : b;
+    return dummy.next;
+}`,
+ why:["`<=` keeps equal elements in their original order (a stable merge). This is the inner step of merge sort on lists."]},
+{id:'c-08', d:'M', lang:'c', area:'C and C++', title:'Reverse the bits of a 32-bit word',
+ p:["Write `uint32_t reverse_bits(uint32_t x)` so that bit 0 swaps with bit 31, bit 1 with bit 30, and so on, without a 32-iteration loop."],
+ starter:`#include <stdint.h>
+
+uint32_t reverse_bits(uint32_t x) {
+    /* your code */
+}`,
+ hints:["Swap the two 16-bit halves, then the bytes within each half, then nibbles, pairs and single bits.", "Each step uses a mask like 0xFF00FF00."],
+ sol:`#include <stdint.h>
+
+uint32_t reverse_bits(uint32_t x) {
+    x = (x >> 16) | (x << 16);
+    x = ((x & 0xFF00FF00u) >> 8) | ((x & 0x00FF00FFu) << 8);
+    x = ((x & 0xF0F0F0F0u) >> 4) | ((x & 0x0F0F0F0Fu) << 4);
+    x = ((x & 0xCCCCCCCCu) >> 2) | ((x & 0x33333333u) << 2);
+    x = ((x & 0xAAAAAAAAu) >> 1) | ((x & 0x55555555u) << 1);
+    return x;
+}`,
+ why:["Five steps of swapping groups (16, 8, 4, 2, 1 bits) reverse everything: log₂ 32 steps, like a barrel shifter's layers. In hardware, bit reversal is free: it is just wiring."]},
+{id:'c-09', d:'M', lang:'c', area:'C and C++', title:'Byte swap and endianness',
+ p:["Write `uint32_t bswap32(uint32_t x)` that reverses the byte order, and `int is_little_endian(void)` that detects the machine's byte order at run time."],
+ starter:`#include <stdint.h>
+
+uint32_t bswap32(uint32_t x) {
+    /* your code */
+}
+
+int is_little_endian(void) {
+    /* your code */
+}`,
+ hints:["Move each byte with a shift and a mask.", "Store 1 in an integer and look at its first byte through a `uint8_t *`."],
+ sol:`#include <stdint.h>
+
+uint32_t bswap32(uint32_t x) {
+    return  (x >> 24)
+         | ((x >> 8)  & 0x0000FF00u)
+         | ((x << 8)  & 0x00FF0000u)
+         |  (x << 24);
+}
+
+int is_little_endian(void) {
+    uint32_t one = 1;
+    return *(uint8_t *)&one == 1;   /* the low byte is stored first */
+}`,
+ why:["x86 and most ARM systems are little-endian; network protocols are big-endian. Drivers and packet parsers swap bytes constantly."]},
+{id:'c-10', d:'M', lang:'c', area:'C and C++', title:'Struct padding',
+ p:["On a typical 64-bit machine (int 4 bytes, pointers 8 bytes, each aligned to its size), what does `sizeof` give for each struct, and how would you reorder `A` to shrink it? Write your answers as comments.",
+   "`struct A { char a; int b; char c; };`  `struct B { char c; void *p; };`  `struct C { int b; char a; char c; };`"],
+ starter:`/* sizeof(struct A) = ?
+   sizeof(struct B) = ?
+   sizeof(struct C) = ?
+   smaller layout for A: ? */`,
+ hints:["Each member starts at a multiple of its own size.", "The whole struct's size is rounded up to a multiple of its largest member's alignment."],
+ sol:`/* struct A: a at 0, 3 bytes padding, b at 4..7, c at 8, 3 bytes tail padding -> 12
+   struct B: c at 0, 7 bytes padding, p at 8..15                           -> 16
+   struct C: b at 0..3, a at 4, c at 5, 2 bytes tail padding               -> 8
+   Shrinking A: order members from largest to smallest alignment, which is
+   exactly struct C (12 -> 8 bytes). */`,
+ why:["The struct with a char and a pointer giving 16 was a reported assessment question. Padding matters in hardware register maps and packed network headers, where layout must match exactly."]},
+{id:'c-11', d:'M', lang:'c', area:'C and C++', title:'Read-modify-write a hardware register',
+ p:["A control register lives at address 0x40000000. Bit 0 enables the block; bits 6..4 select a mode. Write `void enable_with_mode(uint32_t mode)` that sets the mode and the enable bit without disturbing any other bit, reading and writing the register once each."],
+ starter:`#include <stdint.h>
+
+void enable_with_mode(uint32_t mode) {
+    /* your code */
+}`,
+ hints:["Use a `volatile` pointer so the compiler cannot skip or reorder the accesses.", "Clear the field with a mask, then OR in the new value, shifted into place."],
+ sol:`#include <stdint.h>
+
+#define REG32(addr)       (*(volatile uint32_t *)(addr))
+#define CTRL              REG32(0x40000000u)
+#define BIT(n)            (1u << (n))
+#define FIELD(lo, w)      (((1u << (w)) - 1u) << (lo))
+
+void enable_with_mode(uint32_t mode) {
+    uint32_t v = CTRL;                        /* read once */
+    v &= ~FIELD(4, 3);                        /* clear the old mode */
+    v |= (mode << 4) & FIELD(4, 3);           /* insert the new mode */
+    v |= BIT(0);                              /* enable */
+    CTRL = v;                                 /* write once */
+}`,
+ why:["`volatile` tells the compiler the location can change or has side effects, so every access really happens. Masking the inserted value stops an out-of-range `mode` from corrupting neighbouring bits."]},
+{id:'c-12', d:'H', lang:'c', area:'C and C++', title:'Ring buffer (a FIFO in software)',
+ p:["Implement a 16-entry byte ring buffer with `rb_init`, `rb_push` (returns false when full) and `rb_pop` (returns false when empty). Use free-running head and tail counters instead of a separate count."],
+ starter:`#include <stdbool.h>
+#include <stdint.h>
+
+#define RB_SIZE 16   /* power of two */
+
+typedef struct {
+    uint8_t  data[RB_SIZE];
+    uint32_t head, tail;
+} ringbuf;
+
+void rb_init(ringbuf *rb);
+bool rb_push(ringbuf *rb, uint8_t v);
+bool rb_pop(ringbuf *rb, uint8_t *v);`,
+ hints:["head counts writes, tail counts reads; they only ever increase.", "Number of items = head − tail, which works even after the counters wrap (unsigned arithmetic).", "Index with `count & (RB_SIZE − 1)`."],
+ sol:`#include <stdbool.h>
+#include <stdint.h>
+
+#define RB_SIZE 16
+
+typedef struct {
+    uint8_t  data[RB_SIZE];
+    uint32_t head, tail;     /* free-running write and read counters */
+} ringbuf;
+
+void rb_init(ringbuf *rb)        { rb->head = rb->tail = 0; }
+static bool rb_empty(const ringbuf *rb) { return rb->head == rb->tail; }
+static bool rb_full(const ringbuf *rb)  { return rb->head - rb->tail == RB_SIZE; }
+
+bool rb_push(ringbuf *rb, uint8_t v) {
+    if (rb_full(rb)) return false;
+    rb->data[rb->head++ & (RB_SIZE - 1)] = v;
+    return true;
+}
+
+bool rb_pop(ringbuf *rb, uint8_t *v) {
+    if (rb_empty(rb)) return false;
+    *v = rb->data[rb->tail++ & (RB_SIZE - 1)];
+    return true;
+}`,
+ why:["This is the hardware FIFO's 'extra pointer bit' idea taken to the limit: the counters have many extra bits, and unsigned subtraction gives the fill level. With one producer and one consumer (for example an interrupt and the main loop), it needs no lock as long as the counter updates are atomic."]},
+{id:'cpp-01', d:'M', lang:'cpp', area:'C and C++', title:'k-th largest with a min-heap',
+ p:["Write `int kth_largest(const std::vector<int>& v, int k)` in O(n log k) time. (A greedy problem using a heap was reported on the Ignite coding section.)"],
+ starter:`#include <vector>
+
+int kth_largest(const std::vector<int>& v, int k) {
+    // your code
+}`,
+ hints:["Keep a min-heap holding the k largest values seen so far.", "When it grows past k, pop the smallest. The top is the answer."],
+ sol:`#include <functional>
+#include <queue>
+#include <vector>
+
+int kth_largest(const std::vector<int>& v, int k) {
+    std::priority_queue<int, std::vector<int>, std::greater<int>> heap;   // min-heap
+    for (int x : v) {
+        heap.push(x);
+        if ((int)heap.size() > k) heap.pop();     // drop the smallest
+    }
+    return heap.top();
+}`,
+ why:["`std::priority_queue` is a max-heap by default; `std::greater` turns it into a min-heap. The same pattern finds the k worst timing paths in a long report."]},
+{id:'cpp-02', d:'H', lang:'cpp', area:'C and C++', title:'LRU cache in O(1)',
+ p:["Implement `LRUCache(int capacity)` with `int get(int key)` (−1 if missing) and `void put(int key, int value)`, both O(1). When full, evict the least recently used key."],
+ starter:`class LRUCache {
+public:
+    explicit LRUCache(int capacity);
+    int get(int key);
+    void put(int key, int value);
+};`,
+ hints:["A doubly linked list keeps usage order; a hash map finds a key's list node.", "`std::list::splice` moves a node to the front in O(1)."],
+ sol:`#include <list>
+#include <unordered_map>
+#include <utility>
+
+class LRUCache {
+    int cap;
+    std::list<std::pair<int, int>> items;     // front = most recently used
+    std::unordered_map<int, std::list<std::pair<int, int>>::iterator> where;
+public:
+    explicit LRUCache(int capacity) : cap(capacity) {}
+
+    int get(int key) {
+        auto it = where.find(key);
+        if (it == where.end()) return -1;
+        items.splice(items.begin(), items, it->second);   // mark as most recent
+        return it->second->second;
+    }
+
+    void put(int key, int value) {
+        auto it = where.find(key);
+        if (it != where.end()) {
+            it->second->second = value;
+            items.splice(items.begin(), items, it->second);
+            return;
+        }
+        if ((int)items.size() == cap) {                   // evict least recent
+            where.erase(items.back().first);
+            items.pop_back();
+        }
+        items.emplace_front(key, value);
+        where[key] = items.begin();
+    }
+};`,
+ why:["This is the software version of a cache's replacement policy (Chapter 20). Real hardware approximates LRU (pseudo-LRU trees) because true LRU state grows quickly with associativity."]},
+{id:'cpp-03', d:'H', lang:'cpp', area:'C and C++', title:'Event-driven simulation scheduler',
+ p:["Write a `Scheduler` class for a discrete-event simulator: `schedule(delay, name)` adds an event at `now + delay`; `run()` processes events in time order (events at the same time in the order they were scheduled), setting `now` and printing `time: name`. This is how logic simulators advance time."],
+ starter:`#include <string>
+
+class Scheduler {
+public:
+    long now = 0;
+    void schedule(long delay, const std::string& what);
+    void run();
+};`,
+ hints:["Use a priority queue ordered by (time, sequence number).", "The sequence number breaks ties so equal-time events keep their order."],
+ sol:`#include <iostream>
+#include <queue>
+#include <string>
+#include <vector>
+
+struct Event { long time; long seq; std::string what; };
+
+struct Later {   // makes the priority_queue return the earliest event first
+    bool operator()(const Event& a, const Event& b) const {
+        return a.time != b.time ? a.time > b.time : a.seq > b.seq;
+    }
+};
+
+class Scheduler {
+    std::priority_queue<Event, std::vector<Event>, Later> q;
+    long next_seq = 0;
+public:
+    long now = 0;
+    void schedule(long delay, const std::string& what) {
+        q.push({now + delay, next_seq++, what});
+    }
+    void run() {
+        while (!q.empty()) {
+            Event e = q.top();
+            q.pop();
+            now = e.time;
+            std::cout << now << ": " << e.what << "\\n";
+        }
+    }
+};`,
+ why:["Verilog simulators keep exactly this kind of time-ordered queue, plus extra ordering regions within each time step (which is where blocking and nonblocking assignments differ). Performance models of GPUs and networks are built the same way."]},
+
+// ---------------- Python (runs in the browser) ----------------
+{id:'py-01', d:'E', lang:'python', area:'Python and MATLAB', title:'WNS and TNS from a timing report',
+ p:["Each line is `path_name slack` (slack in ns, may be negative). Write `wns_tns(lines)` returning `[wns, tns]`: WNS is the most negative slack (0.0 if none are negative) and TNS is the sum of all negative slacks. Round both to 3 decimals."],
+ ex:`wns_tns(["p1 0.05", "p2 -0.10", "p3 -0.25"])  ->  [-0.25, -0.35]
+wns_tns(["a 0.2"])                          ->  [0.0, 0.0]`,
+ starter:`def wns_tns(lines):
+    # your code
+    pass`,
+ hints:["`line.split()` gives the name and the slack text; convert with `float`.", "Collect the negative slacks, then use `min` and `sum`."],
+ sol:`def wns_tns(lines):
+    neg = [float(line.split()[1]) for line in lines if float(line.split()[1]) < 0]
+    if not neg:
+        return [0.0, 0.0]
+    return [round(min(neg), 3), round(sum(neg), 3)]`,
+ why:["WNS tells you how far the worst path misses; TNS tells you how much work is left overall. Every timing-closure script starts by parsing reports like this."],
+ run:{fn:'wns_tns', tests:[[[["p1 0.05", "p2 -0.10", "p3 -0.25"]], [-0.25, -0.35]], [[["a 0.2", "b 0.1"]], [0.0, 0.0]], [[[]], [0.0, 0.0]], [[["x -1.5"]], [-1.5, -1.5]], [[["u1/a->u2/d -0.012", "u3/q->u4/d -0.004", "u5 0.3"]], [-0.012, -0.016]]]}},
+{id:'py-02', d:'E', lang:'python', area:'Python and MATLAB', title:'Two\'s complement bit string',
+ p:["Write `twos(n, width)` returning the `width`-bit two's-complement representation of integer `n` as a string of 0s and 1s."],
+ ex:`twos(-20, 8) -> "11101100"
+twos(5, 4)   -> "0101"`,
+ starter:`def twos(n, width):
+    # your code
+    pass`,
+ hints:["Masking with (1 << width) − 1 maps negative numbers to their two's-complement pattern.", "`format(x, '08b')` pads with zeros; build the format string from `width`."],
+ sol:`def twos(n, width):
+    return format(n & ((1 << width) - 1), "0" + str(width) + "b")`,
+ why:["Python integers are unbounded, so `-20 & 0xFF` is 236, exactly the 8-bit pattern of −20. Useful for building test vectors and decoding register dumps."],
+ run:{fn:'twos', tests:[[[-20, 8], "11101100"], [[5, 4], "0101"], [[-1, 4], "1111"], [[-8, 4], "1000"], [[0, 3], "000"], [[255, 8], "11111111"]]}},
+{id:'py-03', d:'E', lang:'python', area:'Python and MATLAB', title:'Count errors per module in a log',
+ p:["Simulation log lines look like `ERROR [fifo] overflow at 120ns` or `INFO [alu] done`. Write `count_errors(lines)` returning a dict mapping each module name to its number of ERROR lines."],
+ ex:`count_errors(["ERROR [fifo] x", "INFO [fifo] y", "ERROR [alu] z", "ERROR [fifo] w"])
+  -> {"fifo": 2, "alu": 1}`,
+ starter:`def count_errors(lines):
+    # your code
+    pass`,
+ hints:["A regular expression `^ERROR \\[(\\w+)\\]` captures the module name.", "`collections.Counter` or a plain dict with `get` both work."],
+ sol:`import re
+
+def count_errors(lines):
+    counts = {}
+    for line in lines:
+        m = re.match(r"ERROR \\[(\\w+)\\]", line)
+        if m:
+            counts[m.group(1)] = counts.get(m.group(1), 0) + 1
+    return counts`,
+ why:["Regression triage is mostly this: group thousands of failures by signature so you debug each root cause once."],
+ run:{fn:'count_errors', tests:[[[["ERROR [fifo] x", "INFO [fifo] y", "ERROR [alu] z", "ERROR [fifo] w"]], {"fifo": 2, "alu": 1}], [[[]], {}], [[["WARNING [a] b"]], {}], [[["ERROR [dma_ctrl] timeout", "ERROR [dma_ctrl] bad id"]], {"dma_ctrl": 2}]]}},
+{id:'py-04', d:'E', lang:'python', area:'Python and MATLAB', title:'Gray code sequence',
+ p:["Write `gray_codes(n)` returning the list of all n-bit Gray codes as integers, in order, starting from 0."],
+ ex:`gray_codes(2) -> [0, 1, 3, 2]`,
+ starter:`def gray_codes(n):
+    # your code
+    pass`,
+ hints:["The i-th Gray code is i XOR (i >> 1)."],
+ sol:`def gray_codes(n):
+    return [i ^ (i >> 1) for i in range(1 << n)]`,
+ why:["Each value differs from the next in exactly one bit, the property that makes Gray-coded FIFO pointers safe to synchronize."],
+ run:{fn:'gray_codes', tests:[[[1], [0, 1]], [[2], [0, 1, 3, 2]], [[3], [0, 1, 3, 2, 6, 7, 5, 4]], [[0], [0]]]}},
+{id:'py-05', d:'M', lang:'python', area:'Python and MATLAB', title:'Recover an array from its prefix XORs',
+ p:["`p[i]` is the XOR of `a[0]` through `a[i]`. Write `from_prefix_xor(p)` that returns the original array `a`. (Reported Ignite coding pattern.)"],
+ ex:`from_prefix_xor([5, 7, 2]) -> [5, 2, 5]`,
+ starter:`def from_prefix_xor(p):
+    # your code
+    pass`,
+ hints:["XOR is its own inverse: p[i] XOR p[i−1] cancels everything before i."],
+ sol:`def from_prefix_xor(p):
+    return [p[i] ^ p[i - 1] if i else p[0] for i in range(len(p))]`,
+ why:["Because x ⊕ x = 0, the shared prefix cancels and only a[i] remains. The same identity powers the next problem."],
+ run:{fn:'from_prefix_xor', tests:[[[[5, 7, 2]], [5, 2, 5]], [[[]], []], [[[0, 0]], [0, 0]], [[[1, 3, 0, 4]], [1, 2, 3, 4]]]}},
+{id:'py-06', d:'M', lang:'python', area:'Python and MATLAB', title:'Count subarrays with a given XOR',
+ p:["Write `count_xor_subarrays(a, k)` returning how many contiguous subarrays of `a` have XOR equal to `k`, in O(n) time. (A 'bitwise XOR subarray' problem was reported on the Ignite coding section.)"],
+ ex:`count_xor_subarrays([4, 2, 2, 6, 4], 6) -> 4`,
+ starter:`def count_xor_subarrays(a, k):
+    # your code
+    pass`,
+ hints:["Subarray (i..j) XOR = prefix[j] XOR prefix[i−1].", "Walk once, keeping a dictionary of how many times each prefix XOR has appeared.", "At each position, the number of earlier prefixes equal to (current XOR k) is the number of subarrays ending here."],
+ sol:`def count_xor_subarrays(a, k):
+    seen = {0: 1}          # the empty prefix
+    x = 0
+    count = 0
+    for v in a:
+        x ^= v
+        count += seen.get(x ^ k, 0)
+        seen[x] = seen.get(x, 0) + 1
+    return count`,
+ why:["Brute force is O(n²). With prefix XORs, a subarray XOR equals k exactly when two prefixes differ by k, so counting earlier prefixes in a hash map gives O(n)."],
+ run:{fn:'count_xor_subarrays', tests:[[[[4, 2, 2, 6, 4], 6], 4], [[[5, 6, 7, 8, 9], 5], 2], [[[1, 1, 1], 0], 2], [[[], 3], 0], [[[3], 3], 1]]}},
+{id:'py-07', d:'M', lang:'python', area:'Python and MATLAB', title:'FIFO depth calculator',
+ p:["Write `fifo_depth(burst, f_write, f_read, read_every)` returning the minimum FIFO depth (an integer) for a burst of `burst` words written one per cycle at `f_write` MHz, while the reader at `f_read` MHz takes one word every `read_every` cycles. Return 0 if the reader keeps up."],
+ ex:`fifo_depth(120, 100, 50, 1)  -> 60
+fifo_depth(100, 200, 100, 2) -> 75`,
+ starter:`def fifo_depth(burst, f_write, f_read, read_every):
+    # your code
+    pass`,
+ hints:["Words read during the burst = burst × (f_read / read_every) / f_write.", "Avoid floating-point rounding surprises: use `fractions.Fraction`, then round up with `math.ceil`."],
+ sol:`from fractions import Fraction
+from math import ceil
+
+def fifo_depth(burst, f_write, f_read, read_every):
+    read_during = Fraction(burst) * Fraction(f_read, read_every) / f_write
+    return max(0, ceil(burst - read_during))`,
+ why:["Depth = B(1 − r_r/r_w) from Chapter 19. Exact fractions matter: 120 − 59.99999999999999 rounds up to 61 if you are unlucky with floats."],
+ run:{fn:'fifo_depth', tests:[[[120, 100, 50, 1], 60], [[100, 200, 100, 2], 75], [[300, 150, 100, 1], 100], [[64, 50, 100, 4], 32], [[10, 100, 200, 1], 0], [[7, 100, 30, 1], 5]]}},
+{id:'py-08', d:'M', lang:'python', area:'Python and MATLAB', title:'Parse a Verilog port list',
+ p:["Write `parse_ports(src)` for an ANSI-style module header (one line). Return a list of `[direction, width, name]`, where width comes from `[msb:lsb]` (1 if absent). A name without its own direction inherits the previous one."],
+ ex:`parse_ports("module m(input wire clk, rst_n, input wire [7:0] a, b, output reg [3:0] q);")
+  -> [["input", 1, "clk"], ["input", 1, "rst_n"], ["input", 8, "a"], ["input", 8, "b"], ["output", 4, "q"]]`,
+ starter:`def parse_ports(src):
+    # your code
+    pass`,
+ hints:["Take the text between the first '(' and the last ')' and split on commas.", "If a piece starts with input/output/inout, update the current direction and width.", "The name is the last word of each piece."],
+ sol:`import re
+
+def parse_ports(src):
+    body = src[src.index("(") + 1 : src.rindex(")")]
+    ports, direction, width = [], None, 1
+    for piece in body.split(","):
+        piece = piece.strip()
+        m = re.match(r"(input|output|inout)\\b", piece)
+        if m:
+            direction = m.group(1)
+            r = re.search(r"\\[(\\d+)\\s*:\\s*(\\d+)\\]", piece)
+            width = abs(int(r.group(1)) - int(r.group(2))) + 1 if r else 1
+        ports.append([direction, width, piece.split()[-1]])
+    return ports`,
+ why:["Hardware teams write small parsers like this to generate testbench wrappers, register maps and documentation from RTL. Real code should use a proper parser (for example pyslang) for full Verilog."],
+ run:{fn:'parse_ports', tests:[[["module m(input wire clk, rst_n, input wire [7:0] a, b, output reg [3:0] q);"], [["input", 1, "clk"], ["input", 1, "rst_n"], ["input", 8, "a"], ["input", 8, "b"], ["output", 4, "q"]]], [["module n(output logic done);"], [["output", 1, "done"]]], [["module p(inout wire [15:0] bus, input en);"], [["inout", 16, "bus"], ["input", 1, "en"]]]]}},
+{id:'py-09', d:'M', lang:'python', area:'Python and MATLAB', title:'Branch predictor accuracy',
+ p:["Simulate one 2-bit saturating counter (0 and 1 predict not taken, 2 and 3 predict taken), starting at 1. For a trace of outcomes (`True` = taken), write `predictor_hits(trace)` returning how many predictions were correct."],
+ ex:`predictor_hits([True, True, True, True]) -> 3`,
+ starter:`def predictor_hits(trace):
+    # your code
+    pass`,
+ hints:["Predict first, then update: taken → counter + 1 (max 3), not taken → counter − 1 (min 0)."],
+ sol:`def predictor_hits(trace):
+    counter, hits = 1, 0
+    for taken in trace:
+        if (counter >= 2) == taken:
+            hits += 1
+        counter = min(3, counter + 1) if taken else max(0, counter - 1)
+    return hits`,
+ why:["Architecture teams evaluate ideas exactly this way: run a trace through a model before building hardware. Note how alternating branches defeat this simple predictor."],
+ run:{fn:'predictor_hits', tests:[[[[true, true, true, true]], 3], [[[true, false, true, false, true, false]], 0], [[[false, false, true, false]], 3], [[[]], 0]]}},
+{id:'py-10', d:'H', lang:'python', area:'Python and MATLAB', title:'Direct-mapped cache simulator',
+ p:["Write `direct_mapped(addresses, cache_bytes, line_bytes)` returning `[hits, misses]` for a direct-mapped cache that starts empty. Sizes are powers of two."],
+ ex:`direct_mapped([0, 4, 64, 0], 64, 16) -> [1, 3]`,
+ starter:`def direct_mapped(addresses, cache_bytes, line_bytes):
+    # your code
+    pass`,
+ hints:["line number = address // line_bytes; index = line % number_of_lines; tag = line // number_of_lines.", "Keep a list of stored tags per index (None when empty)."],
+ sol:`def direct_mapped(addresses, cache_bytes, line_bytes):
+    lines = cache_bytes // line_bytes
+    tags = [None] * lines
+    hits = misses = 0
+    for addr in addresses:
+        line = addr // line_bytes
+        index, tag = line % lines, line // lines
+        if tags[index] == tag:
+            hits += 1
+        else:
+            misses += 1
+            tags[index] = tag
+    return [hits, misses]`,
+ why:["Addresses 0 and 64 map to the same index in a 64-byte cache, so they evict each other: a conflict miss. Adding associativity fixes that. Extend this to set-associative with LRU for practice."],
+ run:{fn:'direct_mapped', tests:[[[[0, 4, 64, 0], 64, 16], [1, 3]], [[[0, 16, 32, 48, 0, 16], 64, 16], [2, 4]], [[[], 64, 16], [0, 0]], [[[0, 128, 0, 128], 128, 32], [0, 4]], [[[0, 1, 2, 3, 32, 33], 64, 32], [4, 2]]]}},
+{id:'py-11', d:'H', lang:'python', area:'Python and MATLAB', title:'Find a combinational loop',
+ p:["A netlist is a dict mapping each gate name to the list of its input names (names not in the dict are primary inputs). Write `has_loop(gates)` returning True if there is a combinational cycle. Lint and timing tools must find these."],
+ ex:`has_loop({"a": ["x"], "b": ["a"]}) -> False
+has_loop({"a": ["b"], "b": ["a"]}) -> True`,
+ starter:`def has_loop(gates):
+    # your code
+    pass`,
+ hints:["Depth-first search with three colours: unvisited, on the current path, finished.", "Reaching a gate that is on the current path means a cycle."],
+ sol:`def has_loop(gates):
+    state = {}                      # missing = unvisited, 1 = on path, 2 = done
+    def visit(g):
+        if g not in gates or state.get(g) == 2:
+            return False
+        if state.get(g) == 1:
+            return True
+        state[g] = 1
+        if any(visit(i) for i in gates[g]):
+            return True
+        state[g] = 2
+        return False
+    return any(visit(g) for g in gates)`,
+ why:["A combinational loop has no stable timing and can oscillate (a ring oscillator is one on purpose). Static timing analysis requires an acyclic graph, which is why tools report and break loops first."],
+ run:{fn:'has_loop', tests:[[[{"a": ["x"], "b": ["a"]}], false], [[{"a": ["b"], "b": ["a"]}], true], [[{"g1": ["in1", "g3"], "g2": ["g1"], "g3": ["g2"]}], true], [[{}], false], [[{"a": ["a"]}], true], [[{"a": ["i"], "b": ["a", "i"], "c": ["a", "b"]}], false]]}},
+{id:'py-12', d:'H', lang:'python', area:'Python and MATLAB', title:'Longest path: static timing on a netlist',
+ p:["Given `gates` (name → list of inputs; non-gate names are primary inputs arriving at time 0) and `delays` (name → gate delay), write `latest_arrival(gates, delays)` returning the latest output arrival time of any gate: the critical path delay."],
+ ex:`latest_arrival({"g1": ["a", "b"], "g2": ["g1", "c"], "g3": ["g1"]}, {"g1": 2, "g2": 3, "g3": 1}) -> 5`,
+ starter:`def latest_arrival(gates, delays):
+    # your code
+    pass`,
+ hints:["arrival(g) = max(arrival of its inputs) + delay(g); primary inputs are 0.", "Memoize so each gate is computed once (a topological order works too)."],
+ sol:`from functools import lru_cache
+
+def latest_arrival(gates, delays):
+    @lru_cache(maxsize=None)
+    def arrival(name):
+        if name not in gates:
+            return 0
+        return max((arrival(i) for i in gates[name]), default=0) + delays[name]
+    return max((arrival(g) for g in gates), default=0)`,
+ why:["This is the core of static timing analysis: arrival times propagate forward through the graph, and the latest arrival at a flip-flop compared with the clock period gives the slack."],
+ run:{fn:'latest_arrival', tests:[[[{"g1": ["a", "b"], "g2": ["g1", "c"], "g3": ["g1"]}, {"g1": 2, "g2": 3, "g3": 1}], 5], [[{"x": ["i"]}, {"x": 7}], 7], [[{"n1": ["i1"], "n2": ["i2"], "n3": ["n1", "n2"], "n4": ["n3", "n1"]}, {"n1": 1, "n2": 4, "n3": 2, "n4": 3}], 9], [[{}, {}], 0]]}},
+
+// ---------------- Linux and scripting ----------------
+{id:'sh-01', d:'E', lang:'bash', area:'Linux and scripting', title:'Count lines of SystemVerilog',
+ p:["From the top of a project, print the total number of lines in all `.sv` files in every subdirectory."],
+ starter:`# your command`,
+ hints:["`find . -name '*.sv'` lists the files.", "`wc -l` counts lines; pass all files at once with `-exec ... +` or `xargs`."],
+ sol:`find . -name '*.sv' -exec cat {} + | wc -l
+
+# or, per file plus a total:
+find . -name '*.sv' -print0 | xargs -0 wc -l`,
+ why:["`-exec ... +` passes many files per command, much faster than one process per file. `-print0` with `xargs -0` handles file names containing spaces."]},
+{id:'sh-02', d:'E', lang:'bash', area:'Linux and scripting', title:'Failing tests in a regression log',
+ p:["`regress.log` contains lines like `TEST fifo_basic PASSED` and `TEST arb_random FAILED seed=42`. Print the unique names of failing tests, sorted, and then how many there are."],
+ starter:`# your commands`,
+ hints:["`grep FAILED` selects the lines; `awk '{print $2}'` takes the second field.", "`sort -u` removes duplicates; `wc -l` counts."],
+ sol:`grep 'FAILED' regress.log | awk '{print $2}' | sort -u
+grep 'FAILED' regress.log | awk '{print $2}' | sort -u | wc -l`,
+ why:["Pipes connect small tools into a query. The same test can fail with many seeds, so `sort -u` shows each test once."]},
+{id:'sh-03', d:'E', lang:'bash', area:'Linux and scripting', title:'A daily git workflow',
+ p:["Write the commands to: create and switch to a branch `fix-fifo-full`; stage and commit your changes with a message; push the branch to `origin` for the first time; and undo the last commit while keeping its changes in your working tree."],
+ starter:`# your commands`,
+ hints:["`git switch -c` (or `git checkout -b`) creates a branch.", "`git push -u origin branch` sets the upstream.", "`git reset --soft HEAD~1` moves the branch back but keeps changes."],
+ sol:`git switch -c fix-fifo-full
+git add -A
+git commit -m "Fix FIFO full flag when reading and writing while full"
+git push -u origin fix-fifo-full
+git reset --soft HEAD~1      # undo the commit, keep the changes staged`,
+ why:["Hardware RTL lives in git (or Perforce) like software. Small, well-described commits on branches, reviewed before merging, are how chip teams keep thousands of engineers from breaking each other's work."]},
+{id:'sh-04', d:'M', lang:'bash', area:'Linux and scripting', title:'Negative-slack paths with awk',
+ p:["`report.txt` has lines `startpoint endpoint slack`. Print only paths with negative slack, most negative first, then print `TNS` (sum of negative slacks) on its own line."],
+ starter:`# your commands`,
+ hints:["`awk '$3 < 0'` filters; `sort -k3,3n` sorts numerically on the third field.", "In awk, accumulate in a variable and print it in an `END` block."],
+ sol:`awk '$3 < 0' report.txt | sort -k3,3n
+awk '$3 < 0 { tns += $3 } END { printf "TNS %.3f\\n", tns }' report.txt`,
+ why:["awk treats each line as fields ($1, $2, ...) and is perfect for column reports. `-k3,3n` restricts the sort key to field 3 and compares numerically, so −0.5 sorts before −0.05."]},
+{id:'sh-05', d:'M', lang:'bash', area:'Linux and scripting', title:'Rename a signal across RTL files',
+ p:["Rename the signal `data_in` to `din` in every `.sv` file under `rtl/`, matching whole words only (do not touch `data_in_valid`), keeping a `.bak` backup of each file."],
+ starter:`# your command`,
+ hints:["Word boundaries: `\\b` in Perl regular expressions.", "`perl -pi.bak -e 's/old/new/g' files` edits in place with a backup and works the same on Linux and macOS."],
+ sol:`perl -pi.bak -e 's/\\bdata_in\\b/din/g' $(find rtl -name '*.sv')
+
+# GNU sed (Linux only) equivalent:
+# sed -i.bak 's/\\bdata_in\\b/din/g' $(find rtl -name '*.sv')`,
+ why:["`\\b` stops the match at word edges, so `data_in_valid` survives. Always diff before deleting backups, or better, rely on git: `git diff` shows exactly what changed."]},
+{id:'sh-06', d:'M', lang:'bash', area:'Linux and scripting', title:'Run a simulation over many seeds',
+ p:["Write a Bash script that runs `./simv +ntb_random_seed=SEED` for seeds 1 to 20, saving each log in `logs/`. A run passes if the simulator exits with status 0 and its log contains `0 errors`. Print each failing seed and a final pass/fail count."],
+ starter:`#!/usr/bin/env bash
+# your script`,
+ hints:["`mkdir -p logs` first.", "Redirect both stdout and stderr: `> file 2>&1`.", "Combine the exit status and `grep -q` with `&&`."],
+ sol:`#!/usr/bin/env bash
+set -u
+mkdir -p logs
+pass=0
+fail=0
+for seed in $(seq 1 20); do
+  log="logs/seed_$seed.log"
+  if ./simv +ntb_random_seed="$seed" > "$log" 2>&1 && grep -q "0 errors" "$log"; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "seed $seed FAILED (see $log)"
+  fi
+done
+echo "passed $pass, failed $fail"
+[ "$fail" -eq 0 ]          # script exit status: success only if all passed`,
+ why:["This is a tiny regression runner. Checking the log as well as the exit code catches tests that end 'successfully' but report errors. The final test sets the script's own exit status, so a CI system can use it."]},
+{id:'sh-07', d:'M', lang:'bash', area:'Linux and scripting', title:'A Makefile for simulation',
+ p:["Write a Makefile with targets `sim` (compile `rtl/*.sv` and `tb/*.sv` with Icarus Verilog into `build/sim.vvp` and run it), `lint` (run Verilator lint on the RTL) and `clean`. `sim` should recompile only when a source file changed."],
+ starter:`# your Makefile`,
+ hints:["A rule is `target: prerequisites` followed by recipe lines that start with a TAB.", "`$(wildcard rtl/*.sv)` lists files; `$@` is the target and `$^` all prerequisites.", "Mark targets that are not files as `.PHONY`."],
+ sol:`SRC := $(wildcard rtl/*.sv) $(wildcard tb/*.sv)
+
+.PHONY: sim lint clean
+
+sim: build/sim.vvp
+\tvvp build/sim.vvp
+
+build/sim.vvp: $(SRC)
+\tmkdir -p build
+\tiverilog -g2012 -o $@ $^
+
+lint:
+\tverilator --lint-only -Wall $(wildcard rtl/*.sv)
+
+clean:
+\trm -rf build`,
+ why:["make compares timestamps: `build/sim.vvp` is rebuilt only if a source is newer. Recipe lines must start with a real TAB character. Chip projects use make (or similar) to tie together lint, simulation, synthesis and reports."]},
+{id:'tcl-01', d:'E', lang:'tcl', area:'Physical design', title:'Tcl basics: a utilization proc',
+ p:["Write a Tcl procedure `utilization` that takes a list of cell areas and the core area, and returns the utilization percentage. Print it for areas {12.5 30 7.5} and core area 100 as `50.0%`."],
+ starter:`proc utilization {areas core_area} {
+    # your code
+}`,
+ hints:["`set` assigns, `$name` reads, `foreach` loops over a list.", "Arithmetic goes inside `expr {...}` (the braces make it fast and safe)."],
+ sol:`proc utilization {areas core_area} {
+    set total 0.0
+    foreach a $areas {
+        set total [expr {$total + $a}]
+    }
+    return [expr {100.0 * $total / $core_area}]
+}
+puts [format "%.1f%%" [utilization {12.5 30 7.5} 100]]`,
+ why:["Tcl is the scripting language of most EDA tools (synthesis, place and route, timing). Everything is a string; square brackets run a command and substitute its result."]},
+{id:'tcl-02', d:'M', lang:'tcl', area:'Physical design', title:'Timing constraints in SDC',
+ p:["Write SDC constraints: a 1 GHz clock `clk` on port `clk`; 0.2 ns input delay on every input except the clock and 0.2 ns output delay on every output; a second clock `clk_b` at 400 MHz that is asynchronous to `clk`; and a 2-cycle multicycle path from cells `u_slow/*` to `u_acc/*` (with the matching hold adjustment)."],
+ starter:`# your SDC`,
+ hints:["`create_clock -period` takes nanoseconds.", "`set_clock_groups -asynchronous` stops timing between unrelated clocks.", "A setup multicycle of 2 normally needs a hold multicycle of 1."],
+ sol:`create_clock -name clk   -period 1.0 [get_ports clk]
+create_clock -name clk_b -period 2.5 [get_ports clk_b]
+
+set_input_delay  0.2 -clock clk [remove_from_collection [all_inputs] [get_ports {clk clk_b}]]
+set_output_delay 0.2 -clock clk [all_outputs]
+
+set_clock_groups -asynchronous -group {clk} -group {clk_b}
+
+set_multicycle_path 2 -setup -from [get_cells u_slow/*] -to [get_cells u_acc/*]
+set_multicycle_path 1 -hold  -from [get_cells u_slow/*] -to [get_cells u_acc/*]`,
+ why:["SDC (Synopsys Design Constraints, a Tcl dialect) tells synthesis and timing tools what 'fast enough' means. Wrong constraints are a top cause of silicon bugs: an unconstrained path is never checked, and a missing clock-group hides real CDC problems. The hold multicycle of 1 moves the hold check back to the usual edge."]},
+{id:'tcl-03', d:'M', lang:'tcl', area:'Physical design', title:'Report the worst paths in a timing tool',
+ p:["In a PrimeTime-style Tcl shell, write a loop that prints the startpoint, endpoint and slack of the 100 worst paths with negative slack, one per line in aligned columns."],
+ starter:`# your script`,
+ hints:["`get_timing_paths -max_paths 100 -slack_lesser_than 0` returns a collection.", "Iterate collections with `foreach_in_collection`, and read attributes with `get_attribute`."],
+ sol:`set paths [get_timing_paths -max_paths 100 -slack_lesser_than 0]
+foreach_in_collection p $paths {
+    set sp [get_object_name [get_attribute $p startpoint]]
+    set ep [get_object_name [get_attribute $p endpoint]]
+    set sl [get_attribute $p slack]
+    puts [format "%-40s %-40s %8.3f" $sp $ep $sl]
+}`,
+ why:["Engineers script reports like this to sort failures by block, find common startpoints, and track progress across runs. Command names differ slightly between tools (OpenSTA, Tempus), but the pattern is the same."]},
+{id:'pl-01', d:'M', lang:'perl', area:'Linux and scripting', title:'Perl: errors per module',
+ p:["Write a Perl script that reads a log from standard input (or files given on the command line), counts lines starting with `ERROR [module]` per module, and prints each module and count, largest first."],
+ starter:`#!/usr/bin/env perl
+use strict;
+use warnings;
+# your code`,
+ hints:["`while (my $line = <>)` reads every input line.", "A regex capture `/^ERROR\\s+\\[(\\w+)\\]/` puts the module in `$1`.", "Hashes count things: `$count{$1}++`."],
+ sol:`#!/usr/bin/env perl
+use strict;
+use warnings;
+
+my %count;
+while (my $line = <>) {
+    $count{$1}++ if $line =~ /^ERROR\\s+\\[(\\w+)\\]/;
+}
+for my $mod (sort { $count{$b} <=> $count{$a} } keys %count) {
+    printf "%-16s %d\\n", $mod, $count{$mod};
+}`,
+ why:["Many older chip flows are glued together with Perl, and the posting lists it. The same task in Python or awk is just as common today; knowing one regex-heavy scripting language well transfers to the others."]},
+// ---------------- GPU and CUDA ----------------
+{id:'cu-01', d:'E', lang:'cuda', area:'GPU and CUDA', title:'Vector add kernel',
+ p:["Write a CUDA kernel `vadd` computing `c[i] = a[i] + b[i]` for n elements, and the launch configuration using 256 threads per block."],
+ starter:`__global__ void vadd(const float *a, const float *b, float *c, int n) {
+    // your code
+}
+
+// launch:`,
+ hints:["Global index = blockIdx.x × blockDim.x + threadIdx.x.", "Round the block count up and guard with `if (i < n)`."],
+ sol:`__global__ void vadd(const float *a, const float *b, float *c, int n) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) c[i] = a[i] + b[i];
+}
+
+// launch: one thread per element
+int threads = 256;
+int blocks  = (n + threads - 1) / threads;
+vadd<<<blocks, threads>>>(d_a, d_b, d_c, n);`,
+ why:["Consecutive threads touch consecutive addresses, so loads coalesce. The kernel is memory-bound: about 1 FLOP per 12 bytes (Chapter 21)."]},
+{id:'cu-02', d:'M', lang:'cuda', area:'GPU and CUDA', title:'Parallel sum with shared memory',
+ p:["Write a kernel `block_sum` (256 threads per block) where each block sums 512 input elements and writes one partial sum to `out[blockIdx.x]`, using a tree reduction in shared memory."],
+ starter:`__global__ void block_sum(const float *in, float *out, int n) {
+    __shared__ float s[256];
+    // your code
+}`,
+ hints:["Each thread first adds two elements, one blockDim.x apart.", "Halve the active threads each step: s[tid] += s[tid + stride].", "Call __syncthreads() after every step."],
+ sol:`__global__ void block_sum(const float *in, float *out, int n) {
+    __shared__ float s[256];
+    int tid = threadIdx.x;
+    int i   = blockIdx.x * blockDim.x * 2 + tid;
+    float v = 0.0f;
+    if (i < n)              v  = in[i];
+    if (i + blockDim.x < n) v += in[i + blockDim.x];
+    s[tid] = v;
+    __syncthreads();
+    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
+        if (tid < stride) s[tid] += s[tid + stride];
+        __syncthreads();
+    }
+    if (tid == 0) out[blockIdx.x] = s[0];
+}`,
+ why:["log₂ 256 = 8 steps instead of 255 sequential additions. A second launch (or atomics) combines the partial sums. Because floating-point addition is not associative (Chapter 22), the result can differ in the last bits from a CPU loop."]},
+{id:'cu-03', d:'H', lang:'cuda', area:'GPU and CUDA', title:'Tiled matrix multiply',
+ p:["Write `matmul` for N×N row-major matrices (C = A × B) using 16×16 tiles in shared memory, launched with 16×16 thread blocks. Handle N not divisible by 16."],
+ starter:`#define TILE 16
+__global__ void matmul(const float *A, const float *B, float *C, int N) {
+    // your code
+}`,
+ hints:["Each block computes one 16×16 tile of C, looping over tiles of A's row band and B's column band.", "Load one A tile and one B tile into shared memory, sync, multiply, sync again.", "Pad out-of-range loads with 0."],
+ sol:`#define TILE 16
+__global__ void matmul(const float *A, const float *B, float *C, int N) {
+    __shared__ float As[TILE][TILE], Bs[TILE][TILE];
+    int row = blockIdx.y * TILE + threadIdx.y;
+    int col = blockIdx.x * TILE + threadIdx.x;
+    float acc = 0.0f;
+    for (int t = 0; t < (N + TILE - 1) / TILE; ++t) {
+        int ac = t * TILE + threadIdx.x;
+        int br = t * TILE + threadIdx.y;
+        As[threadIdx.y][threadIdx.x] = (row < N && ac < N) ? A[row * N + ac] : 0.0f;
+        Bs[threadIdx.y][threadIdx.x] = (br < N && col < N) ? B[br * N + col] : 0.0f;
+        __syncthreads();
+        for (int k = 0; k < TILE; ++k)
+            acc += As[threadIdx.y][k] * Bs[k][threadIdx.x];
+        __syncthreads();
+    }
+    if (row < N && col < N) C[row * N + col] = acc;
+}`,
+ why:["Each value loaded from global memory is reused 16 times from shared memory, raising arithmetic intensity 16-fold. Tensor-core kernels (cuBLAS, CUTLASS) push the same idea much further."]},
+{id:'ml-01', d:'E', lang:'matlab', area:'Python and MATLAB', title:'RC step response and rise time (MATLAB)',
+ p:["In MATLAB (or Octave), plot the step response of an RC circuit with R = 1 kΩ and C = 1 pF, and measure its 10%–90% rise time. Compare with 2.2RC."],
+ starter:`% your script`,
+ hints:["v(t) = 1 − e^(−t/RC).", "`find(v >= 0.1, 1)` returns the first index where v reaches 10%."],
+ sol:`R = 1e3; C = 1e-12; tau = R*C;
+t = linspace(0, 5*tau, 1000);
+v = 1 - exp(-t/tau);
+t10 = t(find(v >= 0.1, 1));
+t90 = t(find(v >= 0.9, 1));
+fprintf('rise time = %.3g s (2.2 RC = %.3g s)\\n', t90 - t10, 2.2*tau);
+plot(t*1e9, v); xlabel('time (ns)'); ylabel('V_{out} / V_s'); grid on;`,
+ why:["The posting lists MATLAB; power, signal-integrity and analog teams use it for quick analysis. The measured rise time comes out at about 2.2 ns, matching 2.2RC from Chapter 2."]}
+];
+
 (function(){
 'use strict';
 
 // ---------- data ----------
-const TOPICS = {1:'Electricity',2:'Capacitors & signals',3:'Heat',4:'Semiconductors',5:'MOSFETs',6:'Analog',7:'Binary & number formats',8:'CMOS gates',9:'Combinational logic',10:'Latches & flip-flops',11:'Timing',12:'Counters & FSMs',13:'Delay',14:'Power',15:'PVT & temperature',16:'Wires & links',17:'Manufacturing',18:'Memory circuits',19:'RTL & verification',20:'Architecture',21:'GPUs & number formats',22:'Computer arithmetic'};
+const TOPICS = {1:'Electricity',2:'Capacitors & signals',3:'Heat',4:'Semiconductors',5:'MOSFETs',6:'Analog',7:'Binary & number formats',8:'CMOS gates',9:'Combinational logic',10:'Latches & flip-flops',11:'Timing',12:'Counters & FSMs',13:'Delay',14:'Power',15:'PVT & temperature',16:'Wires & links',17:'Manufacturing',18:'Memory circuits',19:'RTL & verification',20:'Architecture',21:'GPUs & number formats',22:'Computer arithmetic',23:'Programming & Linux'};
 const DIFF = {E:'Easy', M:'Medium', H:'Hard'};
-const ROMAN = ['I','II','III','IV','V','VI','VII'];
+const ROMAN = ['I','II','III','IV','V','VI','VII','VIII'];
 const BANK = RAW.map((r, i) => {
   const [id, d, q, ans, e, tags] = r, t = tags || '';
   const Q = {id, n:i + 1, ch:parseInt(id.slice(0, 2), 10), d, q, e, tags:t, oa:t.includes('o'), beyond:t.includes('b')};
@@ -1653,7 +3167,8 @@ const SKILLS = [
   {key:'sk-arch', name:'Computer architecture', ch:[18, 20, 21]},
   {key:'sk-arith', name:'Computer arithmetic', tag:'a'},
   {key:'sk-hdl', name:'Verilog and verification', ch:[10, 12, 19]},
-  {key:'sk-gpu', name:'GPUs and CUDA', ch:[21]}
+  {key:'sk-gpu', name:'GPUs and CUDA', ch:[21]},
+  {key:'sk-prog', name:'Programming, Linux and scripting', ch:[23]}
 ];
 const LISTS = {
   'oa': {name:'Your OA questions', test:Q => hasTag(Q, 'o')},
@@ -1674,7 +3189,7 @@ const REVIEW = [
     {req:'First- or second-year undergrad in EE, CE, CS, math or a related field, with the graduation month and year on the resume', v:'na', book:'Not applicable', list:null, todo:'This is eligibility and resume formatting. Put your expected graduation month and year near the top of your resume.'},
     {req:'Passion shown through clubs, leadership roles and projects', v:'partial', book:'Appendix D gives resume projects matched to the NVIDIA teams in this posting', list:null, todo:'Study material cannot show this on your resume. Finish one Appendix D project before applications open.'},
     {req:'Courses geared toward hardware basics', v:'strong', book:'Chapters 1–12 build hardware from zero; the Drexel course list maps them to classes', list:'sk-basics', todo:'Do Quests 1–12 in order, then keep up the weekly sets.'},
-    {req:'Basic C, C++, Python, Perl or MATLAB', v:'partial', book:'Chapter 23 covers C and Python for hardware engineers; Perl and MATLAB are not taught', list:null, todo:'This trainer is hardware only, as you asked. Keep coding practice separate (your OA coding question was a linked list).'},
+    {req:'Basic C, C++, Python, Perl or MATLAB', v:'good', book:'Chapter 23 covers C and Python basics. Linux, git, make, Tcl, Perl and MATLAB are taught here as beyond-the-book problems', list:'sk-prog', code:['C and C++', 'Python and MATLAB', 'Linux and scripting'], todo:'Do Quest 23 and the Coding tab. Keep solving one LeetCode-style linked-list or bit problem a week; your OA coding question was a linked list.'},
     {req:'Problem solving, adaptability, and the desire to learn new concepts and tools', v:'good', book:'Chapter 24 (aptitude and puzzles) and Chapter 25 (a full practice assessment)', list:null, todo:'Weekly sets and the timed mock build this habit.'}
   ]},
   {group:'Ways to stand out', items:[
@@ -1682,12 +3197,26 @@ const REVIEW = [
     {req:'Understanding of VLSI design', v:'strong', book:'Chapters 8, 13, 16, 17 and 18 (gates, delay, wires, manufacturing, memory)', list:'sk-vlsi', todo:'Deeper topics (DIBL, subthreshold slope, CRPR, keepers) are in the trainer as beyond-the-book problems.'},
     {req:'Understanding of computer architecture', v:'good', book:'Chapters 18, 20 and 21 (memory, pipelines, caches, GPUs)', list:'sk-arch', todo:'Out-of-order execution and register renaming appear only as beyond-the-book problems.'},
     {req:'Understanding of computer arithmetic', v:'strong', book:'Chapter 22: overflow and saturation, shifters, fast and carry-save adders, multipliers and Booth recoding, division, fixed point, floating-point addition, multiplication and rounding. Number formats in Chapters 7 and 21', list:'sk-arith', todo:'Do Quest 22, then build the BF16 processing element of Appendix D Project 2 and check it against a reference model.'},
-    {req:'Basic Verilog, SystemVerilog or VHDL', v:'good', book:'Chapter 19: Verilog, SystemVerilog, CDC, FIFOs, and a verification section (self-checking testbenches, constrained-random tests, assertions, coverage, formal, UVM). VHDL is not taught', list:'sk-hdl', todo:'Multiple choice cannot teach you to write RTL. Keep writing and verifying it in HDLBits and the companion books; VHDL is easy to pick up once Verilog is solid.'},
-    {req:'Background in CUDA or OpenCL', v:'good', book:'Chapter 21 (CUDA model, warps, memory hierarchy); OpenCL is only named', list:'sk-gpu', todo:'Write and profile one small CUDA kernel, as in the Appendix D GPU project.'},
+    {req:'Basic Verilog, SystemVerilog or VHDL', v:'good', book:'Chapter 19: Verilog, SystemVerilog, CDC, FIFOs, and a verification section (self-checking testbenches, constrained-random tests, assertions, coverage, formal, UVM). VHDL is not taught', list:'sk-hdl', code:['RTL design', 'Verification'], todo:'Solve the Coding tab\'s RTL and verification problems and run them in Icarus Verilog or EDA Playground. VHDL is easy to pick up once Verilog is solid.'},
+    {req:'Background in CUDA or OpenCL', v:'good', book:'Chapter 21 (CUDA model, warps, memory hierarchy); OpenCL is only named', list:'sk-gpu', code:['GPU and CUDA'], todo:'Do the Coding tab\'s CUDA problems on a real GPU (Google Colab works), then the Appendix D CUDA project.'},
     {req:'Initiative in AI, machine learning, computer vision, robotics or parallel computing', v:'partial', book:'Chapters 20–21 cover parallelism and AI hardware (tensor cores, low-precision formats, roofline). Machine learning itself, vision and robotics are not covered', list:'sk-gpu', todo:'Show this with a project rather than a quiz.'},
     {req:'Basic mechanical CAD (CATIA, Siemens NX, SolidWorks, Creo)', v:'none', book:'Not taught. Appendix D Project 7 suggests a heat-sink design in SolidWorks or Onshape, sized with Chapter 3', list:null, todo:'This matters for mechanical and thermal teams, not for the OA. Do Project 7 only if those teams interest you.'},
     {req:'Looking for a first industry internship', v:'na', book:'Not applicable', list:null, todo:'Eligibility, not study material.'}
   ]}
+];
+// NVIDIA hardware roles beyond Ignite, with the quests and coding track that prepare for each.
+const ROLES = [
+  {name:'ASIC Design (RTL)', fit:'Strong', ch:[9, 10, 11, 12, 19, 22], code:'RTL design', add:'Write RTL every week and build the Appendix D processor and systolic-array projects.'},
+  {name:'ASIC / GPU Verification', fit:'Good', ch:[19, 12, 10], code:'Verification', add:'Real SystemVerilog testbenches, assertions and coverage, then UVM or cocotb; verify your own projects.'},
+  {name:'Physical Design and Timing', fit:'Good', ch:[11, 13, 15, 16, 17], code:'Physical design', add:'Run an open flow (OpenLane/OpenROAD or Tiny Tapeout) and read its timing reports; script in Tcl.'},
+  {name:'Power Architect / Power and Thermal', fit:'Strong', ch:[3, 14, 15], code:'Python and MATLAB', add:'Measure GPU power and fit it to the power model (Appendix D Project 6); analyze data in Python.'},
+  {name:'GPU / Hardware Architecture and Performance', fit:'Good', ch:[18, 20, 21], code:'GPU and CUDA', add:'Build performance models in C++ or Python and optimize CUDA kernels (Appendix D Project 4).'},
+  {name:'Hardware / CPU Infrastructure', fit:'Good', ch:[20, 23], code:'Linux and scripting', add:'Automate flows with Python, Perl and Linux tools; learn job schedulers and regression systems.'},
+  {name:'Firmware and Embedded C', fit:'Good', ch:[7, 20, 23], code:'C and C++', add:'Write drivers for a microcontroller or FPGA soft core: registers, interrupts and ring buffers.'},
+  {name:'Circuit Design (custom, SRAM, SerDes)', fit:'Medium', ch:[5, 6, 8, 18], code:null, add:'Deeper analog design (Razavi) and SPICE simulation (Appendix D Project 5).'},
+  {name:'DFT (Design for Test)', fit:'Medium', ch:[17, 10], code:'RTL design', add:'Scan insertion, ATPG and memory BIST in depth.'},
+  {name:'Signal / Power Integrity and Boards', fit:'Medium', ch:[2, 16], code:'Python and MATLAB', add:'PCB design (KiCad), SI/PI simulation and lab measurements with an oscilloscope.'},
+  {name:'Mechanical / Thermal', fit:'Light', ch:[3], code:null, add:'CAD and thermal simulation (Appendix D Project 7).'}
 ];
 const AREAS = [
   {name:'AI Developer Technology', ch:[20, 21, 22]},
@@ -1732,7 +3261,7 @@ function ring(frac, size, stroke, label){
 
 // ---------- state and saving ----------
 const LS_KEY = 'ground-up-trainer-v1';
-const emptyState = () => ({v:2, updatedAt:0, q:{}, weeks:{}, hist:[], learn:{cards:{}, units:{}, mux:{}}});
+const emptyState = () => ({v:2, updatedAt:0, q:{}, weeks:{}, hist:[], learn:{cards:{}, units:{}, mux:{}}, code:{}, codeWeek:null});
 function normalize(s){
   const e = emptyState();
   if (!s || typeof s !== 'object') return e;
@@ -1742,6 +3271,8 @@ function normalize(s){
   if (Array.isArray(s.hist)) e.hist = s.hist;
   const l = s.learn || {};
   e.learn = {cards:l.cards || {}, units:l.units || {}, mux:l.mux || {}};
+  if (s.code && typeof s.code === 'object') e.code = s.code;
+  if (s.codeWeek && s.codeWeek.wk) e.codeWeek = s.codeWeek;
   return e;
 }
 let state = emptyState();
@@ -1804,6 +3335,10 @@ function mergeStates(a, b){
   Object.keys(o.learn.units).forEach(k => {
     const x = m.learn.units[k] || {}, y = o.learn.units[k];
     m.learn.units[k] = {best:Math.max(x.best || 0, y.best || 0), passed:x.passed || y.passed || 0};
+  });
+  Object.keys(o.code).forEach(id => {
+    const x = m.code[id], y = o.code[id];
+    m.code[id] = !x ? y : {src:(y.at || 0) > (x.at || 0) ? y.src : x.src, solved:x.solved || y.solved || 0, at:Math.max(x.at || 0, y.at || 0)};
   });
   m.updatedAt = Math.max(m.updatedAt, o.updatedAt);
   return m;
@@ -1901,11 +3436,12 @@ function toast(text){
 }
 
 // ---------- UI state ----------
-const TABS = ['quest', 'problems', 'weekly', 'jobs'];
+const TABS = ['quest', 'problems', 'coding', 'weekly', 'jobs'];
 const blankFilters = () => ({q:'', ch:'all', d:'all', status:'all', type:'all', list:'all'});
-const ui = {tab:'quest', view:'tab', session:null, unit:null, pv:null, back:null, cardPick:{}, cardPerm:{}, f:blankFilters(), confirmReset:false, timer:null};
+const ui = {tab:'quest', view:'tab', session:null, unit:null, pv:null, back:null, cardPick:{}, cardPerm:{}, f:blankFilters(), confirmReset:false, timer:null, cf:null, cp:null, cback:null, codeTimer:null};
 function setHash(h){ try { history.replaceState(null, '', '#' + h); } catch (e) { /* ignore */ } }
 function goTab(t){
+  saveEditorNow();
   ui.tab = t; ui.view = 'tab'; stopTimer(); setHash(t);
   render(); window.scrollTo(0, 0);
 }
@@ -1913,7 +3449,9 @@ function goTab(t){
 // ---------- shared pieces ----------
 function renderHeader(){
   const solved = solvedIn(BANK.map(Q => Q.id));
-  $('#solved').innerHTML = ring(solved / BANK.length, 22, 3.5, `${solved} of ${BANK.length} solved`) + `<span><b>${solved}</b><span class="muted">/${BANK.length}</span> solved</span>`;
+  const cs = codeSolvedIn(CODING);
+  $('#solved').innerHTML = ring(solved / BANK.length, 22, 3.5, `${solved} of ${BANK.length} solved`) + `<span><b>${solved}</b><span class="muted">/${BANK.length}</span> solved</span>` +
+    `<span class="codecount"><b>${cs}</b><span class="muted">/${CODING.length}</span> code</span>`;
   document.querySelectorAll('.navlinks button').forEach(b => b.setAttribute('aria-current', b.dataset.tab === ui.tab && ui.view === 'tab' ? 'page' : 'false'));
 }
 function statusCell(id){
@@ -1962,11 +3500,13 @@ function verdictHTML(Q, chosen){
 function render(){
   renderHeader();
   const m = $('#main');
-  m.className = 'wrap main' + (ui.view === 'tab' && ui.tab === 'problems' ? ' wide' : '');
+  m.className = 'wrap main' + ((ui.view === 'tab' && (ui.tab === 'problems' || ui.tab === 'coding')) || ui.view === 'code' ? ' wide' : '');
   if (ui.view === 'quiz') { m.innerHTML = viewQuiz(); updateTimer(); }
   else if (ui.view === 'results') m.innerHTML = viewResults();
   else if (ui.view === 'unit') { m.innerHTML = viewUnit(); afterUnitRender(); }
   else if (ui.view === 'problem') m.innerHTML = viewProblem();
+  else if (ui.view === 'code') m.innerHTML = viewCode();
+  else if (ui.tab === 'coding') m.innerHTML = viewCoding();
   else if (ui.tab === 'quest') m.innerHTML = viewQuest();
   else if (ui.tab === 'problems') m.innerHTML = viewProblems();
   else if (ui.tab === 'weekly') m.innerHTML = viewWeekly();
@@ -2312,12 +3852,19 @@ function viewWeekly(){
         <div class="slists"><button type="button" class="slist" data-act="review-attempted"${attemptedIds.length ? '' : ' disabled'}><span>Attempted, not solved</span><span class="mono">${attemptedIds.length}</span></button>
         <button type="button" class="slist" data-act="review-oa"><span>Your OA + variants (20 at random)</span><span class="mono">${solvedIn(oavIds)}/${oavIds.length}</span></button></div></section>
     </div>
+    ${weekCodingHTML(wi)}
     <section class="card"><h2>Past weeks</h2>${weeks.length ? `<div class="hist">${weeks.map(k => `<div><span>${k.replace('-W', ' · week ')}</span><span class="mono">${state.weeks[k].score}/${state.weeks[k].ids.length}</span></div>`).join('')}</div>` : '<p class="muted">Finished weekly sets show up here.</p>'}</section>
     <section class="card" id="progress-card"><div class="row between"><div><h2>Your progress</h2><p class="muted">${esc(store.status)}.</p></div>
       ${ui.confirmReset ? '<div class="row"><span>Erase all progress?</span><button type="button" class="btn small" data-act="reset-yes">Erase everything</button><button type="button" class="btn small primary" data-act="reset-no">Keep my progress</button></div>' : '<button type="button" class="btn small ghost" data-act="reset">Reset progress</button>'}</div>
       ${acct.ready ? (acct.user ? `<div class="row between acctrow"><span>Signed in as <b>${esc(acct.user.email || acct.user.displayName || 'you')}</b>. Progress syncs to every device where you sign in.</span><button type="button" class="btn small" data-act="signout">Sign out</button></div>`
         : '<div class="row between acctrow"><span>Sign in with Google to keep your progress on every device.</span><button type="button" class="btn small primary" data-act="signin">Sign in with Google</button></div>') : ''}
       ${STANDALONE ? '<div class="row between acctrow"><span class="muted">Backup: download your progress as a file, or load one from another device (it merges, nothing is lost).</span><div class="row"><button type="button" class="btn small" data-act="export">Export progress</button><button type="button" class="btn small" data-act="import">Import progress</button><input type="file" id="import-file" accept=".json,application/json" hidden></div></div>' : ''}</section>`;
+}
+function weekCodingHTML(wi){
+  const cw = weekCoding().map(id => CODE_BY_ID[id]);
+  return `<section class="card"><div class="row between"><div><p class="eyebrow">Coding · week ${wi.num}</p><h2>This week's coding</h2></div><span class="pill">${cw.filter(p => codeStatus(p.id) === 'solved').length}/${cw.length} solved</span></div>
+    <p class="muted">One easy, one medium and one hard problem from the Coding tab, picked from the ones you have not solved yet.</p>
+    <div class="tablewrap"><table class="ptable compact ctable"><tbody>${cw.map(p => `<tr data-copen="${p.id}" data-from="weekly"><td class="c-st">${codeStatusCell(p.id)}</td><td class="c-ti"><a href="#code${p.n}" data-copen="${p.id}" data-from="weekly">${esc(p.title)}</a></td><td class="c-ty">${esc(LANGS[p.lang])}</td><td class="c-df d-${p.d}">${DIFF[p.d]}</td></tr>`).join('')}</tbody></table></div></section>`;
 }
 function topicIds(ch){
   const ids = CH_IDS[ch];
@@ -2344,10 +3891,10 @@ function viewJobs(){
   const repRows = REPORTED.map(r => `<tr><td>${esc(r.name)}</td><td>Ch ${r.ch}</td><td>${listCell(r.key)}</td></tr>`).join('');
   let html = `<section class="card hero"><div><p class="eyebrow">Job match review</p><h1>Does this match what NVIDIA asks for?</h1>
     <p class="muted">Every requirement in <a href="${JD.url}" target="_blank" rel="noopener">${esc(JD.title)}</a> (${JD.req}), checked against <em>Hardware from the Ground Up</em> and this trainer. Problem counts update as you solve.</p>
-    <p><b>Bottom line:</b> every hardware topic in the posting (CMOS, VLSI, timing, power, computer architecture, computer arithmetic, Verilog and verification, GPUs) is taught in the book and practiced here, and every question from your OA has many variants. What remains is outside multiple choice: VHDL, Perl and MATLAB are not taught, mechanical CAD is only a suggested project, and clubs, projects and coding are things you show on your resume.</p></div></section>
+    <p><b>Bottom line:</b> every hardware topic in the posting (CMOS, VLSI, timing, power, computer architecture, computer arithmetic, Verilog and verification, GPUs) is taught in the book and practiced here, every question from your OA has many variants, and the Coding tab covers the hands-on side: RTL, testbenches, C, Python, Linux, Tcl and CUDA. What remains: VHDL is not taught, mechanical CAD is only a suggested project, and clubs and projects are things you show on your resume.</p></div></section>
     <section class="card"><h2>Your OA questions</h2><p class="muted">Every question you reported is in the bank word for word, plus variants that test the same idea from other angles.</p>
     <div class="tablewrap"><table class="rtable"><thead><tr><th>OA topic</th><th>Book</th><th>Exact</th><th>Variants</th><th>Practice</th></tr></thead><tbody>${oaRows}</tbody></table></div>
-    <p class="muted small">Your coding question (a linked list) is taught in Chapter 23; this trainer is hardware only.</p></section>
+    <p class="muted small">Your coding question (a linked list) is taught in Chapter 23 and practiced in the Coding tab: ${codeCell(['C and C++'])}.</p></section>
     <section class="card"><h2>Topics other candidates reported</h2><p class="muted">Every topic from the book's "Seen on the assessment" boxes, where the book teaches it, and the problems that drill it. ${listCell('rep')} carry the reported tag.</p>
     <div class="tablewrap"><table class="rtable"><thead><tr><th>Reported topic</th><th>Book</th><th>Practice</th></tr></thead><tbody>${repRows}</tbody></table></div></section>`;
   REVIEW.forEach(g => {
@@ -2355,13 +3902,264 @@ function viewJobs(){
     g.items.forEach(it => {
       const [label, cls] = VERDICT[it.v];
       html += `<article class="review"><div class="rhead"><b>${esc(it.req)}</b><span class="vpill ${cls}">${label}</span></div>
-        <dl><div><dt>In the book</dt><dd>${esc(it.book)}</dd></div><div><dt>In this trainer</dt><dd>${listCell(it.list)}</dd></div><div><dt>What to do</dt><dd>${esc(it.todo)}</dd></div></dl></article>`;
+        <dl><div><dt>In the book</dt><dd>${esc(it.book)}</dd></div><div><dt>In this trainer</dt><dd>${listCell(it.list)}${it.code ? '<br>' + codeCell(it.code) : ''}</dd></div><div><dt>What to do</dt><dd>${esc(it.todo)}</dd></div></dl></article>`;
     });
     html += '</div></section>';
   });
   html += `<section class="card"><h2>Internship teams in the posting</h2><p class="muted">The quests that matter most for each team.</p><div class="areas">` +
     AREAS.map(a => `<div class="area"><b>${esc(a.name)}</b><div class="row">${a.ch.map(c => `<button type="button" class="topicchip" data-act="open-unit" data-u="${c}">Quest ${c} · ${esc(TOPICS[c])}</button>`).join('')}</div></div>`).join('') + '</div></section>';
+  html += `<section class="card"><h2>Other NVIDIA hardware roles</h2><p class="muted">Ignite only takes first- and second-years. These are the regular internship and new-grad roles to aim for next, with what this kit covers for each and what to add.</p><div class="reviews">` +
+    ROLES.map(r => `<article class="review"><div class="rhead"><b>${esc(r.name)}</b><span class="vpill ${r.fit === 'Strong' || r.fit === 'Good' ? 'ok' : r.fit === 'Medium' ? 'warn' : ''}">${r.fit} fit</span></div>
+      <dl><div><dt>Quests</dt><dd><div class="row">${r.ch.map(c => `<button type="button" class="topicchip" data-act="open-unit" data-u="${c}">Quest ${c} · ${esc(TOPICS[c])}</button>`).join('')}</div></dd></div>
+      <div><dt>Coding track</dt><dd>${r.code ? codeCell([r.code]) : '<span class="muted">No coding track: this role is mostly analog or mechanical</span>'}</dd></div>
+      <div><dt>Also do</dt><dd>${esc(r.add)}</dd></div></dl></article>`).join('') + '</div></section>';
   return html;
+}
+
+// ---------- Coding problems ----------
+CODING.forEach((p, i) => { p.n = i + 1; p.hay = (p.title + ' ' + p.p.join(' ') + ' ' + LANGS[p.lang] + ' ' + p.area).toLowerCase(); });
+const CODE_BY_ID = Object.fromEntries(CODING.map(p => [p.id, p]));
+const CODE_MAX = 4000;   // characters of your code kept per problem
+const blankCodeFilters = () => ({q:'', area:'all', lang:'all', d:'all', status:'all'});
+ui.cf = blankCodeFilters();
+const codeStatus = id => { const s = state.code[id]; return !s ? 'todo' : (s.solved ? 'solved' : 'attempted'); };
+const codeSolvedIn = list => list.filter(p => codeStatus(p.id) === 'solved').length;
+function setCode(id, patch){ state.code[id] = Object.assign({src:null, solved:0}, state.code[id], patch, {at:Date.now()}); }
+function inlineCode(t){ return esc(t).replace(/`([^`]+)`/g, '<code>$1</code>'); }
+function codeStatusCell(id){
+  const s = codeStatus(id);
+  return s === 'solved' ? `<span class="st solved" title="Solved">${ICON.solved}</span>` : s === 'attempted' ? `<span class="st attempted" title="Attempted">${ICON.attempted}</span>` : '<span class="st todo" title="Not tried"></span>';
+}
+function codeCell(areas){
+  return areas.map(a => { const l = CODING.filter(p => p.area === a); return `<button type="button" class="linkbtn" data-act="c-area-go" data-v="${esc(a)}">${l.length} ${esc(a)} coding problems</button><span class="muted"> · ${codeSolvedIn(l)} solved</span>`; }).join('<br>');
+}
+function codeFiltered(){
+  const f = ui.cf, term = f.q.trim().toLowerCase();
+  return CODING.filter(p => (f.area === 'all' || p.area === f.area) && (f.lang === 'all' || p.lang === f.lang) && (f.d === 'all' || p.d === f.d) &&
+    (f.status === 'all' || codeStatus(p.id) === f.status) && (!term || p.hay.indexOf(term) >= 0));
+}
+function codeRowsHTML(list){
+  return list.length ? list.map(p => `<tr data-copen="${p.id}"><td class="c-st">${codeStatusCell(p.id)}</td><td class="c-ti"><a href="#code${p.n}" data-copen="${p.id}">${p.n}. ${esc(p.title)}</a>${p.run ? '<span class="tags"><span class="tag t-run">Runs here</span></span>' : ''}</td>` +
+    `<td class="c-tp">${esc(p.area)}</td><td class="c-ty">${esc(LANGS[p.lang])}</td><td class="c-df d-${p.d}">${DIFF[p.d]}</td></tr>`).join('')
+    : '<tr><td colspan="5" class="empty">No coding problems match. Reset the filters or try another search.</td></tr>';
+}
+function viewCoding(){
+  const f = ui.cf, list = codeFiltered(), solved = codeSolvedIn(CODING);
+  const chips = `<button type="button" class="tchip${f.area === 'all' ? ' on' : ''}" data-act="cf-area" data-v="all">All areas <span>${CODING.length}</span></button>` +
+    CODE_AREAS.map(a => `<button type="button" class="tchip${f.area === a ? ' on' : ''}" data-act="cf-area" data-v="${esc(a)}">${esc(a)} <span>${CODING.filter(p => p.area === a).length}</span></button>`).join('');
+  const langOpts = [['all', 'Language'], ...Object.keys(LANGS).filter(l => CODING.some(p => p.lang === l)).map(l => [l, LANGS[l]])];
+  const byD = d => { const l = CODING.filter(p => p.d === d); return [codeSolvedIn(l), l.length]; };
+  return `<div class="pgrid"><section class="pmain">
+    <div class="chiprow" role="toolbar" aria-label="Filter by area">${chips}</div>
+    <div class="fbar cfbar">
+      <input type="search" id="cf-q" placeholder="Search coding problems" value="${esc(f.q)}" aria-label="Search coding problems">
+      ${sel('cf-lang', 'Language', f.lang, langOpts)}
+      ${sel('cf-d', 'Difficulty', f.d, [['all', 'Difficulty'], ['E', 'Easy'], ['M', 'Medium'], ['H', 'Hard']])}
+      ${sel('cf-status', 'Status', f.status, [['all', 'Status'], ['todo', 'Todo'], ['solved', 'Solved'], ['attempted', 'Attempted']])}
+      <div class="fbtns"><button type="button" class="btn small ghost" data-act="cf-reset">Reset</button><button type="button" class="btn small primary" id="cpick" data-act="cpick"${list.length ? '' : ' disabled'}>Pick one</button></div>
+    </div>
+    <p class="fcount" id="cf-count">${list.length} problems · ${codeSolvedIn(list)} solved</p>
+    <div class="tablewrap"><table class="ptable ctable"><thead><tr><th class="c-st">Status</th><th class="c-ti">Problem</th><th class="c-tp">Area</th><th class="c-ty">Language</th><th class="c-df">Difficulty</th></tr></thead><tbody id="crows">${codeRowsHTML(list)}</tbody></table></div>
+  </section>
+  <aside class="pside">
+    <section class="card progcard"><h2>Coding progress</h2><div class="progring">${ring(solved / CODING.length, 120, 9, `${solved} of ${CODING.length} solved`)}<div class="ringlabel"><b>${solved}</b><span>/${CODING.length}</span><small>Solved</small></div></div>
+      <div class="dbars">${['E', 'M', 'H'].map(d => { const [s, t] = byD(d); return `<div class="dbar"><span class="d-${d}">${DIFF[d]}</span><span class="mono">${s}/${t}</span><i class="bar d-${d}"><b style="width:${pct(s, t)}%"></b></i></div>`; }).join('')}</div>
+      <p class="muted small">Python problems run their tests right here. The rest you write here, run in a real tool (Icarus Verilog, gcc, a Linux shell), then compare with the solution.</p></section>
+    <section class="card studycard"><h2>Tracks by NVIDIA role</h2><div class="slists">${ROLES.filter(r => r.code).map(r => { const l = CODING.filter(p => p.area === r.code); return `<button type="button" class="slist${f.area === r.code ? ' on' : ''}" data-act="cf-area" data-v="${esc(r.code)}"><span>${esc(r.name)}</span><span class="mono">${codeSolvedIn(l)}/${l.length}</span></button>`; }).join('')}</div></section>
+  </aside></div>`;
+}
+function refreshCodeRows(){
+  ui.cf.q = $('#cf-q').value; ui.cf.lang = $('#cf-lang').value; ui.cf.d = $('#cf-d').value; ui.cf.status = $('#cf-status').value;
+  const list = codeFiltered();
+  $('#crows').innerHTML = codeRowsHTML(list);
+  $('#cf-count').textContent = `${list.length} problems · ${codeSolvedIn(list)} solved`;
+  $('#cpick').disabled = !list.length;
+}
+
+// Coding problem page: statement and hints on the left, your editor on the right.
+function openCode(id, list, back){
+  saveEditorNow();
+  ui.cp = {id, list:list && list.length ? list : CODING.map(p => p.id), hints:0, sol:false, run:null};
+  if (back) ui.cback = back;
+  ui.view = 'code'; setHash('code' + CODE_BY_ID[id].n); render(); window.scrollTo(0, 0);
+}
+function saveEditorNow(){
+  const ed = $('#code-editor');
+  clearTimeout(ui.codeTimer);
+  if (!ed || !ui.cp || ui.view !== 'code') return;
+  const id = ui.cp.id, s = state.code[id], v = ed.value.slice(0, CODE_MAX);
+  if (s ? s.src !== v : v !== CODE_BY_ID[id].starter) { setCode(id, {src:v}); save(); }
+}
+function codeLeftHTML(){
+  const C = ui.cp, p = CODE_BY_ID[C.id], st = codeStatus(p.id);
+  return `<article class="card cstate"><div class="pvhead"><h1>${p.n}. ${esc(p.title)}</h1>${st === 'solved' ? `<span class="solvedmark">${ICON.solved} Solved</span>` : st === 'attempted' ? '<span class="attmark">Attempted</span>' : ''}</div>
+    <div class="qmeta"><span class="dpill d-${p.d}">${DIFF[p.d]}</span><span class="topicchip">${esc(p.area)}</span><span>${esc(LANGS[p.lang])}</span>${p.run ? '<span class="tag t-run">Runs here</span>' : ''}</div>
+    <div class="body">${p.p.map(t => `<p>${inlineCode(t)}</p>`).join('')}</div>
+    ${p.ex ? `<div><p class="eyebrow">Example</p><pre class="code">${esc(p.ex)}</pre></div>` : ''}
+    <div class="hintbox">${p.hints.slice(0, C.hints).map((h, i) => `<p><b>Hint ${i + 1}.</b> ${inlineCode(h)}</p>`).join('')}
+      ${C.hints < p.hints.length ? `<button type="button" class="btn small" data-act="c-hint">Show hint ${C.hints + 1} of ${p.hints.length}</button>` : ''}</div>
+    ${C.sol ? `<section class="sol"><h2>Solution</h2><pre class="code">${esc(p.sol)}</pre>${p.why.map(t => `<p>${inlineCode(t)}</p>`).join('')}</section>`
+      : '<div><button type="button" class="btn small ghost" data-act="c-sol">Show solution</button></div>'}
+  </article>`;
+}
+function toolNote(lang){
+  return ({verilog:'Run it free with Icarus Verilog (iverilog) or online at EDA Playground, then compare with the solution.',
+    sv:'Run it in a SystemVerilog simulator (EDA Playground has free ones), then compare with the solution.',
+    c:'Compile and test it with gcc or clang, then compare with the solution.', cpp:'Compile and test it with g++ or clang++, then compare with the solution.',
+    python:'Run it with a simulator and cocotb on your computer.', bash:'Try it in a Linux or macOS terminal.', tcl:'Try it in tclsh or your EDA tool.',
+    perl:'Run it with perl on any Linux or macOS machine.', cuda:'Compile it with nvcc on a machine with an NVIDIA GPU (Google Colab works).', matlab:'Run it in MATLAB or GNU Octave.'}[lang] || '') + ' Mark it solved when your version works.';
+}
+function viewCode(){
+  const C = ui.cp, p = CODE_BY_ID[C.id], pos = C.list.indexOf(C.id), s = state.code[p.id] || {}, st = codeStatus(p.id);
+  const src = s.src != null ? s.src : p.starter;
+  const back = ui.cback && ui.cback.tab === 'weekly' ? 'Back to weekly' : 'Coding problems';
+  return `<div class="cpv-wrap"><div class="pvbar"><button type="button" class="btn ghost small" data-act="c-back">← ${back}</button>
+    <div class="row"><span class="muted mono">${pos + 1} / ${C.list.length}</span>
+    <button type="button" class="iconbtn" data-act="c-prev" aria-label="Previous problem"${pos <= 0 ? ' disabled' : ''}>‹</button>
+    <button type="button" class="iconbtn" data-act="c-next" aria-label="Next problem"${pos >= C.list.length - 1 ? ' disabled' : ''}>›</button></div></div>
+    <div class="cpv">${codeLeftHTML()}
+    <section class="card ceditor"><div class="row between"><b>Your ${esc(LANGS[p.lang])}</b><div class="row">
+      <button type="button" class="btn small ghost" data-act="c-reset">Reset code</button>
+      ${p.run ? `<button type="button" class="btn small primary" data-act="c-run"${C.run && C.run.busy ? ' disabled' : ''}>Run tests</button>`
+        : `<button type="button" class="btn small${st === 'solved' ? '' : ' primary'}" data-act="c-mark">${st === 'solved' ? 'Mark as not solved' : 'Mark as solved'}</button>`}</div></div>
+      <textarea id="code-editor" class="code-editor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your code (Tab inserts spaces; Esc leaves the editor)">${esc(src)}</textarea>
+      <div id="run-out">${runOutHTML(p)}</div>
+      ${p.run ? '<p class="muted small">Tests run in your browser with Python (Pyodide). Your code is saved as you type.</p>' : `<p class="muted small">${toolNote(p.lang)}</p>`}</section></div></div>`;
+}
+function pyRepr(v){
+  if (v === true) return 'True';
+  if (v === false) return 'False';
+  if (v === null) return 'None';
+  if (typeof v === 'string') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(pyRepr).join(', ') + ']';
+  if (typeof v === 'object') return '{' + Object.keys(v).map(k => JSON.stringify(k) + ': ' + pyRepr(v[k])).join(', ') + '}';
+  return String(v);
+}
+function runOutHTML(p){
+  const R = ui.cp.run;
+  if (!R) return '';
+  if (R.busy) return `<p class="muted runmsg">${esc(R.msg)}</p>`;
+  if (R.error) return `<div class="verdict bad" role="status"><b>Error</b></div><pre class="code err">${esc(R.error)}</pre>`;
+  const passed = R.results.filter(r => r[0]).length, total = R.results.length;
+  return `<div class="verdict ${passed === total ? 'ok' : 'bad'}" role="status"><b>${passed === total ? 'Accepted' : 'Wrong Answer'}</b><span>${passed}/${total} tests passed</span></div>
+    <ul class="tres">${R.results.map((r, i) => { const t = p.run.tests[i]; return `<li><span class="st ${r[0] ? 'solved' : 'wrongmark'}">${r[0] ? ICON.solved : ICON.wrong}</span><div><code>${esc(p.run.fn + '(' + t[0].map(pyRepr).join(', ') + ')')}</code>${r[0] ? '' : `<small>expected <code>${esc(pyRepr(t[1]))}</code>, got <code>${esc(r[1])}</code></small>`}</div></li>`; }).join('')}</ul>
+    ${R.stdout ? `<p class="eyebrow">Printed output</p><pre class="code">${esc(R.stdout)}</pre>` : ''}`;
+}
+function showRun(){
+  if (!ui.cp || ui.view !== 'code') return;
+  const o = $('#run-out'); if (o) o.innerHTML = runOutHTML(CODE_BY_ID[ui.cp.id]);
+  const b = $('[data-act="c-run"]'); if (b) b.disabled = !!(ui.cp.run && ui.cp.run.busy);
+}
+
+// Python runs in the browser with Pyodide, inside a Web Worker so a runaway loop can be stopped.
+const PYODIDE = 'https://cdn.jsdelivr.net/npm/pyodide@0.26.2/';
+const pyRun = {worker:null, ready:false, main:null};
+const PY_WORKER = `importScripts('${PYODIDE}pyodide.js');
+let py = null;
+self.onmessage = async (e) => {
+  try {
+    if (!py) { py = await loadPyodide({indexURL: '${PYODIDE}'}); self.postMessage({type: 'loaded'}); }
+    const out = [];
+    py.setStdout({batched: (s) => out.push(s)});
+    py.setStderr({batched: (s) => out.push(s)});
+    const g = py.globals.get('dict')();
+    const result = await py.runPythonAsync(e.data.code, {globals: g});
+    g.destroy();
+    self.postMessage({type: 'done', result: String(result), stdout: out.join('\\n')});
+  } catch (err) {
+    self.postMessage({type: 'error', error: String((err && err.message) || err)});
+  }
+};`;
+function harness(p, src){
+  return [src, '', 'import json as __json',
+    'def __norm(v):',
+    '    if isinstance(v, tuple): v = list(v)',
+    '    if isinstance(v, list): return [__norm(x) for x in v]',
+    '    if isinstance(v, dict): return {str(k): __norm(x) for k, x in v.items()}',
+    '    return v',
+    '__res = []',
+    `for __args, __exp in __json.loads(${JSON.stringify(JSON.stringify(p.run.tests))}):`,
+    '    try:',
+    `        __got = __norm(${p.run.fn}(*__args))`,
+    '        __res.append([__got == __exp, repr(__got)])',
+    '    except Exception as __e:',
+    '        __res.append([False, type(__e).__name__ + ": " + str(__e)])',
+    '__json.dumps(__res)'].join('\n');
+}
+function cleanPyError(s){ return s.split('\n').filter(l => !/_pyodide|pyodide\.asm|File "\/lib\//.test(l)).join('\n').trim(); }
+function setRunMsg(msg){ if (ui.cp && ui.cp.run && ui.cp.run.busy) { ui.cp.run.msg = msg; showRun(); } }
+async function execOnMain(code){
+  try {
+    if (!pyRun.main) {
+      if (!window.loadPyodide) await loadScript(PYODIDE + 'pyodide.js');
+      pyRun.main = await window.loadPyodide({indexURL:PYODIDE});
+    }
+    const py = pyRun.main, out = [];
+    py.setStdout({batched:s => out.push(s)}); py.setStderr({batched:s => out.push(s)});
+    const g = py.globals.get('dict')();
+    const result = await py.runPythonAsync(code, {globals:g});
+    g.destroy();
+    return {result:String(result), stdout:out.join('\n')};
+  } catch (e) { return {error:cleanPyError(String((e && e.message) || e)) || 'Python could not be loaded. Check your connection.'}; }
+}
+function execPython(code){
+  return new Promise(resolve => {
+    let w = pyRun.worker;
+    if (!w) {
+      try { w = pyRun.worker = new Worker(URL.createObjectURL(new Blob([PY_WORKER], {type:'text/javascript'}))); pyRun.ready = false; }
+      catch (e) { execOnMain(code).then(resolve); return; }
+    }
+    let timer = null;
+    const finish = r => { clearTimeout(timer); w.onmessage = null; w.onerror = null; resolve(r); };
+    const kill = msg => { w.terminate(); pyRun.worker = null; pyRun.ready = false; finish({error:msg}); };
+    timer = setTimeout(() => kill(pyRun.ready ? 'Time limit exceeded: your code ran for more than 8 seconds (an infinite loop?).' : 'Python did not finish loading. Check your connection and try again.'), pyRun.ready ? 8000 : 120000);
+    w.onerror = ev => { if (ev.preventDefault) ev.preventDefault(); clearTimeout(timer); w.terminate(); pyRun.worker = null; pyRun.ready = false; execOnMain(code).then(resolve); };
+    w.onmessage = ev => {
+      const m = ev.data;
+      if (m.type === 'loaded') {
+        pyRun.ready = true; clearTimeout(timer);
+        timer = setTimeout(() => kill('Time limit exceeded: your code ran for more than 8 seconds (an infinite loop?).'), 8000);
+        setRunMsg('Running tests…');
+      } else if (m.type === 'done') finish({result:m.result, stdout:m.stdout});
+      else if (m.type === 'error') finish({error:cleanPyError(m.error)});
+    };
+    w.postMessage({code});
+  });
+}
+function runCode(){
+  const C = ui.cp, p = CODE_BY_ID[C.id], src = $('#code-editor').value;
+  setCode(p.id, {src:src.slice(0, CODE_MAX)}); save();
+  C.run = {busy:true, msg:pyRun.ready || pyRun.main ? 'Running tests…' : 'Loading Python in your browser (the first run downloads about 10 MB)…'};
+  showRun();
+  const id = p.id;
+  execPython(harness(p, src)).then(res => {
+    if (!ui.cp || ui.cp.id !== id) return;
+    if (res.error) ui.cp.run = {error:res.error};
+    else {
+      let results = [];
+      try { results = JSON.parse(res.result); } catch (e) { ui.cp.run = {error:'Could not read the test results.'}; showRun(); return; }
+      ui.cp.run = {results, stdout:res.stdout};
+      if (results.length && results.every(r => r[0]) && codeStatus(id) !== 'solved') {
+        setCode(id, {solved:Date.now()}); save(); renderHeader();
+        const head = $('.cstate'); if (head) head.outerHTML = codeLeftHTML();
+        toast('Accepted: ' + p.title);
+      }
+    }
+    showRun();
+  });
+}
+// This week's coding: one easy, one medium and one hard problem, chosen once per week from unsolved ones.
+function weekCoding(){
+  const wk = isoWeek(new Date()).key;
+  if (!state.codeWeek || state.codeWeek.wk !== wk) {
+    const rnd = rngFrom('code:' + wk);
+    const ids = ['E', 'M', 'H'].map(d => {
+      const all = CODING.filter(p => p.d === d), todo = all.filter(p => codeStatus(p.id) !== 'solved'), pool = todo.length ? todo : all;
+      return pool[Math.floor(rnd() * pool.length)].id;
+    });
+    state.codeWeek = {wk, ids}; save();
+  }
+  return state.codeWeek.ids.filter(id => CODE_BY_ID[id]);
 }
 
 // ---------- events ----------
@@ -2384,6 +4182,13 @@ document.addEventListener('click', e => {
   }
   const a = e.target.closest('[data-act]');
   if (a && !a.disabled) { e.preventDefault(); act(a); return; }
+  const co = e.target.closest('[data-copen]');
+  if (co) {
+    e.preventDefault();
+    if (co.dataset.from === 'weekly') openCode(co.dataset.copen, weekCoding(), {view:'tab', tab:'weekly'});
+    else openCode(co.dataset.copen, codeFiltered().map(p => p.id), {view:'tab', tab:'coding'});
+    return;
+  }
   const op = e.target.closest('[data-open]');
   if (op) {
     e.preventDefault();
@@ -2426,6 +4231,31 @@ function act(a){
     case 'f-list-go': ui.f = Object.assign(blankFilters(), {list:a.dataset.v}); goTab('problems'); break;
     case 'topic-filter': ui.f = Object.assign(blankFilters(), {ch:a.dataset.ch}); goTab('problems'); break;
     case 'f-reset': ui.f = blankFilters(); $('#main').innerHTML = viewProblems(); break;
+    case 'cf-area': ui.cf.area = a.dataset.v; $('#main').innerHTML = viewCoding(); break;
+    case 'cf-reset': ui.cf = blankCodeFilters(); $('#main').innerHTML = viewCoding(); break;
+    case 'c-area-go': ui.cf = Object.assign(blankCodeFilters(), {area:a.dataset.v}); goTab('coding'); break;
+    case 'cpick': {
+      const list = codeFiltered(), todo = list.filter(p => codeStatus(p.id) !== 'solved'), pool = todo.length ? todo : list;
+      if (pool.length) openCode(pool[Math.floor(Math.random() * pool.length)].id, list.map(p => p.id), {view:'tab', tab:'coding'});
+      break;
+    }
+    case 'c-back': saveEditorNow(); goTab(ui.cback && ui.cback.tab ? ui.cback.tab : 'coding'); break;
+    case 'c-prev': case 'c-next': {
+      const C = ui.cp, i = C.list.indexOf(C.id) + (a.dataset.act === 'c-next' ? 1 : -1);
+      if (i >= 0 && i < C.list.length) openCode(C.list[i], C.list);
+      break;
+    }
+    case 'c-hint': ui.cp.hints++; $('.cstate').outerHTML = codeLeftHTML(); break;
+    case 'c-sol': ui.cp.sol = true; $('.cstate').outerHTML = codeLeftHTML(); break;
+    case 'c-reset': { const p = CODE_BY_ID[ui.cp.id]; $('#code-editor').value = p.starter; setCode(p.id, {src:p.starter}); save(); break; }
+    case 'c-run': runCode(); break;
+    case 'c-mark': {
+      saveEditorNow();
+      const id = ui.cp.id;
+      setCode(id, {solved:codeStatus(id) === 'solved' ? 0 : Date.now()}); save();
+      $('#main').innerHTML = viewCode(); renderHeader();
+      break;
+    }
     case 'pick-one': {
       const list = filtered(), todo = list.filter(Q => !isSolved(Q.id)), pool = todo.length ? todo : list;
       if (pool.length) openProblem(pool[Math.floor(Math.random() * pool.length)].id, list.map(Q => Q.id), {view:'tab', tab:'problems'});
@@ -2455,7 +4285,20 @@ function returnFrom(from){
   if (from && from.view === 'unit' && ui.unit) { ui.view = 'unit'; render(); return; }
   goTab(from && from.tab ? from.tab : 'quest');
 }
-document.addEventListener('input', e => { if (e.target.closest('.fbar')) readFilters(); });
+document.addEventListener('input', e => {
+  if (e.target.id === 'code-editor') { clearTimeout(ui.codeTimer); ui.codeTimer = setTimeout(saveEditorNow, 500); return; }
+  if (e.target.closest('.cfbar')) { refreshCodeRows(); return; }
+  if (e.target.closest('.fbar')) readFilters();
+});
+// In the code editor, Tab inserts two spaces and Esc leaves the editor (so the keyboard can move on).
+document.addEventListener('keydown', e => {
+  if (e.target.id !== 'code-editor') return;
+  if (e.key === 'Escape') { e.target.blur(); return; }
+  if (e.key !== 'Tab' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+  e.preventDefault();
+  e.target.setRangeText('  ', e.target.selectionStart, e.target.selectionEnd, 'end');
+  e.target.dispatchEvent(new Event('input', {bubbles:true}));
+});
 document.addEventListener('change', e => { if (e.target.id === 'import-file' && e.target.files[0]) importProgress(e.target.files[0]); });
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -2483,7 +4326,9 @@ const local = lsLoad();
 if (local) state = normalize(local);
 (function readHash(){
   const h = location.hash.replace('#', ''), m = /^p(\d+)$/.exec(h);
+  const cm = /^code(\d+)$/.exec(h);
   if (TABS.includes(h)) ui.tab = h;
+  if (cm && CODING[+cm[1] - 1]) { ui.tab = 'coding'; ui.cback = {view:'tab', tab:'coding'}; ui.cp = {id:CODING[+cm[1] - 1].id, list:CODING.map(p => p.id), hints:0, sol:false, run:null}; ui.view = 'code'; }
   else if (h === 'learn') ui.tab = 'quest';
   else if (h === 'practice') ui.tab = 'weekly';
   else if (h === 'bank') ui.tab = 'problems';

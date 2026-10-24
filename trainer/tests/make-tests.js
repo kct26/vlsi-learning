@@ -19,7 +19,7 @@ const fakeFirebase = `localStorage.clear();
     window.firebase = { initializeApp(){}, auth,
       firestore: () => ({ collection: () => ({ doc: id => ({ get: () => Promise.resolve({exists: !!window.__fb.users[id], data: () => window.__fb.users[id]}), set: d => { window.__fb.users[id] = d; return Promise.resolve(); } }) }) }) };
   })();`;
-[1, 2, 3, 4, 5].forEach(p => {
+[1, 2, 3, 4, 5, 6].forEach(p => {
   const pre = `<script>window.__PHASE=${p};${p === 2 ? seedAllUnlocked : p === 5 ? fakeFirebase : 'localStorage.clear();'}</script>\n`;
   const i = html.indexOf('<script>');
   fs.writeFileSync(path.join(outDir, `test${p}.html`), '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>' +
