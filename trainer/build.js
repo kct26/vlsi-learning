@@ -3,13 +3,13 @@
 //   node build.js --fragment out.html -> page body only (for hosts that add their own <html>/<head>, such as Claude artifacts)
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const src = path.join(__dirname, 'src'), read = f => fs.readFileSync(path.join(src, f), 'utf8');
-const SCRIPTS = ['questions.js', 'lessons.js', 'widgets.js', 'coding.js', 'app.js'];
+const SCRIPTS = ['questions.js', 'lessons.js', 'widgets.js', 'coding.js', 'hidden-tests.js', 'judge.js', 'app.js'];
 
 // Load the data files and widget table into one sandbox to check them.
 const ctx = {};
 vm.createContext(ctx);
-vm.runInContext(SCRIPTS.slice(0, 4).map(read).join('\n') + '\n;this.RAW = RAW; this.PARTS = PARTS; this.UNITS = UNITS; this.WIDGETS = WIDGETS; this.CODING = CODING; this.LANGS = LANGS; this.CODE_AREAS = CODE_AREAS;', ctx);
-const {RAW, PARTS, UNITS, WIDGETS, CODING, LANGS, CODE_AREAS} = ctx;
+vm.runInContext(SCRIPTS.slice(0, 6).map(read).join('\n') + '\n;this.HIDDEN = HIDDEN; this.V_CHECKS = V_CHECKS; this.RAW = RAW; this.PARTS = PARTS; this.UNITS = UNITS; this.WIDGETS = WIDGETS; this.CODING = CODING; this.LANGS = LANGS; this.CODE_AREAS = CODE_AREAS;', ctx);
+const {RAW, PARTS, UNITS, WIDGETS, CODING, LANGS, CODE_AREAS, HIDDEN, V_CHECKS} = ctx;
 const errs = [], ids = new Set(), perCh = {}, texts = new Set();
 RAW.forEach((r, i) => {
   const [id, d, q, ans, expl, tags] = r, where = `RAW[${i}] ${id}`;
@@ -51,8 +51,13 @@ CODING.forEach((p, i) => {
   if (!LANGS[p.lang]) errs.push(where + ': unknown language ' + p.lang);
   if (!CODE_AREAS.includes(p.area)) errs.push(where + ': unknown area ' + p.area);
   if (!p.title || !Array.isArray(p.p) || !p.p.length || !p.starter || !p.sol || !Array.isArray(p.hints) || !Array.isArray(p.why)) errs.push(where + ': missing title, statement, starter, hints, solution or explanation');
-  if (p.run && (p.lang !== 'python' || !p.run.fn || !Array.isArray(p.run.tests) || !p.run.tests.length || p.run.tests.some(t => !Array.isArray(t) || t.length !== 2 || !Array.isArray(t[0])))) errs.push(where + ': bad run tests');
+  const R = p.run;
+  if (R && !R.kind && (p.lang !== 'python' || !R.fn || !Array.isArray(R.tests) || !R.tests.length || R.tests.some(t => !Array.isArray(t) || t.length !== 2 || !Array.isArray(t[0])))) errs.push(where + ': bad Python tests');
+  if (R && R.kind === 'c' && (!['c', 'cpp'].includes(p.lang) || !Array.isArray(R.tests) || R.tests.length < 3 || R.tests.some(t => !Array.isArray(t) || !(t.length === 2 || (t.length === 4 && (t[2] === 'out' || t[2] === null) && t[3]))))) errs.push(where + ': bad C/C++ tests');
+  if (R && R.kind === 'v' && (p.lang !== 'verilog' || (R.check ? !V_CHECKS[R.check] || !R.top : !Array.isArray(R.benches) || !R.benches.length || R.benches.some(b => !b.name || !b.top || !Array.isArray(b.in) || !(b.rows || b.rand)))))  errs.push(where + ': bad Verilog tests');
+  if (R && R.kind && !['c', 'v'].includes(R.kind)) errs.push(where + ': unknown test kind ' + R.kind);
 });
+Object.keys(HIDDEN).forEach(id => { if (!codeIds.has(id)) errs.push('hidden tests for unknown problem ' + id); });
 const partUnits = PARTS.flatMap(p => p.units).sort((a, b) => a - b).join(',');
 if (partUnits !== UNITS.map(U => U.id).join(',')) errs.push('PARTS do not cover every quest exactly once');
 const scripts = SCRIPTS.map(read).join('\n');

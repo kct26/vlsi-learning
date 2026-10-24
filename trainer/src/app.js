@@ -92,7 +92,7 @@ const REVIEW = [
     {req:'Understanding of VLSI design', v:'strong', book:'Chapters 8, 13, 16, 17 and 18 (gates, delay, wires, manufacturing, memory)', list:'sk-vlsi', todo:'Deeper topics (DIBL, subthreshold slope, CRPR, keepers) are in the trainer as beyond-the-book problems.'},
     {req:'Understanding of computer architecture', v:'good', book:'Chapters 18, 20 and 21 (memory, pipelines, caches, GPUs)', list:'sk-arch', todo:'Out-of-order execution and register renaming appear only as beyond-the-book problems.'},
     {req:'Understanding of computer arithmetic', v:'strong', book:'Chapter 22: overflow and saturation, shifters, fast and carry-save adders, multipliers and Booth recoding, division, fixed point, floating-point addition, multiplication and rounding. Number formats in Chapters 7 and 21', list:'sk-arith', todo:'Do Quest 22, then build the BF16 processing element of Appendix D Project 2 and check it against a reference model.'},
-    {req:'Basic Verilog, SystemVerilog or VHDL', v:'good', book:'Chapter 19: Verilog, SystemVerilog, CDC, FIFOs, and a verification section (self-checking testbenches, constrained-random tests, assertions, coverage, formal, UVM). VHDL is not taught', list:'sk-hdl', code:['RTL design', 'Verification'], todo:'Solve the Coding tab\'s RTL and verification problems and run them in Icarus Verilog or EDA Playground. VHDL is easy to pick up once Verilog is solid.'},
+    {req:'Basic Verilog, SystemVerilog or VHDL', v:'good', book:'Chapter 19: Verilog, SystemVerilog, CDC, FIFOs, and a verification section (self-checking testbenches, constrained-random tests, assertions, coverage, formal, UVM). VHDL is not taught', list:'sk-hdl', code:['RTL design', 'Verification'], todo:'Solve the Coding tab\'s RTL problems (judged in the browser) and its verification problems (run them in Icarus Verilog or EDA Playground). VHDL is easy to pick up once Verilog is solid.'},
     {req:'Background in CUDA or OpenCL', v:'good', book:'Chapter 21 (CUDA model, warps, memory hierarchy); OpenCL is only named', list:'sk-gpu', code:['GPU and CUDA'], todo:'Do the Coding tab\'s CUDA problems on a real GPU (Google Colab works), then the Appendix D CUDA project.'},
     {req:'Initiative in AI, machine learning, computer vision, robotics or parallel computing', v:'partial', book:'Chapters 20–21 cover parallelism and AI hardware (tensor cores, low-precision formats, roofline). Machine learning itself, vision and robotics are not covered', list:'sk-gpu', todo:'Show this with a project rather than a quiz.'},
     {req:'Basic mechanical CAD (CATIA, Siemens NX, SolidWorks, Creo)', v:'none', book:'Not taught. Appendix D Project 7 suggests a heat-sink design in SolidWorks or Onshape, sized with Chapter 3', list:null, todo:'This matters for mechanical and thermal teams, not for the OA. Do Project 7 only if those teams interest you.'},
@@ -233,7 +233,10 @@ function mergeStates(a, b){
   });
   Object.keys(o.code).forEach(id => {
     const x = m.code[id], y = o.code[id];
+    const subs = {};
+    (x ? x.subs || [] : []).concat(y.subs || []).forEach(u => { subs[u.at] = u; });
     m.code[id] = !x ? y : {src:(y.at || 0) > (x.at || 0) ? y.src : x.src, solved:x.solved || y.solved || 0, at:Math.max(x.at || 0, y.at || 0)};
+    if (x && Object.keys(subs).length) m.code[id].subs = Object.values(subs).sort((u, w) => u.at - w.at).slice(-20);
   });
   m.updatedAt = Math.max(m.updatedAt, o.updatedAt);
   return m;
@@ -834,7 +837,7 @@ function codeFiltered(){
     (f.status === 'all' || codeStatus(p.id) === f.status) && (!term || p.hay.indexOf(term) >= 0));
 }
 function codeRowsHTML(list){
-  return list.length ? list.map(p => `<tr data-copen="${p.id}"><td class="c-st">${codeStatusCell(p.id)}</td><td class="c-ti"><a href="#code${p.n}" data-copen="${p.id}">${p.n}. ${esc(p.title)}</a>${p.run ? '<span class="tags"><span class="tag t-run">Runs here</span></span>' : ''}</td>` +
+  return list.length ? list.map(p => `<tr data-copen="${p.id}"><td class="c-st">${codeStatusCell(p.id)}</td><td class="c-ti"><a href="#code${p.n}" data-copen="${p.id}">${p.n}. ${esc(p.title)}</a>${p.run ? '<span class="tags"><span class="tag t-run">Judged</span></span>' : ''}</td>` +
     `<td class="c-tp">${esc(p.area)}</td><td class="c-ty">${esc(LANGS[p.lang])}</td><td class="c-df d-${p.d}">${DIFF[p.d]}</td></tr>`).join('')
     : '<tr><td colspan="5" class="empty">No coding problems match. Reset the filters or try another search.</td></tr>';
 }
@@ -859,7 +862,7 @@ function viewCoding(){
   <aside class="pside">
     <section class="card progcard"><h2>Coding progress</h2><div class="progring">${ring(solved / CODING.length, 120, 9, `${solved} of ${CODING.length} solved`)}<div class="ringlabel"><b>${solved}</b><span>/${CODING.length}</span><small>Solved</small></div></div>
       <div class="dbars">${['E', 'M', 'H'].map(d => { const [s, t] = byD(d); return `<div class="dbar"><span class="d-${d}">${DIFF[d]}</span><span class="mono">${s}/${t}</span><i class="bar d-${d}"><b style="width:${pct(s, t)}%"></b></i></div>`; }).join('')}</div>
-      <p class="muted small">Python problems run their tests right here. The rest you write here, run in a real tool (Icarus Verilog, gcc, a Linux shell), then compare with the solution.</p></section>
+      <p class="muted small">Problems marked Judged run hidden tests right here: Python, C and C++ (compiled in your browser) and Verilog RTL (synthesized and simulated). Run tries the examples; Submit runs every test. The rest you check in a real tool.</p></section>
     <section class="card studycard"><h2>Tracks by NVIDIA role</h2><div class="slists">${ROLES.filter(r => r.code).map(r => { const l = CODING.filter(p => p.area === r.code); return `<button type="button" class="slist${f.area === r.code ? ' on' : ''}" data-act="cf-area" data-v="${esc(r.code)}"><span>${esc(r.name)}</span><span class="mono">${codeSolvedIn(l)}/${l.length}</span></button>`; }).join('')}</div></section>
   </aside></div>`;
 }
@@ -871,10 +874,12 @@ function refreshCodeRows(){
   $('#cpick').disabled = !list.length;
 }
 
-// Coding problem page: statement and hints on the left, your editor on the right.
+// Coding problem page, laid out like LeetCode: description, solution and submissions on the left;
+// the editor on the right with a console below it. Run tries the example cases; Submit runs every hidden test.
+const blankCodePage = (id, list) => ({id, list, hints:0, ltab:'desc', ctab:'case', ccase:0, rcase:0, run:null, busy:null});
 function openCode(id, list, back){
   saveEditorNow();
-  ui.cp = {id, list:list && list.length ? list : CODING.map(p => p.id), hints:0, sol:false, run:null};
+  ui.cp = blankCodePage(id, list && list.length ? list : CODING.map(p => p.id));
   if (back) ui.cback = back;
   ui.view = 'code'; setHash('code' + CODE_BY_ID[id].n); render(); window.scrollTo(0, 0);
 }
@@ -885,17 +890,87 @@ function saveEditorNow(){
   const id = ui.cp.id, s = state.code[id], v = ed.value.slice(0, CODE_MAX);
   if (s ? s.src !== v : v !== CODE_BY_ID[id].starter) { setCode(id, {src:v}); save(); }
 }
+const judged = p => !!p.run;
+// The example cases shown in the Testcase tab and checked by Run.
+function exampleCount(p){
+  const R = p.run;
+  if (!R) return 0;
+  if (R.kind === 'v') return R.benches ? 1 : 0;
+  return Math.min(3, R.tests.length);
+}
+function caseLabel(p, t){
+  if (!p.run.kind) return p.run.fn + '(' + t[0].map(pyRepr).join(', ') + ')';
+  return t[3] || t[0];
+}
+function testcaseHTML(p){
+  const R = p.run, C = ui.cp;
+  if (R.kind === 'v') {
+    const b = R.benches && R.benches[0];
+    const what = R.check ? 'This design is checked for the properties in the statement, under random traffic. Run and Submit both run every check.'
+      : 'Your module gets the same inputs as the reference design, and every output must match on every cycle' + (b.clk ? ` (sampled just before each rising edge of ${b.clk})` : '') + '.';
+    return `<div class="tcase"><p class="muted small">${what}</p>${b ? `<div class="kv"><span>Example</span><code>${esc(b.name)}</code></div><div class="kv"><span>Inputs</span><code>${esc((b.clk ? [b.clk] : []).concat(b.in).join(', '))}</code></div>
+      ${b.rows ? `<div class="kv"><span>First rows</span><pre class="code">${esc(b.in.join(' ') + '\n' + b.rows.slice(0, 6).join('\n') + (b.rows.length > 6 ? '\n…' : ''))}</pre></div>` : ''}` : ''}
+      ${R.benches && R.benches.length > 1 ? `<p class="muted small">Run uses this bench. Submit runs all ${R.benches.length}, including corner cases and random stimulus.</p>` : ''}</div>`;
+  }
+  const n = exampleCount(p), i = Math.min(C.ccase, n - 1), t = R.tests[i];
+  return `<div class="casechips">${R.tests.slice(0, n).map((_, k) => `<button type="button" class="casechip${k === i ? ' on' : ''}" data-act="c-case" data-v="${k}">Case ${k + 1}</button>`).join('')}</div>
+    <div class="tcase"><div class="kv"><span>Input</span><pre class="code">${esc(caseLabel(p, t))}</pre></div>
+    <div class="kv"><span>Expected</span><pre class="code">${esc(R.kind ? t[1] : pyRepr(t[1]))}</pre></div>
+    <p class="muted small">Submit also runs ${R.tests.length - n} hidden test${R.tests.length - n === 1 ? '' : 's'}.</p></div>`;
+}
+function verdictClass(v){ return v === 'Accepted' ? 'ok' : 'bad'; }
+function resultHTML(p){
+  const C = ui.cp, R = C.run;
+  if (C.busy) return `<p class="runmsg"><span class="spin" aria-hidden="true"></span>${esc(C.busy)}</p>`;
+  if (!R) return '<p class="muted small">You must run your code first.</p>';
+  const head = `<div class="vhead"><h3 class="v-${verdictClass(R.verdict)}">${esc(R.verdict)}</h3>${R.total ? `<span class="muted">${R.passed} / ${R.total} testcases passed</span>` : ''}${R.ms != null ? `<span class="muted">Runtime ${R.ms} ms</span>` : ''}</div>`;
+  if (R.error) return head + `<pre class="code err">${esc(R.error)}</pre>`;
+  const out = R.stdout ? `<div class="kv"><span>Stdout</span><pre class="code">${esc(R.stdout)}</pre></div>` : '';
+  const caseBox = r => `${r.at ? `<div class="kv"><span>When</span><pre class="code">${esc(r.at)}</pre></div>` : ''}
+    <div class="kv"><span>${R.mode === 'submit' && !r.ok ? 'Input' : 'Test'}</span><pre class="code">${esc(r.label)}</pre></div>
+    ${r.exp !== '' || r.got !== '' ? `<div class="kv"><span>Output</span><pre class="code${r.ok ? '' : ' err'}">${esc(r.got)}</pre></div><div class="kv"><span>Expected</span><pre class="code">${esc(r.exp)}</pre></div>` : ''}`;
+  if (R.mode === 'submit') {
+    const bad = R.results.find(r => !r.ok);
+    return head + (bad ? `<p class="eyebrow">First failing testcase</p>${caseBox(bad)}` : '<p class="muted small">Every hidden test passed. Compare your approach with the Solution tab.</p>') + out;
+  }
+  const i = Math.min(C.rcase, R.results.length - 1);
+  return head + `<div class="casechips">${R.results.map((r, k) => `<button type="button" class="casechip ${r.ok ? 'pass' : 'fail'}${k === i ? ' on' : ''}" data-act="c-rcase" data-v="${k}">${r.ok ? '✓' : '✗'} ${R.results.length > 3 ? esc(r.label.slice(0, 26)) : 'Case ' + (k + 1)}</button>`).join('')}</div>` + caseBox(R.results[i]) + out;
+}
+function consoleWrapHTML(p){
+  const C = ui.cp, st = codeStatus(p.id);
+  return `<div class="console"><div class="ctabs" role="tablist">${judged(p) ? `<button type="button" role="tab" aria-selected="${C.ctab === 'case'}" data-act="c-ctab" data-v="case">Testcase</button><button type="button" role="tab" aria-selected="${C.ctab === 'result'}" data-act="c-ctab" data-v="result">Test Result</button>` : '<span class="ctitle">Check it yourself</span>'}
+    <span class="spacer"></span>
+    ${judged(p) ? `<button type="button" class="btn small" data-act="c-run"${C.busy ? ' disabled' : ''}>Run</button><button type="button" class="btn small go" data-act="c-submit"${C.busy ? ' disabled' : ''}>Submit</button>`
+      : `<button type="button" class="btn small${st === 'solved' ? '' : ' go'}" data-act="c-mark">${st === 'solved' ? 'Mark as not solved' : 'Mark as solved'}</button>`}</div>
+    ${consoleHTML(p)}</div>`;
+}
+function consoleHTML(p){
+  const C = ui.cp;
+  if (!judged(p)) return `<div class="cbody"><p class="muted small">${toolNote(p.lang)}</p></div>`;
+  return `<div class="cbody" id="run-out">${C.ctab === 'case' ? testcaseHTML(p) : resultHTML(p)}</div>`;
+}
+function codeTabsHTML(){
+  const C = ui.cp, s = state.code[C.id] || {}, n = (s.subs || []).length;
+  return [['desc', 'Description'], ['sol', 'Solution'], ['subs', 'Submissions' + (n ? ` (${n})` : '')]]
+    .map(([k, t]) => `<button type="button" role="tab" aria-selected="${C.ltab === k}" data-act="c-ltab" data-v="${k}">${t}</button>`).join('');
+}
 function codeLeftHTML(){
-  const C = ui.cp, p = CODE_BY_ID[C.id], st = codeStatus(p.id);
-  return `<article class="card cstate"><div class="pvhead"><h1>${p.n}. ${esc(p.title)}</h1>${st === 'solved' ? `<span class="solvedmark">${ICON.solved} Solved</span>` : st === 'attempted' ? '<span class="attmark">Attempted</span>' : ''}</div>
-    <div class="qmeta"><span class="dpill d-${p.d}">${DIFF[p.d]}</span><span class="topicchip">${esc(p.area)}</span><span>${esc(LANGS[p.lang])}</span>${p.run ? '<span class="tag t-run">Runs here</span>' : ''}</div>
+  const C = ui.cp, p = CODE_BY_ID[C.id], st = codeStatus(p.id), s = state.code[p.id] || {};
+  let body;
+  if (C.ltab === 'sol') body = `<section class="sol"><pre class="code">${esc(p.sol)}</pre>${p.why.map(t => `<p>${inlineCode(t)}</p>`).join('')}</section>`;
+  else if (C.ltab === 'subs') {
+    const subs = (s.subs || []).slice().reverse();
+    body = subs.length ? `<table class="subs"><thead><tr><th>Status</th><th>Tests</th><th>When</th></tr></thead><tbody>${subs.map(x =>
+      `<tr><td class="v-${verdictClass(x.v)}">${esc(x.v)}</td><td class="mono">${x.t ? `${x.p}/${x.t}` : '–'}</td><td class="muted">${esc(new Date(x.at).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}))}</td></tr>`).join('')}</tbody></table>`
+      : `<p class="muted">${judged(p) ? 'No submissions yet. Submit runs every hidden test and records the verdict here.' : 'This problem is checked by hand: run it in a real tool, then mark it solved.'}</p>`;
+  } else body = `<div class="qmeta"><span class="dpill d-${p.d}">${DIFF[p.d]}</span><span class="topicchip">${esc(p.area)}</span><span>${esc(LANGS[p.lang])}</span>${judged(p) ? '<span class="tag t-run">Judged here</span>' : ''}</div>
     <div class="body">${p.p.map(t => `<p>${inlineCode(t)}</p>`).join('')}</div>
     ${p.ex ? `<div><p class="eyebrow">Example</p><pre class="code">${esc(p.ex)}</pre></div>` : ''}
     <div class="hintbox">${p.hints.slice(0, C.hints).map((h, i) => `<p><b>Hint ${i + 1}.</b> ${inlineCode(h)}</p>`).join('')}
-      ${C.hints < p.hints.length ? `<button type="button" class="btn small" data-act="c-hint">Show hint ${C.hints + 1} of ${p.hints.length}</button>` : ''}</div>
-    ${C.sol ? `<section class="sol"><h2>Solution</h2><pre class="code">${esc(p.sol)}</pre>${p.why.map(t => `<p>${inlineCode(t)}</p>`).join('')}</section>`
-      : '<div><button type="button" class="btn small ghost" data-act="c-sol">Show solution</button></div>'}
-  </article>`;
+      ${C.hints < p.hints.length ? `<button type="button" class="btn small ghost" data-act="c-hint">Show hint ${C.hints + 1} of ${p.hints.length}</button>` : ''}</div>`;
+  return `<article class="cstate panel"><div class="ptabs" role="tablist">${codeTabsHTML()}</div><div class="pscroll">
+    <div class="pvhead"><h1>${p.n}. ${esc(p.title)}</h1>${st === 'solved' ? `<span class="solvedmark">${ICON.solved} Solved</span>` : st === 'attempted' ? '<span class="attmark">Attempted</span>' : ''}</div>
+    ${body}</div></article>`;
 }
 function toolNote(lang){
   return ({verilog:'Run it free with Icarus Verilog (iverilog) or online at EDA Playground, then compare with the solution.',
@@ -904,6 +979,7 @@ function toolNote(lang){
     python:'Run it with a simulator and cocotb on your computer.', bash:'Try it in a Linux or macOS terminal.', tcl:'Try it in tclsh or your EDA tool.',
     perl:'Run it with perl on any Linux or macOS machine.', cuda:'Compile it with nvcc on a machine with an NVIDIA GPU (Google Colab works).', matlab:'Run it in MATLAB or GNU Octave.'}[lang] || '') + ' Mark it solved when your version works.';
 }
+const JUDGE_NAME = {python:'Python (Pyodide)', c:'C (Clang, WebAssembly)', cpp:'C++17 (Clang, WebAssembly)', verilog:'Verilog (Yosys + gate simulator)'};
 function viewCode(){
   const C = ui.cp, p = CODE_BY_ID[C.id], pos = C.list.indexOf(C.id), s = state.code[p.id] || {}, st = codeStatus(p.id);
   const src = s.src != null ? s.src : p.starter;
@@ -913,13 +989,58 @@ function viewCode(){
     <button type="button" class="iconbtn" data-act="c-prev" aria-label="Previous problem"${pos <= 0 ? ' disabled' : ''}>‹</button>
     <button type="button" class="iconbtn" data-act="c-next" aria-label="Next problem"${pos >= C.list.length - 1 ? ' disabled' : ''}>›</button></div></div>
     <div class="cpv">${codeLeftHTML()}
-    <section class="card ceditor"><div class="row between"><b>Your ${esc(LANGS[p.lang])}</b><div class="row">
-      <button type="button" class="btn small ghost" data-act="c-reset">Reset code</button>
-      ${p.run ? `<button type="button" class="btn small primary" data-act="c-run"${C.run && C.run.busy ? ' disabled' : ''}>Run tests</button>`
-        : `<button type="button" class="btn small${st === 'solved' ? '' : ' primary'}" data-act="c-mark">${st === 'solved' ? 'Mark as not solved' : 'Mark as solved'}</button>`}</div></div>
-      <textarea id="code-editor" class="code-editor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your code (Tab inserts spaces; Esc leaves the editor)">${esc(src)}</textarea>
-      <div id="run-out">${runOutHTML(p)}</div>
-      ${p.run ? '<p class="muted small">Tests run in your browser with Python (Pyodide). Your code is saved as you type.</p>' : `<p class="muted small">${toolNote(p.lang)}</p>`}</section></div></div>`;
+    <section class="ceditor panel"><div class="ehead"><span class="elang">${esc(JUDGE_NAME[p.lang] && judged(p) ? JUDGE_NAME[p.lang] : LANGS[p.lang])}</span><span class="spacer"></span>
+      <button type="button" class="btn small ghost" data-act="c-reset">Reset</button></div>
+      <div class="editor" data-lang="${p.lang}"><pre class="gutter" aria-hidden="true">${gutter(src)}</pre><div class="ed-area"><pre class="hl" aria-hidden="true">${highlight(src, p.lang)}\n</pre>
+        <textarea id="code-editor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your code (Tab inserts spaces; Esc leaves the editor)">${esc(src)}</textarea></div></div>
+      ${consoleWrapHTML(p)}</section></div></div>`;
+}
+
+// ---------- the editor: line numbers and light syntax colouring under a plain textarea ----------
+const KW = {
+  c:'auto break case char const continue default do double else enum extern float for goto if inline int long register restrict return short signed sizeof static struct switch typedef union unsigned void volatile while bool true false NULL size_t uint8_t uint16_t uint32_t uint64_t int8_t int16_t int32_t int64_t uintptr_t',
+  cpp:'class public private protected template typename namespace using new delete this virtual override explicit nullptr operator friend std vector string list unordered_map map pair priority_queue const_cast static_cast',
+  verilog:'module endmodule input output inout wire reg logic always always_ff always_comb always_latch assign begin end if else case casez casex endcase default posedge negedge or and not parameter localparam integer genvar generate endgenerate for function endfunction task endtask initial signed unsigned',
+  sv:'interface endinterface class endclass extends virtual rand randc constraint covergroup endgroup coverpoint bins property endproperty assert assume cover sequence endsequence program endprogram package endpackage import typedef enum struct packed bit byte int string automatic new this super fork join join_any join_none forever repeat wait',
+  python:'and as assert async await break class continue def del elif else except False finally for from global if import in is lambda None nonlocal not or pass raise return True try while with yield',
+  bash:'if then else elif fi for in do done while until case esac function return local export echo exit set',
+  tcl:'proc set if else elseif foreach for while return puts expr incr lappend list llength lindex string dict namespace source',
+  perl:'my our sub if elsif else unless foreach for while return print use strict warnings open close next last',
+  cuda:'__global__ __device__ __host__ __shared__ __syncthreads threadIdx blockIdx blockDim gridDim dim3 cudaMalloc cudaMemcpy cudaFree',
+  matlab:'function end if elseif else for while return switch case otherwise',
+};
+const KW_SET = {};
+const kwFor = lang => KW_SET[lang] || (KW_SET[lang] = new Set((KW[lang] + ' ' + ({cpp:KW.c, cuda:KW.c + ' ' + KW.cpp, sv:KW.verilog}[lang] || '')).split(/\s+/)));
+function highlight(src, lang){
+  const hash = ['python', 'bash', 'tcl', 'perl'].includes(lang), pct = lang === 'matlab', hdl = lang === 'verilog' || lang === 'sv';
+  const re = new RegExp([
+    hash ? '#[^\\n]*' : pct ? '%[^\\n]*' : '\\/\\*[\\s\\S]*?(?:\\*\\/|$)|\\/\\/[^\\n]*',
+    hdl ? '"(?:\\\\.|[^"\\\\\\n])*"' : '"(?:\\\\.|[^"\\\\\\n])*"|\'(?:\\\\.|[^\'\\\\\\n])*\'',
+    hdl ? "\\d*'[sS]?[bBoOdDhH][0-9a-fA-FxXzZ_]+|\\b\\d[\\d_]*(?:\\.\\d+)?\\b" : '\\b0[xX][0-9a-fA-F]+[uUlL]*\\b|\\b\\d+(?:\\.\\d+)?[uUlLfF]*\\b',
+    '[A-Za-z_$][\\w$]*', hash || pct ? '(?!)' : '^[ \\t]*#\\s*\\w+'].map(x => '(' + x + ')').join('|'), 'gm');
+  const kw = kwFor(lang);
+  let out = '', last = 0, m;
+  while ((m = re.exec(src))) {
+    if (m[0] === '') { re.lastIndex++; continue; }
+    out += esc(src.slice(last, m.index));
+    const t = esc(m[0]);
+    out += m[1] ? `<i class="t-c">${t}</i>` : m[2] ? `<i class="t-s">${t}</i>` : m[3] ? `<i class="t-n">${t}</i>` : m[5] ? `<i class="t-k">${t}</i>`
+      : kw.has(m[0]) ? `<i class="t-k">${t}</i>` : (hdl && m[0][0] === '$') ? `<i class="t-f">${t}</i>` : t;
+    last = re.lastIndex;
+  }
+  return out + esc(src.slice(last));
+}
+const gutter = src => Array.from({length:src.split('\n').length}, (_, i) => i + 1).join('\n');
+function syncEditor(){
+  const ed = $('#code-editor'); if (!ed || !ui.cp) return;
+  const p = CODE_BY_ID[ui.cp.id];
+  $('.editor .hl').innerHTML = highlight(ed.value, p.lang) + '\n';
+  $('.editor .gutter').textContent = gutter(ed.value);
+  syncScroll();
+}
+function syncScroll(){
+  const ed = $('#code-editor'); if (!ed) return;
+  $('.editor .hl').scrollTop = ed.scrollTop; $('.editor .hl').scrollLeft = ed.scrollLeft; $('.editor .gutter').scrollTop = ed.scrollTop;
 }
 function pyRepr(v){
   if (v === true) return 'True';
@@ -930,20 +1051,11 @@ function pyRepr(v){
   if (typeof v === 'object') return '{' + Object.keys(v).map(k => JSON.stringify(k) + ': ' + pyRepr(v[k])).join(', ') + '}';
   return String(v);
 }
-function runOutHTML(p){
-  const R = ui.cp.run;
-  if (!R) return '';
-  if (R.busy) return `<p class="muted runmsg">${esc(R.msg)}</p>`;
-  if (R.error) return `<div class="verdict bad" role="status"><b>Error</b></div><pre class="code err">${esc(R.error)}</pre>`;
-  const passed = R.results.filter(r => r[0]).length, total = R.results.length;
-  return `<div class="verdict ${passed === total ? 'ok' : 'bad'}" role="status"><b>${passed === total ? 'Accepted' : 'Wrong Answer'}</b><span>${passed}/${total} tests passed</span></div>
-    <ul class="tres">${R.results.map((r, i) => { const t = p.run.tests[i]; return `<li><span class="st ${r[0] ? 'solved' : 'wrongmark'}">${r[0] ? ICON.solved : ICON.wrong}</span><div><code>${esc(p.run.fn + '(' + t[0].map(pyRepr).join(', ') + ')')}</code>${r[0] ? '' : `<small>expected <code>${esc(pyRepr(t[1]))}</code>, got <code>${esc(r[1])}</code></small>`}</div></li>`; }).join('')}</ul>
-    ${R.stdout ? `<p class="eyebrow">Printed output</p><pre class="code">${esc(R.stdout)}</pre>` : ''}`;
-}
 function showRun(){
   if (!ui.cp || ui.view !== 'code') return;
-  const o = $('#run-out'); if (o) o.innerHTML = runOutHTML(CODE_BY_ID[ui.cp.id]);
-  const b = $('[data-act="c-run"]'); if (b) b.disabled = !!(ui.cp.run && ui.cp.run.busy);
+  const c = $('.console'); if (!c) return;
+  const t = document.createElement('div'); t.innerHTML = consoleWrapHTML(CODE_BY_ID[ui.cp.id]);
+  c.replaceWith(t.firstElementChild);
 }
 
 // Python runs in the browser with Pyodide, inside a Web Worker so a runaway loop can be stopped.
@@ -965,7 +1077,7 @@ self.onmessage = async (e) => {
     self.postMessage({type: 'error', error: String((err && err.message) || err)});
   }
 };`;
-function harness(p, src){
+function harness(p, src, tests){
   return [src, '', 'import json as __json',
     'def __norm(v):',
     '    if isinstance(v, tuple): v = list(v)',
@@ -973,7 +1085,7 @@ function harness(p, src){
     '    if isinstance(v, dict): return {str(k): __norm(x) for k, x in v.items()}',
     '    return v',
     '__res = []',
-    `for __args, __exp in __json.loads(${JSON.stringify(JSON.stringify(p.run.tests))}):`,
+    `for __args, __exp in __json.loads(${JSON.stringify(JSON.stringify(tests))}):`,
     '    try:',
     `        __got = __norm(${p.run.fn}(*__args))`,
     '        __res.append([__got == __exp, repr(__got)])',
@@ -982,7 +1094,7 @@ function harness(p, src){
     '__json.dumps(__res)'].join('\n');
 }
 function cleanPyError(s){ return s.split('\n').filter(l => !/_pyodide|pyodide\.asm|File "\/lib\//.test(l)).join('\n').trim(); }
-function setRunMsg(msg){ if (ui.cp && ui.cp.run && ui.cp.run.busy) { ui.cp.run.msg = msg; showRun(); } }
+function setBusy(msg){ if (ui.cp && ui.cp.busy) { ui.cp.busy = msg; showRun(); } }
 async function execOnMain(code){
   try {
     if (!pyRun.main) {
@@ -1006,43 +1118,103 @@ function execPython(code){
     }
     let timer = null;
     const finish = r => { clearTimeout(timer); w.onmessage = null; w.onerror = null; resolve(r); };
-    const kill = msg => { w.terminate(); pyRun.worker = null; pyRun.ready = false; finish({error:msg}); };
-    timer = setTimeout(() => kill(pyRun.ready ? 'Time limit exceeded: your code ran for more than 8 seconds (an infinite loop?).' : 'Python did not finish loading. Check your connection and try again.'), pyRun.ready ? 8000 : 120000);
+    const kill = (msg, tle) => { w.terminate(); pyRun.worker = null; pyRun.ready = false; finish({error:msg, tle}); };
+    timer = setTimeout(() => kill(pyRun.ready ? 'Your code ran for more than 8 seconds (an infinite loop?).' : 'Python did not finish loading. Check your connection and try again.', pyRun.ready), pyRun.ready ? 8000 : 120000);
     w.onerror = ev => { if (ev.preventDefault) ev.preventDefault(); clearTimeout(timer); w.terminate(); pyRun.worker = null; pyRun.ready = false; execOnMain(code).then(resolve); };
     w.onmessage = ev => {
       const m = ev.data;
       if (m.type === 'loaded') {
         pyRun.ready = true; clearTimeout(timer);
-        timer = setTimeout(() => kill('Time limit exceeded: your code ran for more than 8 seconds (an infinite loop?).'), 8000);
-        setRunMsg('Running tests…');
+        timer = setTimeout(() => kill('Your code ran for more than 8 seconds (an infinite loop?).', true), 8000);
+        setBusy('Running…');
       } else if (m.type === 'done') finish({result:m.result, stdout:m.stdout});
       else if (m.type === 'error') finish({error:cleanPyError(m.error)});
     };
     w.postMessage({code});
   });
 }
-function runCode(){
-  const C = ui.cp, p = CODE_BY_ID[C.id], src = $('#code-editor').value;
-  setCode(p.id, {src:src.slice(0, CODE_MAX)}); save();
-  C.run = {busy:true, msg:pyRun.ready || pyRun.main ? 'Running tests…' : 'Loading Python in your browser (the first run downloads about 10 MB)…'};
-  showRun();
-  const id = p.id;
-  execPython(harness(p, src)).then(res => {
-    if (!ui.cp || ui.cp.id !== id) return;
-    if (res.error) ui.cp.run = {error:res.error};
-    else {
-      let results = [];
-      try { results = JSON.parse(res.result); } catch (e) { ui.cp.run = {error:'Could not read the test results.'}; showRun(); return; }
-      ui.cp.run = {results, stdout:res.stdout};
-      if (results.length && results.every(r => r[0]) && codeStatus(id) !== 'solved') {
-        setCode(id, {solved:Date.now()}); save(); renderHeader();
-        const head = $('.cstate'); if (head) head.outerHTML = codeLeftHTML();
-        toast('Accepted: ' + p.title);
-      }
-    }
-    showRun();
-  });
+async function judgePython(p, src, all){
+  const tests = all ? p.run.tests : p.run.tests.slice(0, exampleCount(p));
+  if (!pyRun.ready && !pyRun.main) setBusy('Loading Python in your browser (the first run downloads about 10 MB)…');
+  const res = await execPython(harness(p, src, tests));
+  if (res.error) return {verdict:res.tle ? 'Time Limit Exceeded' : /SyntaxError|IndentationError/.test(res.error) ? 'Compile Error' : 'Runtime Error', error:res.error};
+  let raw;
+  try { raw = JSON.parse(res.result); } catch (e) { return {verdict:'Runtime Error', error:'Could not read the test results.'}; }
+  return {results:raw.map((r, i) => ({ok:r[0], label:caseLabel(p, tests[i]), exp:pyRepr(tests[i][1]), got:r[1]})), stdout:res.stdout};
 }
+const mb = (d, t) => t ? ` ${Math.round(100 * d / t)}%` : '';
+async function judgeC(p, src, all){
+  const cpp = p.lang === 'cpp', sub = Object.assign({}, p.run, {tests:all ? p.run.tests : p.run.tests.slice(0, exampleCount(p))});
+  const prob = Object.assign({}, p, {run:sub});
+  const file = cpp ? 'solution.cpp' : 'solution.c';
+  setBusy('Compiling…');
+  const args = cpp ? ['clang++', '-O1', '-std=c++17', '-fno-exceptions'] : ['clang', '-O1', '-std=gnu17'];
+  const r = await toolRun('clang', args.concat([file, '-o', 'a.wasm']),
+    {[file]:cHarness(prob, src, cpp)}, 'a.wasm',
+    m => setBusy(m.type === 'loading' ? 'Loading the C/C++ compiler (the first run downloads about 25 MB)…' : 'Downloading the compiler…' + mb(m.done, m.total)));
+  if (r.type === 'fail') return {verdict:'Error', error:'The compiler could not be loaded: ' + r.error + '\nCheck your connection and try again.'};
+  if (!r.ok) return {verdict:'Compile Error', error:cleanToolLog(r.log) || 'Compilation failed.'};
+  setBusy('Running…');
+  const x = await wasiRun(r.out, 6000);
+  if (x.tle) return {verdict:'Time Limit Exceeded', error:'Your program ran for more than 6 seconds (an infinite loop?).', ...cResults(prob, '', '')};
+  const res = cResults(prob, x.out, x.trap ? 'runtime error: ' + x.trap : x.code ? `exited with code ${x.code}` : '');
+  if (x.err) res.stdout = (res.stdout ? res.stdout + '\n' : '') + x.err;
+  res.ms = x.ms;
+  if (x.trap) { res.verdict = 'Runtime Error'; res.error = x.trap.replace(/^RuntimeError: /, '') + (/unreachable/.test(x.trap) ? '\n(a crash, such as a function that ends without returning a value)' : ''); }
+  return res;
+}
+const refNets = {};
+async function synthV(p, code, onEvent){
+  const merged = {modules:{}};
+  for (const top of vTops(p)) {
+    const r = await toolRun('yosys', ['-q', '-p', YOSYS_SCRIPT(top)], {'design.v':code}, 'net.json', onEvent);
+    if (r.type === 'fail') return {fail:'Yosys could not be loaded: ' + r.error + '\nCheck your connection and try again.'};
+    if (!r.ok) return {error:yosysErrors(r.log) || 'Synthesis failed.'};
+    const j = JSON.parse(typeof r.out === 'string' ? r.out : new TextDecoder().decode(r.out));
+    Object.assign(merged.modules, j.modules);
+  }
+  return {net:merged};
+}
+async function judgeV(p, src, all){
+  const ev = m => setBusy(m.type === 'loading' ? 'Loading Yosys in your browser (the first run downloads about 15 MB)…' : 'Downloading Yosys…' + mb(m.done, m.total));
+  setBusy('Synthesizing your design…');
+  const u = await synthV(p, src, ev);
+  if (u.fail) return {verdict:'Error', error:u.fail};
+  if (u.error) return {verdict:'Compile Error', error:u.error};
+  let ref = null;
+  if (p.run.benches) {
+    if (!refNets[p.id]) { setBusy('Preparing the reference design…'); const r = await synthV(p, p.sol, ev); if (!r.net) return {verdict:'Error', error:r.fail || r.error}; refNets[p.id] = r.net; }
+    ref = refNets[p.id];
+  }
+  setBusy('Simulating…');
+  const t0 = performance.now();
+  const prob = all || !p.run.benches ? p : Object.assign({}, p, {run:Object.assign({}, p.run, {benches:p.run.benches.slice(0, 1), check:undefined})});
+  const results = vJudge(prob, u.net, ref);
+  return {results, ms:Math.round(performance.now() - t0)};
+}
+async function judgeCode(mode){
+  const C = ui.cp, p = CODE_BY_ID[C.id], src = $('#code-editor').value, id = p.id, all = mode === 'submit';
+  if (C.busy) return;
+  setCode(id, {src:src.slice(0, CODE_MAX)}); save();
+  C.busy = 'Pending…'; C.ctab = 'result'; C.rcase = 0; showRun();
+  let res;
+  try { res = await (p.run.kind === 'c' ? judgeC : p.run.kind === 'v' ? judgeV : judgePython)(p, src, all); }
+  catch (e) { res = {verdict:'Error', error:String(e && e.message || e)}; }
+  if (!ui.cp || ui.cp.id !== id) return;
+  const results = res.results || [], passed = results.filter(r => r.ok).length;
+  const verdict = res.verdict || (passed === results.length && results.length ? 'Accepted' : 'Wrong Answer');
+  C.busy = null;
+  C.run = Object.assign({}, res, {mode, verdict, results, passed, total:res.error && !results.length ? 0 : results.length});
+  if (all) {
+    const s = state.code[id] || {};
+    setCode(id, {subs:(s.subs || []).concat([{at:Date.now(), v:verdict, p:passed, t:results.length}]).slice(-20)});
+    if (verdict === 'Accepted' && codeStatus(id) !== 'solved') { setCode(id, {solved:Date.now()}); toast('Accepted: ' + p.title); }
+    save(); renderHeader();
+    const left = $('.cstate'); if (left) left.outerHTML = codeLeftHTML();
+  }
+  showRun();
+}
+
 // This week's coding: one easy, one medium and one hard problem, chosen once per week from unsolved ones.
 function weekCoding(){
   const wk = isoWeek(new Date()).key;
@@ -1141,9 +1313,13 @@ function act(a){
       break;
     }
     case 'c-hint': ui.cp.hints++; $('.cstate').outerHTML = codeLeftHTML(); break;
-    case 'c-sol': ui.cp.sol = true; $('.cstate').outerHTML = codeLeftHTML(); break;
-    case 'c-reset': { const p = CODE_BY_ID[ui.cp.id]; $('#code-editor').value = p.starter; setCode(p.id, {src:p.starter}); save(); break; }
-    case 'c-run': runCode(); break;
+    case 'c-ltab': ui.cp.ltab = a.dataset.v; $('.cstate').outerHTML = codeLeftHTML(); break;
+    case 'c-ctab': ui.cp.ctab = a.dataset.v; showRun(); break;
+    case 'c-case': ui.cp.ccase = +a.dataset.v; showRun(); break;
+    case 'c-rcase': ui.cp.rcase = +a.dataset.v; showRun(); break;
+    case 'c-reset': { const p = CODE_BY_ID[ui.cp.id]; $('#code-editor').value = p.starter; setCode(p.id, {src:p.starter}); save(); syncEditor(); break; }
+    case 'c-run': judgeCode('run'); break;
+    case 'c-submit': judgeCode('submit'); break;
     case 'c-mark': {
       saveEditorNow();
       const id = ui.cp.id;
@@ -1181,7 +1357,7 @@ function returnFrom(from){
   goTab(from && from.tab ? from.tab : 'quest');
 }
 document.addEventListener('input', e => {
-  if (e.target.id === 'code-editor') { clearTimeout(ui.codeTimer); ui.codeTimer = setTimeout(saveEditorNow, 500); return; }
+  if (e.target.id === 'code-editor') { syncEditor(); clearTimeout(ui.codeTimer); ui.codeTimer = setTimeout(saveEditorNow, 500); return; }
   if (e.target.closest('.cfbar')) { refreshCodeRows(); return; }
   if (e.target.closest('.fbar')) readFilters();
 });
@@ -1189,11 +1365,25 @@ document.addEventListener('input', e => {
 document.addEventListener('keydown', e => {
   if (e.target.id !== 'code-editor') return;
   if (e.key === 'Escape') { e.target.blur(); return; }
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'Enter' || e.key === "'")) {
+    e.preventDefault();
+    if (judged(CODE_BY_ID[ui.cp.id])) judgeCode(e.key === 'Enter' ? 'submit' : 'run');
+    return;
+  }
+  if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {   // keep the line's indentation
+    const t = e.target, line = t.value.slice(0, t.selectionStart).split('\n').pop(), ind = /^[ \t]*/.exec(line)[0];
+    const more = /[{(\[]\s*$|\bbegin\s*$|:\s*$/.test(line) ? '  ' : '';
+    e.preventDefault();
+    t.setRangeText('\n' + ind + more, t.selectionStart, t.selectionEnd, 'end');
+    t.dispatchEvent(new Event('input', {bubbles:true}));
+    return;
+  }
   if (e.key !== 'Tab' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
   e.preventDefault();
   e.target.setRangeText('  ', e.target.selectionStart, e.target.selectionEnd, 'end');
   e.target.dispatchEvent(new Event('input', {bubbles:true}));
 });
+document.addEventListener('scroll', e => { if (e.target.id === 'code-editor') syncScroll(); }, true);
 document.addEventListener('change', e => { if (e.target.id === 'import-file' && e.target.files[0]) importProgress(e.target.files[0]); });
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1223,7 +1413,7 @@ if (local) state = normalize(local);
   const h = location.hash.replace('#', ''), m = /^p(\d+)$/.exec(h);
   const cm = /^code(\d+)$/.exec(h);
   if (TABS.includes(h)) ui.tab = h;
-  if (cm && CODING[+cm[1] - 1]) { ui.tab = 'coding'; ui.cback = {view:'tab', tab:'coding'}; ui.cp = {id:CODING[+cm[1] - 1].id, list:CODING.map(p => p.id), hints:0, sol:false, run:null}; ui.view = 'code'; }
+  if (cm && CODING[+cm[1] - 1]) { ui.tab = 'coding'; ui.cback = {view:'tab', tab:'coding'}; ui.cp = blankCodePage(CODING[+cm[1] - 1].id, CODING.map(p => p.id)); ui.view = 'code'; }
   else if (h === 'learn') ui.tab = 'quest';
   else if (h === 'practice') ui.tab = 'weekly';
   else if (h === 'bank') ui.tab = 'problems';

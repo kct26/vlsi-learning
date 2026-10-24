@@ -6,7 +6,8 @@ A study kit for hardware engineering online assessments (built while preparing f
 - **Ground Up Hardware Trainer**: a single-page web app for practicing it:
   - a 23-quest learning path with interactive widgets;
   - a 682-problem multiple-choice and true/false list with solved/total progress, covering hardware theory plus Linux, git, scripting, DFT, physical-design flow and signal integrity;
-  - a Coding tab with 64 hands-on problems (RTL in Verilog, SystemVerilog and cocotb verification, C and C++, Python, Bash, Tcl and SDC, Perl, CUDA, MATLAB) in Easy, Medium and Hard, with hints and reference solutions; the 12 Python problems run their tests in the browser;
+  - a Coding tab with 64 hands-on problems (RTL in Verilog, SystemVerilog and cocotb verification, C and C++, Python, Bash, Tcl and SDC, Perl, CUDA, MATLAB) in Easy, Medium and Hard, with hints and reference solutions;
+  - a LeetCode-style judge for 42 of them, running entirely in the browser: **Run** tries the example cases, **Submit** runs every hidden test and records the verdict (Accepted, Wrong Answer, Compile Error, Runtime Error, Time Limit Exceeded). Python runs in Pyodide; C and C++ compile with Clang built for WebAssembly; Verilog is synthesized by Yosys and simulated gate by gate;
   - weekly sets and timed mock assessments;
   - a review of how the material maps to the job posting.
 
@@ -30,6 +31,8 @@ trainer/
   src/
     questions.js                    the multiple-choice bank
     coding.js                       the coding problems, solutions and Python tests
+    hidden-tests.js                 hidden tests for the C, C++ and Verilog problems
+    judge.js                        the in-browser judge (C/C++ harness, Verilog simulator, checkers)
     lessons.js                      quests and lesson cards
     widgets.js                      interactive lesson widgets
     app.js                          the app
@@ -70,7 +73,13 @@ Each problem in `trainer/src/questions.js` is one line:
 Coding problems live in `trainer/src/coding.js`. Each one has:
 - `id`, difficulty `d`, `lang` and `area`;
 - a statement `p`, an optional example `ex`, `starter` code, `hints`, a reference solution `sol` and an explanation `why`;
-- for Python only, optional `run` tests (`{fn, tests: [[args], expected]}`). The site runs these in the browser with Pyodide.
+- for Python, optional `run` tests (`{fn, tests: [[args], expected]}`), run in the browser with Pyodide.
+
+Hidden tests for C, C++ and Verilog live in `trainer/src/hidden-tests.js`, keyed by problem id:
+- **C/C++**: `[expression, expected]` pairs (a `"string"` compares as text), or `[statements, printed text, 'out', label]` to compare output. The first three tests are the examples that **Run** uses.
+- **Verilog**: `benches` drive your module and the reference solution with the same stimulus (directed `rows` plus seeded random ones) and compare every output every cycle; `check` names a property checker in `judge.js` for problems where several designs are correct (an LFSR, a divide-by-3 clock, a pulse synchronizer, an asynchronous FIFO, a skid buffer).
+
+The compilers download from the jsDelivr CDN the first time you run that language (Clang about 25 MB, Yosys about 15 MB, Pyodide about 10 MB), then stay cached.
 
 Then rebuild (needs [Node.js](https://nodejs.org)):
 
@@ -96,7 +105,16 @@ This builds the page and clicks through it in headless Google Chrome:
 - the job-match review;
 - deep links and phone-width layout;
 - importing a backup, and Google sign-in and sync (against a simulated Firebase);
-- the Coding tab: filters, hints, solutions, saving your code, and running Python tests for real (this phase waits in real time, because Python downloads in the background).
+- the Coding tab: filters, hints, the solution and submissions tabs, saving your code, and real Run and Submit verdicts for Python, C, C++ and Verilog (this phase waits in real time, because the compilers download in the background).
+
+To check the hidden tests themselves (every reference solution passes, broken versions fail, and the Verilog simulator agrees with Icarus Verilog cycle by cycle):
+
+```bash
+npm install @yowasp/yosys@0.68.1207
+node tests/judge-check.js
+```
+
+This needs `clang` and `iverilog` on your machine.
 
 Set `CHROME=/path/to/chrome` if Chrome is not at the macOS default location.
 

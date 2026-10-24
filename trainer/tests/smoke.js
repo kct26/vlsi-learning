@@ -252,7 +252,12 @@ async function phase3b(){
   ok(st().q['03-01'] && st().q['03-01'].c === 1, 'imported progress saved locally');
 }
 async function phase6(){
-  // The Coding tab: list, filters, a write-and-mark problem, the weekly card, and real Python runs.
+  // The Coding tab: list, filters, a hand-checked problem, the weekly card, and real judging of Python, C, C++ and Verilog.
+  const sol = id => CODING.find(p => p.id === id).sol, CODE = {cpp02:sol("cpp-02"), counter:sol("rtl-02"), skid:sol("rtl-16")};
+  const until = async (f, secs) => { for (let k = 0; k < secs * 4 && !f(); k++) await wait(250); return f(); };
+  const verdict = () => { const h = $('#run-out .vhead h3'); return h && !$('#run-out .spin') ? h.textContent : ''; };
+  const setCode = t => { const e = $('#code-editor'); e.value = t; e.dispatchEvent(new Event('input', {bubbles:true})); };
+  const judge = async (act, secs) => { click(`[data-act="${act}"]`); await until(() => !$('#run-out .spin') && verdict(), secs || 240); return verdict(); };
   tab('coding');
   ok($$('#crows tr').length === CODING.length, 'coding list shows all ' + CODING.length);
   click('[data-act="cf-area"][data-v="RTL design"]');
@@ -260,38 +265,76 @@ async function phase6(){
   const d = $('#cf-d'); d.value = 'H'; d.dispatchEvent(new Event('input', {bubbles:true}));
   ok($$('#crows .c-df').every(c => c.textContent === 'Hard'), 'difficulty filter on coding');
   click('[data-act="cf-reset"]');
-  click('#crows a[data-copen="rtl-07"]');
-  ok($('#code-editor') && /module div3/.test($('#code-editor').value), 'editor opens with the starter code');
+  ok($$('#crows .t-run').length === CODING.filter(p => p.run).length, CODING.filter(p => p.run).length + ' problems are marked as judged');
+  click('#crows a[data-copen="sh-01"]');
+  ok($('#code-editor') && /your command/.test($('#code-editor').value), 'editor opens with the starter code');
+  ok($('.editor .gutter') && $('.editor .gutter').textContent.trim() === '1', 'editor shows line numbers');
+  ok(!$('[data-act="c-run"]') && $('[data-act="c-mark"]'), 'a hand-checked problem has Mark as solved instead of Run');
   click('[data-act="c-hint"]'); click('[data-act="c-hint"]');
   ok($$('.hintbox p').length === 2, 'two hints revealed one at a time');
-  click('[data-act="c-sol"]');
-  ok($('.sol pre.code') && /negedge clk/.test($('.sol pre.code').textContent), 'solution revealed');
-  const ed = $('#code-editor'); ed.value = '// my attempt\n' + ed.value; ed.dispatchEvent(new Event('input', {bubbles:true}));
+  click('[data-act="c-ltab"][data-v="sol"]');
+  ok($('.sol pre.code') && /wc -l/.test($('.sol pre.code').textContent), 'Solution tab shows the solution');
+  setCode('# my attempt\nfind . -name "*.sv" | xargs wc -l\n');
+  ok($('.editor .gutter').textContent.trim().split('\n').length === 3, 'line numbers follow the text');
   await wait(800);
-  ok(st().code['rtl-07'] && /my attempt/.test(st().code['rtl-07'].src), 'editor text is saved as you type');
+  ok(st().code['sh-01'] && /my attempt/.test(st().code['sh-01'].src), 'editor text is saved as you type');
   click('[data-act="c-mark"]');
-  ok(st().code['rtl-07'].solved > 0 && /Solved/.test($('.cstate .pvhead').textContent), 'mark as solved');
+  ok(st().code['sh-01'].solved > 0 && /Solved/.test($('.cstate .pvhead').textContent), 'mark as solved');
   ok(/my attempt/.test($('#code-editor').value), 'your code survives re-rendering');
   click('[data-act="c-back"]');
-  ok($('#crows tr[data-copen="rtl-07"] .st.solved'), 'list shows the solved status');
+  ok($('#crows tr[data-copen="sh-01"] .st.solved'), 'list shows the solved status');
   ok(/1<\/b><span class="muted">\/\d+<\/span> code/.test($('#solved').innerHTML), 'top bar counts solved coding problems');
   tab('weekly');
   ok($$('#main tr[data-copen][data-from="weekly"]').length === 3, "this week's coding lists 3 problems");
+
+  // Python: Run tries the example cases, Submit runs every test and records a submission.
   tab('coding');
   click('#crows a[data-copen="py-04"]');
-  $('#code-editor').value = 'def gray_codes(n):\n    print("checking", n)\n    return list(range(1 << n))\n';
-  click('[data-act="c-run"]');
-  for (let k = 0; k < 300 && !$('#run-out .verdict'); k++) await wait(500);
-  ok($('#run-out .verdict.bad') && /tests passed/.test($('#run-out').textContent), 'a wrong Python answer gets Wrong Answer: ' + $('#run-out').textContent.replace(/\s+/g, ' ').trim().slice(0, 50));
-  ok(/checking 2/.test($('#run-out').textContent), 'printed output is shown');
-  $('#code-editor').value = 'def gray_codes(n):\n    return [i ^ (i >> 1) for i in range(1 << n)]\n';
-  click('[data-act="c-run"]');
-  for (let k = 0; k < 120 && !$('#run-out .verdict.ok'); k++) await wait(500);
-  ok($('#run-out .verdict.ok') && st().code['py-04'].solved > 0, 'a correct Python answer is Accepted and marked solved');
-  $('#code-editor').value = 'def gray_codes(n):\n    return [i for i in range(1 << n) if 1/0]\n';
-  click('[data-act="c-run"]');
-  for (let k = 0; k < 120 && !(/ZeroDivisionError/.test($('#run-out').textContent)); k++) await wait(500);
-  ok(/ZeroDivisionError/.test($('#run-out').textContent), 'a runtime error is reported per test');
+  ok($$('.casechip').length === 3 && /gray_codes/.test($('#run-out').textContent), 'Testcase tab shows 3 example cases');
+  setCode('def gray_codes(n):\n    print("checking", n)\n    return list(range(1 << n))\n');
+  ok(await judge('c-run', 300) === 'Wrong Answer', 'Run: a wrong Python answer gets Wrong Answer (' + verdict() + ')');
+  ok($$('#run-out .casechip').length === 3 && $('#run-out .casechip.fail'), 'Run shows a result per example case');
+  ok(/checking/.test($('#run-out').textContent), 'printed output is shown');
+  ok(!(st().code['py-04'].subs || []).length, 'Run does not record a submission');
+  setCode('def gray_codes(n):\n    return [i ^ (i >> 1) for i in range(1 << n)]\n');
+  ok(await judge('c-submit', 120) === 'Accepted', 'Submit: a correct Python answer is Accepted');
+  ok(st().code['py-04'].solved > 0 && st().code['py-04'].subs.length === 1, 'accepted submission marks it solved and is recorded');
+  click('[data-act="c-ltab"][data-v="subs"]');
+  ok($('.subs td.v-ok') && /Accepted/.test($('.subs').textContent), 'Submissions tab lists the accepted submission');
+  setCode('def gray_codes(n):\n    return [i for i in range(1 << n) if 1/0]\n');
+  await judge('c-submit', 120);
+  ok(/ZeroDivisionError/.test($('#run-out').textContent) && verdict() === 'Wrong Answer', 'a runtime error is reported in the failing testcase');
+
+  // C, compiled in the browser by Clang.
+  tab('coding');
+  click('#crows a[data-copen="c-01"]');
+  setCode('int popcount(unsigned int x) {\n    return 0;\n}\n');
+  ok(await judge('c-submit', 300) === 'Wrong Answer', 'C: a wrong answer gets Wrong Answer (' + verdict() + ' ' + $('#run-out').textContent.slice(0, 120) + ')');
+  ok(/First failing testcase/.test($('#run-out').textContent) && /popcount\(1u\)/.test($('#run-out').textContent), 'Submit shows the first failing hidden test');
+  setCode('int popcount(unsigned int x) {\n    return y;\n}\n');
+  ok(await judge('c-run', 60) === 'Compile Error' && /undeclared identifier/.test($('#run-out').textContent), 'C: a compile error shows the compiler message');
+  setCode('int popcount(unsigned int x) {\n    int c = 0;\n    while (x) { x &= x - 1; c++; }\n    return c;\n}\n');
+  ok(await judge('c-submit', 60) === 'Accepted' && st().code['c-01'].solved > 0, 'C: a correct answer is Accepted');
+  setCode('int popcount(unsigned int x) {\n    while (x) { }\n    return 0;\n}\n');
+  ok(await judge('c-run', 60) === 'Time Limit Exceeded', 'C: an infinite loop is stopped (' + verdict() + ')');
+  tab('coding');
+  click('#crows a[data-copen="cpp-02"]');
+  setCode(CODE.cpp02);
+  ok(await judge('c-submit', 120) === 'Accepted', 'C++: the LRU cache is Accepted (' + verdict() + ' ' + $('#run-out').textContent.slice(0, 200) + ')');
+
+  // Verilog, synthesized by Yosys and simulated cycle by cycle.
+  tab('coding');
+  click('#crows a[data-copen="rtl-02"]');
+  setCode(CODE.counter.replace("q + 4'd1", "q + 4'd2"));
+  ok(await judge('c-submit', 300) === 'Wrong Answer' && /cycle \d+/.test($('#run-out').textContent), 'Verilog: a wrong counter fails at a named cycle (' + verdict() + ')');
+  setCode(CODE.counter.replace('endmodule', 'oops endmodule'));
+  ok(await judge('c-run', 60) === 'Compile Error', 'Verilog: a syntax error is a Compile Error');
+  setCode(CODE.counter);
+  ok(await judge('c-submit', 60) === 'Accepted' && st().code['rtl-02'].solved > 0, 'Verilog: a correct counter is Accepted');
+  tab('coding');
+  click('#crows a[data-copen="rtl-16"]');
+  setCode(CODE.skid);
+  ok(await judge('c-submit', 60) === 'Accepted', 'Verilog: the skid buffer passes the property checks (' + verdict() + ')');
 }
 async function phase5(){
   // Sign-in and sync, against a simulated Firebase (defined before the app loads).
