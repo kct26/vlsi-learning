@@ -460,7 +460,6 @@ function viewQuest(){
   let html = `<section class="pagehead"><p class="eyebrow">VLSI roadmap</p><h1>The <em>VLSI</em> roadmap</h1>
     <p class="muted">Everything you need to know to apply for VLSI roles, in the order to learn it: ${UNITS.length} theory quests from a single wire to a GPU, the hands-on coding tracks, and the role each path leads to. ${done}/${UNITS.length} quests passed.</p>
     ${nu ? `<div class="row"><button type="button" class="btn primary" data-act="open-unit" data-u="${nu.id}">${cardsDone(nu) ? 'Continue' : 'Start'}: Quest ${nu.id} · ${esc(nu.title)}</button></div>` : '<p><b>Every stage is complete.</b> Keep practicing in Theory and Coding.</p>'}</section>
-    ${roadmapHTML()}
     <h2 class="hh2 left stagesh">Stages in detail</h2>`;
   PARTS.forEach(p => {
     const pd = p.units.filter(unitPassed).length, R = ROADMAP[p.n] || {stage:p.name, area:'', goal:''};
@@ -481,7 +480,7 @@ function viewQuest(){
     });
     html += '</ol></div></section>';
   });
-  return html;
+  return html + `<h2 class="hh2 left stagesh" id="rmmap">Roadmap map</h2><p class="muted rmintro">Every topic and how they connect. Drag to move, scroll or pinch to zoom, and click a topic for its details.</p>${roadmapHTML()}`;
 }
 
 function openUnit(id){

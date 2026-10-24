@@ -892,3 +892,4 @@ code, pre, .code-editor, .editor, .hcode, .mono { font-variant-ligatures: none; 
 :root[data-theme="dark"] .coav, :root[data-theme="dark"] .pfav { background: #ECEFE8; color: #0F120F; }
 :root[data-theme="dark"] .bit.on { background: #ECEFE8; color: #0F120F; }
 :root[data-theme="dark"] #authpage { background: var(--bg); }
+.stagesh { margin-top: 8px; } .rmintro { margin-top: -10px; }
