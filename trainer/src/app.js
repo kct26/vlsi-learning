@@ -369,7 +369,7 @@ function rowsHTML(ids, cols){
     const Q = BY_ID[id];
     return `<tr data-open="${id}"><td class="c-st">${statusCell(id)}</td><td class="c-ti"><a href="#p${Q.n}" data-open="${id}" title="${esc(Q.q)}">${Q.n}. ${esc(Q.q)}</a><span class="tags">${tagChips(Q)}</span></td>` +
       (cols === 'compact' ? '' : `<td class="c-tp">${esc(TOPICS[Q.ch])}</td><td class="c-ty">${Q.k === 'm' ? 'MCQ' : 'T/F'}</td>`) +
-      `<td class="c-df d-${Q.d}">${DIFF[Q.d]}</td></tr>`;
+      `<td class="c-df"><span class="dbadge d-${Q.d}">${DIFF[Q.d]}</span></td></tr>`;
   }).join('');
 }
 function tableHTML(ids, cols, bodyId){
@@ -414,7 +414,7 @@ function render(){
 // ---------- Quest map ----------
 function viewQuest(){
   const done = UNITS.filter(U => unitPassed(U.id)).length, nu = nextUnit();
-  let html = `<section class="card hero"><div><p class="eyebrow">Quest map</p><h1>Learn hardware one quest at a time</h1>
+  let html = `<section class="card hero"><div><p class="eyebrow">Quest map</p><h1>Learn <em>hardware</em><br>one quest at a time</h1>
     <p class="muted">Each quest follows one chapter of <em>Hardware from the Ground Up</em>: short lessons with hands-on widgets, then a 5-problem checkpoint. Get 4 right to unlock the next quest, or test out of one you already know.</p>
     ${nu ? `<div class="row"><button type="button" class="btn primary" data-act="open-unit" data-u="${nu.id}">${cardsDone(nu) ? 'Continue' : 'Start'}: Quest ${nu.id} · ${esc(nu.title)}</button></div>` : '<p><b>Every quest is complete.</b> Keep your weekly sets going.</p>'}</div>
     <div class="herostat">${ring(done / UNITS.length, 88, 8, `${done} of ${UNITS.length} quests complete`)}<div><b>${done}<span class="muted">/${UNITS.length}</span></b><span>quests complete</span></div></div></section>`;
@@ -738,7 +738,7 @@ function viewWeekly(){
     const Q = BY_ID[id], has = id in w.ans, ok = has && isCorrect(Q, w.ans[id]);
     const mark = has ? (ok ? `<span class="st solved">${ICON.solved}</span>` : `<span class="st wrongmark">${ICON.wrong}</span>`) : '<span class="st todo"></span>';
     const title = w.done ? `<a href="#p${Q.n}" data-open="${id}" data-from="weekly">${Q.n}. ${esc(Q.q)}</a>` : `<span class="plain">${Q.n}. ${esc(Q.q)}</span>`;
-    return `<tr${w.done ? ` data-open="${id}" data-from="weekly"` : ''}><td class="c-st">${mark}</td><td class="c-ti">${title}</td><td class="c-df d-${Q.d}">${DIFF[Q.d]}</td></tr>`;
+    return `<tr${w.done ? ` data-open="${id}" data-from="weekly"` : ''}><td class="c-st">${mark}</td><td class="c-ti">${title}</td><td class="c-df"><span class="dbadge d-${Q.d}">${DIFF[Q.d]}</span></td></tr>`;
   }).join('') + '</tbody></table></div>' + (w.done ? '' : '<p class="muted small">Problems open for review once the set is finished.</p>');
   const weeks = Object.keys(state.weeks).sort().reverse().filter(k => state.weeks[k].done).slice(0, 10);
   return `<section class="card"><div class="row between"><div><p class="eyebrow">Week ${wi.num} · from ${wi.mon.toLocaleDateString(undefined, {month:'short', day:'numeric'})}</p><h1>This week's set</h1></div>${w ? `<span class="pill">${right}/${w.ids.length} correct</span>` : ''}</div>${body}${rows}</section>
@@ -762,7 +762,7 @@ function weekCodingHTML(wi){
   const cw = weekCoding().map(id => CODE_BY_ID[id]);
   return `<section class="card"><div class="row between"><div><p class="eyebrow">Coding · week ${wi.num}</p><h2>This week's coding</h2></div><span class="pill">${cw.filter(p => codeStatus(p.id) === 'solved').length}/${cw.length} solved</span></div>
     <p class="muted">One easy, one medium and one hard problem from the Coding tab, picked from the ones you have not solved yet.</p>
-    <div class="tablewrap"><table class="ptable compact ctable"><tbody>${cw.map(p => `<tr data-copen="${p.id}" data-from="weekly"><td class="c-st">${codeStatusCell(p.id)}</td><td class="c-ti"><a href="#code${p.n}" data-copen="${p.id}" data-from="weekly">${esc(p.title)}</a></td><td class="c-ty">${esc(LANGS[p.lang])}</td><td class="c-df d-${p.d}">${DIFF[p.d]}</td></tr>`).join('')}</tbody></table></div></section>`;
+    <div class="tablewrap"><table class="ptable compact ctable"><tbody>${cw.map(p => `<tr data-copen="${p.id}" data-from="weekly"><td class="c-st">${codeStatusCell(p.id)}</td><td class="c-ti"><a href="#code${p.n}" data-copen="${p.id}" data-from="weekly">${esc(p.title)}</a></td><td class="c-ty">${esc(LANGS[p.lang])}</td><td class="c-df"><span class="dbadge d-${p.d}">${DIFF[p.d]}</span></td></tr>`).join('')}</tbody></table></div></section>`;
 }
 function topicIds(ch){
   const ids = CH_IDS[ch];
@@ -838,7 +838,7 @@ function codeFiltered(){
 }
 function codeRowsHTML(list){
   return list.length ? list.map(p => `<tr data-copen="${p.id}"><td class="c-st">${codeStatusCell(p.id)}</td><td class="c-ti"><a href="#code${p.n}" data-copen="${p.id}">${p.n}. ${esc(p.title)}</a>${p.run ? '<span class="tags"><span class="tag t-run">Judged</span></span>' : ''}</td>` +
-    `<td class="c-tp">${esc(p.area)}</td><td class="c-ty">${esc(LANGS[p.lang])}</td><td class="c-df d-${p.d}">${DIFF[p.d]}</td></tr>`).join('')
+    `<td class="c-tp">${esc(p.area)}</td><td class="c-ty">${esc(LANGS[p.lang])}</td><td class="c-df"><span class="dbadge d-${p.d}">${DIFF[p.d]}</span></td></tr>`).join('')
     : '<tr><td colspan="5" class="empty">No coding problems match. Reset the filters or try another search.</td></tr>';
 }
 function viewCoding(){
@@ -937,12 +937,15 @@ function resultHTML(p){
   return head + `<div class="casechips">${R.results.map((r, k) => `<button type="button" class="casechip ${r.ok ? 'pass' : 'fail'}${k === i ? ' on' : ''}" data-act="c-rcase" data-v="${k}">${r.ok ? '✓' : '✗'} ${R.results.length > 3 ? esc(r.label.slice(0, 26)) : 'Case ' + (k + 1)}</button>`).join('')}</div>` + caseBox(R.results[i]) + out;
 }
 function consoleWrapHTML(p){
-  const C = ui.cp, st = codeStatus(p.id);
+  const C = ui.cp;
   return `<div class="console"><div class="ctabs" role="tablist">${judged(p) ? `<button type="button" role="tab" aria-selected="${C.ctab === 'case'}" data-act="c-ctab" data-v="case">Testcase</button><button type="button" role="tab" aria-selected="${C.ctab === 'result'}" data-act="c-ctab" data-v="result">Test Result</button>` : '<span class="ctitle">Check it yourself</span>'}
-    <span class="spacer"></span>
-    ${judged(p) ? `<button type="button" class="btn small" data-act="c-run"${C.busy ? ' disabled' : ''}>Run</button><button type="button" class="btn small go" data-act="c-submit"${C.busy ? ' disabled' : ''}>Submit</button>`
-      : `<button type="button" class="btn small${st === 'solved' ? '' : ' go'}" data-act="c-mark">${st === 'solved' ? 'Mark as not solved' : 'Mark as solved'}</button>`}</div>
+</div>
     ${consoleHTML(p)}</div>`;
+}
+function actionsHTML(p){
+  const C = ui.cp, st = codeStatus(p.id);
+  return `<span class="eacts">${judged(p) ? `<button type="button" class="btn small" data-act="c-run"${C.busy ? ' disabled' : ''}>▶ Run</button><button type="button" class="btn small go" data-act="c-submit"${C.busy ? ' disabled' : ''}>Submit</button>`
+    : `<button type="button" class="btn small${st === 'solved' ? '' : ' go'}" data-act="c-mark">${st === 'solved' ? 'Mark as not solved' : 'Mark as solved'}</button>`}</span>`;
 }
 function consoleHTML(p){
   const C = ui.cp;
@@ -990,7 +993,7 @@ function viewCode(){
     <button type="button" class="iconbtn" data-act="c-next" aria-label="Next problem"${pos >= C.list.length - 1 ? ' disabled' : ''}>›</button></div></div>
     <div class="cpv">${codeLeftHTML()}
     <section class="ceditor panel"><div class="ehead"><span class="elang">${esc(JUDGE_NAME[p.lang] && judged(p) ? JUDGE_NAME[p.lang] : LANGS[p.lang])}</span><span class="spacer"></span>
-      <button type="button" class="btn small ghost" data-act="c-reset">Reset</button></div>
+      <button type="button" class="btn small ghost" data-act="c-reset">Reset</button>${actionsHTML(p)}</div>
       <div class="editor" data-lang="${p.lang}"><pre class="gutter" aria-hidden="true">${gutter(src)}</pre><div class="ed-area"><pre class="hl" aria-hidden="true">${highlight(src, p.lang)}\n</pre>
         <textarea id="code-editor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your code (Tab inserts spaces; Esc leaves the editor)">${esc(src)}</textarea></div></div>
       ${consoleWrapHTML(p)}</section></div></div>`;
@@ -1054,8 +1057,9 @@ function pyRepr(v){
 function showRun(){
   if (!ui.cp || ui.view !== 'code') return;
   const c = $('.console'); if (!c) return;
-  const t = document.createElement('div'); t.innerHTML = consoleWrapHTML(CODE_BY_ID[ui.cp.id]);
-  c.replaceWith(t.firstElementChild);
+  const p = CODE_BY_ID[ui.cp.id], t = document.createElement('div');
+  t.innerHTML = consoleWrapHTML(p); c.replaceWith(t.firstElementChild);
+  const a = $('.eacts'); if (a) a.outerHTML = actionsHTML(p);
 }
 
 // Python runs in the browser with Pyodide, inside a Web Worker so a runaway loop can be stopped.
