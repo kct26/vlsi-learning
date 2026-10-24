@@ -7,7 +7,7 @@ const $ = (s, r) => (r || document).querySelector(s), $$ = (s, r) => Array.from(
 const ok = (c, m) => log.push((c ? 'PASS ' : 'FAIL ') + m);
 const st = () => JSON.parse(localStorage.getItem('ground-up-trainer-v1') || 'null');
 const click = sel => { const el = typeof sel === 'string' ? $(sel) : sel; if (!el) { log.push('FAIL missing ' + sel); return false; } el.click(); return true; };
-const tab = t => click(`.navlinks button[data-tab="${t}"]`);
+const tab = t => t === 'profile' ? click('#acct .avatar') : click(`.navlinks button[data-tab="${t}"]`);
 const h1 = () => ($('#main h1') || {}).textContent || '';
 function rawIn(container){
   const lab = $$('.qmeta .mono', container).map(s => s.textContent).find(t => /^#\d+$/.test(t));
@@ -67,6 +67,17 @@ function phase1(){
   ok(/WebAssembly/.test($('.faqans').textContent), 'FAQ answer switches');
   ok(!/NaN|undefined/.test($('#main').textContent), 'home has no NaN or undefined');
   tab('quest');
+  ok($$('.rmnode').length === 36 && $$('.rmlines path').length >= 40, 'roadmap map: 36 topics with prerequisite lines');
+  click('[data-act="rm-sel"][data-v="u19"]');
+  ok(/RTL, CDC/.test($('#rmdetail h3').textContent) && $('#rmdetail [data-act="open-unit"][data-u="19"]'), 'selecting a topic shows its lessons and a quest button');
+  click('[data-act="rm-sel"][data-v="r-dv"]');
+  ok(/Role: verification/.test($('#rmdetail h3').textContent) && $('#rmdetail [data-v="roles"]'), 'role nodes link to Roles');
+  const z0 = $('.rminner').style.transform; click('[data-act="rm-zoom"][data-v="in"]');
+  ok($('.rminner').style.transform !== z0, 'roadmap zooms');
+  click('#theme');
+  ok(document.documentElement.dataset.theme === 'dark' && localStorage.getItem('ground-up-theme') === 'dark', 'theme toggle switches to dark and remembers it');
+  click('#theme');
+  ok(document.documentElement.dataset.theme === 'light', 'and back to light (the default)');
   ok(!/\bXP\b|\bLV\b|Level \d|[Bb]adge|Achievement|streak/.test(visible()), 'no XP, levels, badges, streaks or achievements on the quest map');
   ok($$('.path > .node').length === UNITS.length, UNITS.length + ' quest nodes on the map');
   ok($$('.path > .node.locked').length === UNITS.length - 1, 'only quest 1 is open at the start');
@@ -107,10 +118,10 @@ function phase1(){
   click('[data-act="f-reset"]');
   click('[data-act="f-ch"][data-v="17"]');
   ok($$('#prows tr').length === RAW.filter(r => r[0].startsWith('17-')).length, 'topic chip filters to chapter 17');
-  click('[data-act="f-list"][data-v="oa"]');
-  ok($$('#prows tr').length === 10, 'study list "Your OA" shows 10');
-  click('[data-act="f-list"][data-v="oa-mux"]');
-  ok($$('#prows tr').length >= 15, 'OA topic list (mux) shows ' + $$('#prows tr').length);
+  ok($$('.studycard .slist').length === 13 && !/Your OA|By skill/i.test($('.studycard').textContent), 'sidebar lists the 13 VLSI areas (no OA or skill lists)');
+  click('[data-act="f-list"][data-v="va-sta"]');
+  ok($$('#prows tr').length === RAW.filter(r => /^(11|13)-/.test(r[0])).length, 'VLSI area "Static timing analysis" shows chapters 11 and 13');
+  ok($('#f-list').value === 'va-sta', 'area dropdown follows the sidebar');
   click('[data-act="f-reset"]');
 
   // Problem page: wrong, retry, accepted
@@ -139,33 +150,23 @@ function phase1(){
   click('[data-act="pv-back"]');
   ok($('#prows') && $$('#prows .st.solved').length >= 2, 'back to list shows solved icons');
 
-  // Weekly set with save and resume
-  tab('weekly');
-  click('[data-act="week"]');
-  ok(/Problem 1 of 25/.test(h1()), 'weekly set has 25');
-  for (let i = 0; i < 12; i++) { answer('quiz', i % 3 !== 0); click('[data-act="next"]'); }
-  click('[data-act="quit"]');
-  ok(/12 of 25 answered/.test($('#main').textContent), 'weekly page shows saved progress');
-  ok(!$('#main tr[data-open]'), 'weekly rows locked until finished');
-  click('[data-act="week"]');
-  ok(/Problem 13 of 25/.test(h1()), 'resume at 13');
-  document.body.dispatchEvent(new KeyboardEvent('keydown', {key:'2', bubbles:true}));
-  ok($('.verdict'), 'pressing 2 answers');
-  document.body.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true}));
-  ok(/Problem 14 of 25/.test(h1()), 'Enter goes to the next problem');
-  for (let i = 13; i < 25; i++) { answer('quiz', true); click('[data-act="next"]'); }
-  const wk = Object.keys(st().weeks)[0];
-  ok(st().weeks[wk].done, 'weekly set done, score ' + st().weeks[wk].score);
-  click('[data-act="retry-missed"]');
-  let guard = 0;
-  while ($('.opts[data-scope="quiz"]') && guard++ < 30) { answer('quiz', true); click('[data-act="next"]'); }
-  ok($('.big'), 'retry set finishes');
-  click('[data-act="done-results"]');
-  ok(/Review answers/.test($('#main').textContent) && $$('#main tr[data-open]').length === 25, 'finished week: 25 reviewable rows');
-  click($('#main tr[data-open] a'));
-  ok($('.pv') && /Back to weekly/.test($('[data-act="pv-back"]').textContent), 'weekly row opens problem with back-to-weekly');
+  // Profile: streak, heatmap, recent submissions
+  ok($('#acct .avatar.guest'), 'profile button in the top bar');
+  click('#acct .avatar');
+  ok($('.pfgrid') && $('.heatmap') && $$('.heatmap rect').length > 360, 'profile opens with a year heatmap');
+  ok(/1 day/.test($('.pfstreak .pfbig').textContent) && $('.pfflame.on'), 'streak counts today: ' + $('.pfstreak .pfbig').textContent);
+  ok($$('.heatmap rect.hm0').length < $$('.heatmap rect').length, 'today is shaded on the heatmap');
+  ok(+$('.pfsolved .ringlabel b').textContent === solvedHeader(), 'profile theory ring matches the header');
+  ok($$('.recent li').length > 3, 'recent accepted list');
+  click('[data-act="pf-recent"][data-v="all"]');
+  ok(/Wrong Answer/.test($('.recent').textContent) && /Accepted/.test($('.recent').textContent), 'submissions list shows both verdicts');
+  click($('.recent li a'));
+  ok($('.pv') && /Back to profile/.test($('[data-act="pv-back"]').textContent), 'a recent submission opens with back-to-profile');
   click('[data-act="pv-back"]');
+  ok($('.pfgrid'), 'back returns to the profile');
+  ok(st().log.length >= 10 && st().log.every(x => x.length === 3), 'submission log saved (' + st().log.length + ')');
 
+  tab('theory');
   // Mock
   click('[data-act="mock"]');
   ok(/^\d+:\d\d$/.test($('#timer').textContent), 'mock timer ' + $('#timer').textContent);
@@ -176,13 +177,8 @@ function phase1(){
   click('[data-act="submit"]');
   ok($$('.result').length === 15 && $$('.result .st.todo').length === 12, 'mock results: 3 answered, 12 blank');
   click('[data-act="done-results"]');
-  click('[data-act="review-oa"]');
-  guard = 0;
-  while ($('.opts[data-scope="quiz"]') && guard++ < 25) { answer('quiz', true); click('[data-act="next"]'); }
-  ok($('.big') && $('.big').textContent.replace(/\s/g, '') === '20/20', 'OA review set of 20 finished');
-  click('[data-act="done-results"]');
+  ok($('#prows'), 'mock returns to Theory');
 
-  ok(!/\bXP\b|\bLV\b|Level \d|[Bb]adge|Achievement|streak/.test(visible()), 'no XP, levels, badges or streaks on the weekly page');
   // Roles: what postings ask for, and hardware roles
   tab('roles');
   ok($$('.review').length === 14 + 12, '14 posting requirements and 12 hardware roles reviewed');
@@ -231,7 +227,7 @@ function phase1(){
   ok($('.steps'), 'quest 5 now shows its lessons');
 
   // Reset with an in-page confirm
-  tab('weekly');
+  tab('profile');
   click('[data-act="reset"]');
   ok($('[data-act="reset-yes"]'), 'reset asks in the page');
   click('[data-act="reset-yes"]');
@@ -268,7 +264,7 @@ function phase3(){
 function phase4(){
   const over = name => { const w = document.documentElement.scrollWidth, v = window.innerWidth; ok(w <= v + 1, `no horizontal scroll on ${name} at ${v}px (scrollWidth ${w})`); };
   over('home page');
-  ['quest', 'theory', 'weekly', 'roles', 'companies'].forEach(t => { tab(t); over(t); });
+  ['quest', 'theory', 'roles', 'profile', 'companies'].forEach(t => { tab(t); over(t); });
   click('[data-act="co-open"][data-v="nvidia"]'); over('company page');
   tab('theory'); click($$('#prows a[data-open]')[3]); over('problem page');
   tab('quest'); click('[data-act="open-unit"][data-u="1"]'); over('quest page');
@@ -280,12 +276,12 @@ async function phase3b(){
   phase3();
   // Import a backup file: it must merge with (not replace) the progress already here.
   const before = solvedHeader();
-  click('[data-act="pv-back"]'); tab('weekly');
+  click('[data-act="pv-back"]'); tab('profile');
   ok($('[data-act="export"]') && $('[data-act="import"]'), 'export and import buttons on the progress card');
   const file = new File([JSON.stringify({v:2, updatedAt:9, q:{'03-01':{n:1, c:1, ok:true, at:9}, '03-02':{n:2, c:1, ok:true, at:9}}, weeks:{}, hist:[], learn:{cards:{}, units:{}, mux:{}}})], 'backup.json', {type:'application/json'});
   const dt = new DataTransfer(); dt.items.add(file);
   const inp = $('#import-file'); inp.files = dt.files; inp.dispatchEvent(new Event('change', {bubbles:true}));
-  await wait(300);
+  for (let k = 0; k < 40 && solvedHeader() === before; k++) await wait(250);   // reading the file is real I/O
   ok(solvedHeader() === before + 2, 'import merged 2 solved problems (' + before + ' -> ' + solvedHeader() + ')');
   ok(st().q['03-01'] && st().q['03-01'].c === 1, 'imported progress saved locally');
 }
@@ -322,8 +318,6 @@ async function phase6(){
   click('[data-act="c-back"]');
   ok($('#crows tr[data-copen="sh-01"] .st.solved'), 'list shows the solved status');
   ok(/1<\/b><span class="muted">\/\d+<\/span> code/.test($('#solved').innerHTML), 'top bar counts solved coding problems');
-  tab('weekly');
-  ok($$('#main tr[data-copen][data-from="weekly"]').length === 3, "this week's coding lists 3 problems");
 
   // Python: Run tries the example cases, Submit runs every test and records a submission.
   tab('coding');
@@ -396,8 +390,8 @@ async function phase5(){
   const r = pvRaw(); click(`[data-pv="${code(r, true)}"]`); click('[data-act="pv-submit"]');
   await wait(1300);
   ok(JSON.parse(window.__fb.users.u1.state).q[r[0]], 'a new answer syncs to the account');
-  click('[data-act="pv-back"]'); tab('weekly');
-  ok(/Signed in as/.test($('#progress-card').textContent), 'progress card shows the signed-in account');
+  click('[data-act="pv-back"]'); click('#acct .avatar');
+  ok(/me@test\.dev/.test($('.pfme').textContent) && /Synced to your account/.test($('#progress-card').textContent), 'profile shows the signed-in account');
   click('[data-act="signout"]');
   await wait(200);
   ok($('#acct .acctbtn') && /Saved in this browser/.test($('#sync').textContent), 'signing out returns to browser-only saving');

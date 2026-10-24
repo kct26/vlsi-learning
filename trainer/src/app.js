@@ -15,7 +15,7 @@ const BANK = RAW.map((r, i) => {
 const BY_ID = Object.fromEntries(BANK.map(q => [q.id, q]));
 const CH_IDS = {};
 BANK.forEach(q => (CH_IDS[q.ch] = CH_IDS[q.ch] || []).push(q.id));
-const WEEK_N = 25, MOCK_N = 15, MOCK_MIN = 50, UNIT_N = 5, UNIT_PASS = 4;
+const MOCK_N = 15, MOCK_MIN = 50, UNIT_N = 5, UNIT_PASS = 4;
 const MUX_NAMES = {OR:'OR', AND:'AND', NOTA:'NOT A', NAND:'NAND', NOR:'NOR', XOR:'XOR'};
 
 // Study lists: your OA, its topics, sources, and the skills NVIDIA's posting names.
@@ -74,12 +74,44 @@ const LISTS = {
 OA_TOPICS.forEach(t => { LISTS[t.key] = {name:'OA topic: ' + t.name, test:Q => oaish(Q) && t.ch.includes(Q.ch)}; });
 SKILLS.forEach(s => { LISTS[s.key] = {name:'Skill: ' + s.name, test:Q => s.tag ? hasTag(Q, s.tag) : s.ch.includes(Q.ch)}; });
 REPORTED.forEach((r, i) => { r.key = 'rp-' + i; LISTS[r.key] = {name:'Reported: ' + r.name, test:Q => Q.ch === r.ch && r.kw.test(Q.hay)}; });
+// The parts of VLSI, grouped the way the industry splits the work. Each area is a set of book chapters.
+const VLSI_AREAS = [
+  {group:'Devices and circuits', items:[
+    {key:'va-dev', name:'Devices and process technology', ch:[4, 5]},
+    {key:'va-ana', name:'Analog and mixed-signal basics', ch:[1, 2, 6]},
+    {key:'va-mem', name:'Memory design (SRAM, DRAM, flash)', ch:[18]}]},
+  {group:'Front-end design', items:[
+    {key:'va-logic', name:'Digital logic and CMOS gates', ch:[7, 8, 9]},
+    {key:'va-seq', name:'Sequential design and FSMs', ch:[10, 12]},
+    {key:'va-rtl', name:'RTL design and verification', ch:[19]},
+    {key:'va-arch', name:'Computer architecture and GPUs', ch:[20, 21]},
+    {key:'va-arith', name:'Datapath and computer arithmetic', ch:[22]}]},
+  {group:'Back-end and signoff', items:[
+    {key:'va-sta', name:'Static timing analysis', ch:[11, 13]},
+    {key:'va-pwr', name:'Power, thermal and PVT', ch:[3, 14, 15]},
+    {key:'va-si', name:'Interconnect and signal integrity', ch:[16]},
+    {key:'va-pd', name:'Physical design, DFT and manufacturing', ch:[17]}]},
+  {group:'Tools', items:[
+    {key:'va-eda', name:'EDA tools, Linux and scripting', ch:[23]}]}
+];
+VLSI_AREAS.forEach(g => g.items.forEach(a => { LISTS[a.key] = {name:a.name, test:Q => a.ch.includes(Q.ch)}; }));
+// The quest map as a VLSI theory roadmap: one stage per part of the book, in learning order.
+const ROADMAP = {
+  1:{stage:'Circuit foundations', area:'Analog basics', goal:'Read any circuit: Ohm\'s and Kirchhoff\'s laws, RC time constants, and why chips get hot.'},
+  2:{stage:'Semiconductor devices', area:'Devices', goal:'Explain how a MOSFET switches and amplifies: doping, threshold voltage, operating regions.'},
+  3:{stage:'CMOS logic design', area:'Front-end', goal:'Build any Boolean function in static CMOS and reason about its transistors.'},
+  4:{stage:'Sequential logic and timing', area:'Front-end · STA', goal:'Design with latches, flip-flops and FSMs, and check setup and hold timing.'},
+  5:{stage:'Delay, power and variation', area:'Signoff', goal:'Estimate gate delay and dynamic and leakage power, and how PVT corners move them.'},
+  6:{stage:'Physical design and silicon', area:'Back-end', goal:'Handle interconnect RC and crosstalk, manufacturing, test (DFT) and memory arrays.'},
+  7:{stage:'RTL, architecture and arithmetic', area:'Front-end', goal:'Write and verify RTL, cross clock domains, and design datapaths for CPUs and GPUs.'},
+  8:{stage:'Engineering tools', area:'EDA and CAD', goal:'Automate flows the way design teams do: C, Python, Linux, Tcl and git.'}
+};
 const listIds = key => BANK.filter(LISTS[key].test).map(Q => Q.id);
 
 // What hardware internship and new-grad postings ask for, checked against the book and this trainer.
 const VERDICT = {strong:['Strong match', 'ok'], good:['Good match', 'ok'], partial:['Partial', 'warn'], none:['Not covered', 'bad'], na:['Not study material', '']};
 const SKILL_REVIEW = [
-  {req:'Hardware basics: circuits and digital logic', v:'strong', book:'Chapters 1–12 build hardware from zero', list:'sk-basics', todo:'Do Quests 1–12 in order, then keep up the weekly sets.'},
+  {req:'Hardware basics: circuits and digital logic', v:'strong', book:'Chapters 1–12 build hardware from zero', list:'sk-basics', todo:'Work through roadmap stages 1–4, then practice those areas in Theory.'},
   {req:'CMOS transistors and circuits', v:'strong', book:'Chapters 4, 5, 6 and 8', list:'sk-cmos', todo:'The most common screening questions live here: inverters, pass transistors, sizing. Keep these sets near 100%.'},
   {req:'VLSI design', v:'strong', book:'Chapters 8, 13, 16, 17 and 18 (gates, delay, wires, manufacturing, memory)', list:'sk-vlsi', todo:'Deeper topics (DIBL, subthreshold slope, CRPR, keepers) are practiced as beyond-the-book problems.'},
   {req:'Static timing and physical design', v:'strong', book:'Chapters 11, 13, 15, 16 and 17', list:'sk-pd', code:['Physical design'], todo:'Run an open flow (OpenLane or Tiny Tapeout) and read its timing reports.'},
@@ -90,7 +122,7 @@ const SKILL_REVIEW = [
   {req:'Programming: C, C++, Python, Perl or MATLAB', v:'good', book:'Chapter 23 covers C and Python basics; the rest are taught as beyond-the-book problems', list:'sk-prog', code:['C and C++', 'Python and MATLAB'], todo:'Keep solving one linked-list or bit-manipulation problem a week.'},
   {req:'Linux, scripting and version control', v:'good', book:'Chapter 23 and beyond-the-book problems (shell, git, make, Tcl, Perl)', list:'sk-prog', code:['Linux and scripting'], todo:'Live in a Linux terminal for a week; script one real task in Python or Tcl.'},
   {req:'GPU programming: CUDA or OpenCL', v:'good', book:'Chapter 21 (CUDA model, warps, memory hierarchy); OpenCL is only named', list:'sk-gpu', code:['GPU and CUDA'], todo:'Run the CUDA problems on a real GPU (Google Colab works).'},
-  {req:'Problem solving and aptitude', v:'good', book:'Chapter 24 (aptitude and puzzles) and Chapter 25 (a full practice assessment)', list:null, todo:'Weekly sets and the timed mock build this habit.'},
+  {req:'Problem solving and aptitude', v:'good', book:'Chapter 24 (aptitude and puzzles) and Chapter 25 (a full practice assessment)', list:null, todo:'The timed mock in Theory builds this habit; keep a daily streak going.'},
   {req:'Projects, clubs and leadership', v:'partial', book:'Appendix D gives resume projects matched to hardware teams', list:null, todo:'Study material cannot show this on a resume. Finish one Appendix D project and write it up.'},
   {req:'Mechanical CAD (CATIA, NX, SolidWorks, Creo)', v:'none', book:'Not taught. Appendix D Project 7 suggests a heat-sink design', list:null, todo:'Only matters for mechanical and thermal roles; take a CAD course if you aim there.'}
 ];
@@ -153,7 +185,15 @@ function ring(frac, size, stroke, label){
 
 // ---------- state and saving ----------
 const LS_KEY = 'ground-up-trainer-v1';
-const emptyState = () => ({v:2, updatedAt:0, q:{}, weeks:{}, hist:[], learn:{cards:{}, units:{}, mux:{}}, code:{}, codeWeek:null});
+const emptyState = () => ({v:2, updatedAt:0, q:{}, weeks:{}, hist:[], learn:{cards:{}, units:{}, mux:{}}, code:{}, codeWeek:null, log:[]});
+const LOG_MAX = 5000;   // submissions kept for the profile's heatmap, streaks and recent list
+// Rebuilds a submission log from older saves that predate it: one entry per answered problem and per code submission.
+function backfillLog(e){
+  const log = [];
+  Object.keys(e.q).forEach(id => { const x = e.q[id]; if (x && x.at) log.push([x.at, id, x.ok ? 1 : 0]); });
+  Object.keys(e.code).forEach(id => (e.code[id].subs || []).forEach(u => log.push([u.at, id, u.v === 'Accepted' ? 1 : 0])));
+  return log.sort((a, b) => a[0] - b[0]).slice(-LOG_MAX);
+}
 function normalize(s){
   const e = emptyState();
   if (!s || typeof s !== 'object') return e;
@@ -165,6 +205,7 @@ function normalize(s){
   e.learn = {cards:l.cards || {}, units:l.units || {}, mux:l.mux || {}};
   if (s.code && typeof s.code === 'object') e.code = s.code;
   if (s.codeWeek && s.codeWeek.wk) e.codeWeek = s.codeWeek;
+  e.log = Array.isArray(s.log) ? s.log.filter(x => Array.isArray(x) && x.length === 3) : backfillLog(e);
   return e;
 }
 let state = emptyState();
@@ -235,6 +276,9 @@ function mergeStates(a, b){
     m.code[id] = !x ? y : {src:(y.at || 0) > (x.at || 0) ? y.src : x.src, solved:x.solved || y.solved || 0, at:Math.max(x.at || 0, y.at || 0)};
     if (x && Object.keys(subs).length) m.code[id].subs = Object.values(subs).sort((u, w) => u.at - w.at).slice(-20);
   });
+  const lk = {};
+  m.log.concat(o.log).forEach(x => { lk[x[0] + '|' + x[1]] = x; });
+  m.log = Object.values(lk).sort((a, b) => a[0] - b[0]).slice(-LOG_MAX);
   m.updatedAt = Math.max(m.updatedAt, o.updatedAt);
   return m;
 }
@@ -246,7 +290,7 @@ const FB_VERSION = '10.12.2';
 const acct = {ready:false, user:null, ref:null, timer:null, chain:Promise.resolve()};
 function loadScript(src){ return new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = () => reject(new Error('Could not load ' + src)); document.head.appendChild(s); }); }
 async function initAccounts(){
-  if (!STANDALONE || !window.FIREBASE_CONFIG) return;
+  if (!STANDALONE || !window.FIREBASE_CONFIG) { renderAccount(); return; }
   try {
     if (!window.firebase) for (const m of ['app', 'auth', 'firestore']) await loadScript(`https://www.gstatic.com/firebasejs/${FB_VERSION}/firebase-${m}-compat.js`);
     firebase.initializeApp(window.FIREBASE_CONFIG);
@@ -259,7 +303,7 @@ async function initAccounts(){
 async function onAuth(user){
   acct.user = user || null; acct.ref = null;
   if (user && ui.auth) closeAuth();
-  if (!user) { store.mode = 'local'; setSync('Saved in this browser'); renderAccount(); if (ui.tab === 'weekly' && ui.view === 'tab') render(); return; }
+  if (!user) { store.mode = 'local'; setSync('Saved in this browser'); renderAccount(); if (ui.tab === 'profile' && ui.view === 'tab') render(); return; }
   setSync('Syncing…');
   try {
     const ref = firebase.firestore().collection('users').doc(user.uid);
@@ -278,10 +322,10 @@ function cloudFlush(){
 }
 function renderAccount(){
   const el = $('#acct'); if (!el) return;
-  if (!acct.ready) { el.innerHTML = ''; return; }
   const u = acct.user;
-  el.innerHTML = u ? `<button type="button" class="avatar" data-act="to-progress" title="Signed in as ${esc(u.email || u.displayName || 'you')}" aria-label="Your account">${esc(((u.displayName || u.email || '?')[0] || '?').toUpperCase())}</button>`
-    : '<button type="button" class="acctbtn" data-act="signin">Sign in</button>';
+  const me = `<button type="button" class="avatar${u ? '' : ' guest'}" data-act="to-progress" title="${u ? 'Signed in as ' + esc(u.email || u.displayName || 'you') : 'Your profile'}" aria-label="Your profile">` +
+    (u && u.photoURL ? `<img src="${esc(u.photoURL)}" alt="" referrerpolicy="no-referrer">` : u ? esc(((u.displayName || u.email || '?')[0] || '?').toUpperCase()) : '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>') + '</button>';
+  el.innerHTML = (acct.ready && !u ? '<button type="button" class="acctbtn" data-act="signin">Sign in</button>' : '') + me;
 }
 
 // ---------- backup file ----------
@@ -311,8 +355,10 @@ function record(Q, choice){
   const ok = isCorrect(Q, choice);
   const s = state.q[Q.id] || (state.q[Q.id] = {n:0, c:0, ok:false, at:0});
   s.n++; if (ok) s.c++; s.ok = ok; s.at = Date.now();
+  logSubmit(Q.id, ok);
   return ok;
 }
+function logSubmit(id, ok){ state.log.push([Date.now(), id, ok ? 1 : 0]); if (state.log.length > LOG_MAX) state.log.splice(0, state.log.length - LOG_MAX); }
 function unitPassed(u){ return !!(state.learn.units[u] && state.learn.units[u].passed); }
 function unitUnlocked(u){ return u === 1 || unitPassed(u - 1) || unitPassed(u); }
 function cardsDone(U){ return U.cards.filter((c, i) => state.learn.cards['u' + U.id + 'c' + i]).length; }
@@ -326,7 +372,7 @@ function toast(text){
 }
 
 // ---------- UI state ----------
-const TABS = ['home', 'quest', 'theory', 'coding', 'companies', 'roles', 'weekly'];
+const TABS = ['home', 'theory', 'coding', 'quest', 'companies', 'roles', 'profile'];
 const blankFilters = () => ({q:'', ch:'all', d:'all', status:'all', type:'all', list:'all', co:'all'});
 const ui = {tab:'home', co:null, coq:'', auth:null, home:{word:0, tab:1, tryi:0, faq:0, tryv:{v:0.9, f:2, b:5, T:1, l:0.6, x:200}, timers:[]}, view:'tab', session:null, unit:null, pv:null, back:null, cardPick:{}, cardPerm:{}, f:blankFilters(), confirmReset:false, timer:null, cf:null, cp:null, cback:null, codeTimer:null};
 function setHash(h){ try { history.replaceState(null, '', '#' + h); } catch (e) { /* ignore */ } }
@@ -390,7 +436,7 @@ function verdictHTML(Q, chosen){
 function render(){
   renderHeader();
   const m = $('#main'), home = ui.view === 'tab' && ui.tab === 'home';
-  m.className = home ? 'main home' : 'wrap main' + ((ui.view === 'tab' && ['theory', 'coding', 'companies'].includes(ui.tab)) || ui.view === 'code' || ui.view === 'company' ? ' wide' : '');
+  m.className = home ? 'main home' : 'wrap main' + ((ui.view === 'tab' && ['theory', 'coding', 'companies', 'profile', 'quest'].includes(ui.tab)) || ui.view === 'code' || ui.view === 'company' ? ' wide' : '');
   if (!home) homeStop();
   if (ui.view === 'quiz') { m.innerHTML = viewQuiz(); updateTimer(); }
   else if (ui.view === 'results') m.innerHTML = viewResults();
@@ -400,9 +446,9 @@ function render(){
   else if (ui.view === 'company') m.innerHTML = viewCompany();
   else if (home) { m.innerHTML = viewHome(); homeStart(); }
   else if (ui.tab === 'coding') m.innerHTML = viewCoding();
-  else if (ui.tab === 'quest') m.innerHTML = viewQuest();
+  else if (ui.tab === 'quest') { m.innerHTML = viewQuest(); if (ui.rm.fit) { ui.rm.fit = false; rmZoom('fit'); } }
   else if (ui.tab === 'theory') m.innerHTML = viewProblems();
-  else if (ui.tab === 'weekly') m.innerHTML = viewWeekly();
+  else if (ui.tab === 'profile') m.innerHTML = viewProfile();
   else if (ui.tab === 'companies') m.innerHTML = viewCompanies();
   else m.innerHTML = viewRoles();
 }
@@ -410,14 +456,17 @@ function render(){
 // ---------- Quest map ----------
 function viewQuest(){
   const done = UNITS.filter(U => unitPassed(U.id)).length, nu = nextUnit();
-  let html = `<section class="card hero"><div><p class="eyebrow">Quest map</p><h1>Learn <em>hardware</em><br>one quest at a time</h1>
-    <p class="muted">Each quest follows one chapter of <em>Hardware from the Ground Up</em>: short lessons with hands-on widgets, then a 5-problem checkpoint. Get 4 right to unlock the next quest, or test out of one you already know.</p>
-    ${nu ? `<div class="row"><button type="button" class="btn primary" data-act="open-unit" data-u="${nu.id}">${cardsDone(nu) ? 'Continue' : 'Start'}: Quest ${nu.id} · ${esc(nu.title)}</button></div>` : '<p><b>Every quest is complete.</b> Keep your weekly sets going.</p>'}</div>
-    <div class="herostat">${ring(done / UNITS.length, 88, 8, `${done} of ${UNITS.length} quests complete`)}<div><b>${done}<span class="muted">/${UNITS.length}</span></b><span>quests complete</span></div></div></section>`;
-  html = html.replace('</section>', '') + `<div class="roadmap" aria-label="${done} of ${UNITS.length} quests complete">${UNITS.map(U => `<i class="${unitPassed(U.id) ? 'done' : nu && nu.id === U.id ? 'cur' : ''}" title="Quest ${U.id} · ${esc(U.title)}"></i>`).join('')}</div></section>`;
+  if (!ui.rm) ui.rm = {sel:'u' + (nu ? nu.id : 1), z:1, fit:true};
+  let html = `<section class="pagehead"><p class="eyebrow">VLSI roadmap</p><h1>The <em>VLSI</em> roadmap</h1>
+    <p class="muted">Everything you need to know to apply for VLSI roles, in the order to learn it: ${UNITS.length} theory quests from a single wire to a GPU, the hands-on coding tracks, and the role each path leads to. ${done}/${UNITS.length} quests passed.</p>
+    ${nu ? `<div class="row"><button type="button" class="btn primary" data-act="open-unit" data-u="${nu.id}">${cardsDone(nu) ? 'Continue' : 'Start'}: Quest ${nu.id} · ${esc(nu.title)}</button></div>` : '<p><b>Every stage is complete.</b> Keep practicing in Theory and Coding.</p>'}</section>
+    ${roadmapHTML()}
+    <h2 class="hh2 left stagesh">Stages in detail</h2>`;
   PARTS.forEach(p => {
-    const pd = p.units.filter(unitPassed).length;
-    html += `<section class="realm"><header class="realmhead"><div><span class="eyebrow">Part ${ROMAN[p.n - 1]}</span><h2>${esc(p.name)}</h2></div><span class="pill${pd === p.units.length ? ' ok' : ''}">${pd}/${p.units.length} complete</span></header><ol class="path qgrid">`;
+    const pd = p.units.filter(unitPassed).length, R = ROADMAP[p.n] || {stage:p.name, area:'', goal:''};
+    const sc = pd === p.units.length ? 'done' : p.units.some(u => nu && nu.id === u) ? 'current' : p.units.some(unitUnlocked) ? 'open' : 'locked';
+    html += `<section class="realm stage ${sc}"><div class="srail" aria-hidden="true"><span class="snode">${pd === p.units.length ? ICON.solved : p.n}</span></div><div class="sbody">
+      <header class="realmhead"><div><span class="eyebrow">Stage ${p.n} · ${esc(R.area)}</span><h2>${esc(R.stage)}</h2><p class="muted small sgoal">${esc(R.goal)}</p></div><span class="pill${pd === p.units.length ? ' ok' : ''}">${pd}/${p.units.length} complete</span></header><ol class="path qgrid">`;
     p.units.forEach(uid => {
       const U = UNITS[uid - 1], passed = unitPassed(uid), open = unitUnlocked(uid), cd = cardsDone(U), cur = nu && nu.id === uid;
       const ids = CH_IDS[uid], sv = solvedIn(ids);
@@ -430,7 +479,7 @@ function viewQuest(){
         <small>Lessons ${cd}/${U.cards.length} · ${sv}/${ids.length} solved${passed ? '' : ` · checkpoint ${open ? 'open' : 'locked'}`}</small>
         ${cur ? `<span class="qgo">${cd ? 'Continue' : 'Start'} →</span>` : ''}</button></li>`;
     });
-    html += '</ol></section>';
+    html += '</ol></div></section>';
   });
   return html;
 }
@@ -505,7 +554,7 @@ function viewProblems(){
   const f = ui.f, list = filtered(), all = BANK.map(Q => Q.id), solved = solvedIn(all);
   const chips = `<button type="button" class="tchip${f.ch === 'all' ? ' on' : ''}" data-act="f-ch" data-v="all">All topics <span>${BANK.length}</span></button>` +
     Object.keys(TOPICS).map(c => `<button type="button" class="tchip${f.ch === c ? ' on' : ''}" data-act="f-ch" data-v="${c}">${esc(TOPICS[c])} <span>${CH_IDS[c].length}</span></button>`).join('');
-  const listOpts = [['all', 'All problems'], ...['oa', 'oav', 'rep', 'beyond'].map(k => [k, LISTS[k].name]), ...OA_TOPICS.map(t => [t.key, LISTS[t.key].name]), ...SKILLS.map(s => [s.key, LISTS[s.key].name]), ...REPORTED.map(r => [r.key, LISTS[r.key].name])];
+  const listOpts = [['all', 'VLSI area'], ...VLSI_AREAS.flatMap(g => g.items.map(a => [a.key, a.name])), ...(LISTS[f.list] && !/^va-/.test(f.list) ? [[f.list, LISTS[f.list].name]] : [])];
   const byD = d => { const ids = BANK.filter(Q => Q.d === d).map(Q => Q.id); return [solvedIn(ids), ids.length]; };
   const attempted = all.filter(id => statusOf(id) === 'attempted').length;
   const studyBtn = (key, label) => { const ids = listIds(key); return `<button type="button" class="slist${f.list === key ? ' on' : ''}" data-act="f-list" data-v="${key}"><span>${esc(label)}</span><span class="mono">${solvedIn(ids)}/${ids.length}</span></button>`; };
@@ -527,11 +576,12 @@ function viewProblems(){
     <section class="card progcard"><h2>Progress</h2><div class="progring">${ring(solved / BANK.length, 120, 9, `${solved} of ${BANK.length} solved`)}<div class="ringlabel"><b>${solved}</b><span>/${BANK.length}</span><small>Solved</small></div></div>
       <div class="dbars">${['E', 'M', 'H'].map(d => { const [s, t] = byD(d); return `<div class="dbar"><span class="d-${d}">${DIFF[d]}</span><span class="mono">${s}/${t}</span><i class="bar d-${d}"><b style="width:${pct(s, t)}%"></b></i></div>`; }).join('')}</div>
       <p class="muted small">${attempted} attempted, not solved yet</p></section>
-    <section class="card studycard"><h2>Study lists</h2><div class="slists">
-      ${studyBtn('oa', 'Your OA questions')}${studyBtn('oav', 'Your OA + variants')}
-      ${OA_TOPICS.map(t => studyBtn(t.key, t.name)).join('')}
-      <p class="eyebrow sub">By skill</p>${SKILLS.map(s => studyBtn(s.key, s.name)).join('')}
-      <p class="eyebrow sub">By source</p>${studyBtn('rep', 'Reported online')}${studyBtn('beyond', 'Beyond the book')}
+    <section class="card studycard"><h2>VLSI areas</h2><p class="muted small">Every problem belongs to a part of VLSI. Pick one to practice it.</p><div class="slists">
+      ${VLSI_AREAS.map(g => `<p class="eyebrow sub">${esc(g.group)}</p>` + g.items.map(a => studyBtn(a.key, a.name)).join('')).join('')}
+    </div></section>
+    <section class="card"><h2>Practice sets</h2><div class="slists">
+      <button type="button" class="slist" data-act="mock"><span>Timed mock: ${MOCK_N} problems, ${MOCK_MIN} min</span><span class="mono">OA</span></button>
+      <button type="button" class="slist" data-act="review-attempted"${attempted ? '' : ' disabled'}><span>Attempted, not solved</span><span class="mono">${attempted}</span></button>
     </div></section>
   </aside></div>`;
 }
@@ -556,7 +606,7 @@ function openProblem(id, list, back){
   ui.view = 'problem'; setHash('p' + BY_ID[id].n); render(); window.scrollTo(0, 0);
 }
 function moveProblem(id){ openProblem(id, ui.pv.list); }
-const backLabel = () => !ui.back ? 'Theory' : ui.back.view === 'unit' ? 'Back to quest' : ui.back.view === 'company' ? 'Back to ' + CO_BY_ID[ui.back.co].name : ui.back.tab === 'weekly' ? 'Back to weekly' : ui.back.tab === 'roles' ? 'Back to roles' : 'Theory';
+const backLabel = () => !ui.back ? 'Theory' : ui.back.view === 'unit' ? 'Back to quest' : ui.back.view === 'company' ? 'Back to ' + CO_BY_ID[ui.back.co].name : ui.back.tab === 'profile' ? 'Back to profile' : ui.back.tab === 'roles' ? 'Back to roles' : 'Theory';
 function viewProblem(){
   const P = ui.pv, Q = BY_ID[P.id], pos = P.list.indexOf(P.id), s = state.q[Q.id], st = statusOf(Q.id);
   const locked = P.result === 'ok' || P.reveal;
@@ -671,7 +721,7 @@ function viewResults(){
   const S = ui.session, total = S.ids.length;
   let sub = '';
   if (S.kind === 'unit') sub = S.score >= UNIT_PASS ? (S.unit < UNITS.length ? `Quest ${S.unit} complete. Quest ${S.unit + 1} is unlocked.` : 'You completed the final quest.') : `You need ${UNIT_PASS} of ${UNIT_N} to complete the quest. Review the misses below and try again.`;
-  else if (S.kind === 'mock') sub = S.score / total >= 0.8 ? 'Test-ready pace. Keep it up weekly.' : 'Review the misses below, then practice the topics they came from.';
+  else if (S.kind === 'mock') sub = S.score / total >= 0.8 ? 'Test-ready pace. Keep your streak going.' : 'Review the misses below, then practice the topics they came from.';
   else if (S.kind === 'week') sub = 'This week\'s set is done. A new set unlocks on Monday.';
   const missed = S.ids.filter(id => !(id in S.ans) || !isCorrect(BY_ID[id], S.ans[id]));
   let html = `<div class="quiz"><section class="card"><p class="eyebrow">${esc(S.title)} · results</p><div class="row between"><div class="scoreline">${ring(S.score / total, 64, 6, `${S.score} of ${total} correct`)}<div><b class="big">${S.score}<span class="muted">/${total}</span></b><span class="muted">correct</span></div></div>
@@ -688,83 +738,6 @@ function viewResults(){
   return html + '</div></section></div>';
 }
 
-// ---------- Weekly ----------
-function buildWeek(wk){
-  const rnd = rngFrom('week:' + wk), now = Date.now();
-  const attempted = [], wrongLast = [], oaDue = [], unseen = [], stale = [], rest = [];
-  BANK.forEach(Q => {
-    const s = state.q[Q.id];
-    if (s && s.c === 0) attempted.push(Q.id);
-    else if (s && !s.ok) wrongLast.push(Q.id);
-    else if (oaish(Q) && (!s || s.c < 2)) oaDue.push(Q.id);
-    else if (!s) unseen.push(Q.id);
-    else if (now - s.at > 21 * 864e5) stale.push(Q.id);
-    else rest.push(Q.id);
-  });
-  const pickIds = [];
-  const add = id => { if (pickIds.length < WEEK_N && pickIds.indexOf(id) < 0) pickIds.push(id); };
-  attempted.sort((a, b) => state.q[a].at - state.q[b].at).slice(0, 6).forEach(add);
-  shuffle(wrongLast, rnd).slice(0, 3).forEach(add);
-  shuffle(oaDue, rnd).slice(0, 5).forEach(add);
-  const byCh = {};
-  shuffle(unseen, rnd).forEach(id => (byCh[BY_ID[id].ch] = byCh[BY_ID[id].ch] || []).push(id));
-  const order = shuffle(Object.keys(byCh), rnd);
-  let more = true;
-  while (pickIds.length < WEEK_N && more) { more = false; order.forEach(ch => { const l = byCh[ch]; if (l.length) { add(l.pop()); more = true; } }); }
-  shuffle(stale, rnd).forEach(add); attempted.forEach(add); wrongLast.forEach(add); shuffle(rest, rnd).forEach(add);
-  return shuffle(pickIds, rnd);
-}
-function startWeek(){
-  const wk = isoWeek(new Date()).key;
-  if (!state.weeks[wk]) {
-    state.weeks[wk] = {ids:buildWeek(wk), ans:{}, done:false, score:null, at:null};
-    Object.keys(state.weeks).sort().slice(0, -40).forEach(k => delete state.weeks[k]);
-    save();
-  }
-  const w = state.weeks[wk];
-  if (w.done) { ui.session = {kind:'week', ids:w.ids, i:0, ans:Object.assign({}, w.ans), reveal:{}, perm:{}, title:'Weekly set', feedback:true, week:wk, score:w.score, done:true, from:{view:'tab', tab:'weekly'}}; ui.view = 'results'; render(); window.scrollTo(0, 0); return; }
-  startSession('week', w.ids, {week:wk, title:'Weekly set', seed:wk, from:{view:'tab', tab:'weekly'}});
-}
-function viewWeekly(){
-  const wi = isoWeek(new Date()), w = state.weeks[wi.key];
-  const ansN = w ? Object.keys(w.ans).length : 0, right = w ? w.ids.filter(id => id in w.ans && isCorrect(BY_ID[id], w.ans[id])).length : 0;
-  const attemptedIds = BANK.filter(Q => statusOf(Q.id) === 'attempted').map(Q => Q.id);
-  const oavIds = listIds('oav'), mocks = state.hist.filter(h => h.mode === 'mock').slice(0, 5);
-  let body;
-  if (!w) body = `<p>${WEEK_N} problems picked for you: anything you attempted but have not solved, your OA topics until you have each one right twice, and new problems spread across every chapter.</p><div class="row"><button type="button" class="btn primary" data-act="week">Start this week's set</button></div>`;
-  else if (!w.done) body = `<div class="progress" role="img" aria-label="${ansN} of ${w.ids.length} answered"><i style="width:${pct(ansN, w.ids.length)}%"></i></div><p>${ansN} of ${w.ids.length} answered, ${right} correct. Your place is saved.</p><div class="row"><button type="button" class="btn primary" data-act="week">Continue</button></div>`;
-  else body = `<p><b>${w.score}/${w.ids.length}</b> correct. The next set unlocks on Monday.</p><div class="row"><button type="button" class="btn" data-act="week">Review answers</button></div>`;
-  let rows = '';
-  if (w) rows = `<div class="tablewrap"><table class="ptable compact"><thead><tr><th class="c-st">Result</th><th class="c-ti">Problem</th><th class="c-df">Difficulty</th></tr></thead><tbody>` + w.ids.map(id => {
-    const Q = BY_ID[id], has = id in w.ans, ok = has && isCorrect(Q, w.ans[id]);
-    const mark = has ? (ok ? `<span class="st solved">${ICON.solved}</span>` : `<span class="st wrongmark">${ICON.wrong}</span>`) : '<span class="st todo"></span>';
-    const title = w.done ? `<a href="#p${Q.n}" data-open="${id}" data-from="weekly">${Q.n}. ${esc(Q.q)}</a>` : `<span class="plain">${Q.n}. ${esc(Q.q)}</span>`;
-    return `<tr${w.done ? ` data-open="${id}" data-from="weekly"` : ''}><td class="c-st">${mark}</td><td class="c-ti">${title}</td><td class="c-df"><span class="dbadge d-${Q.d}">${DIFF[Q.d]}</span></td></tr>`;
-  }).join('') + '</tbody></table></div>' + (w.done ? '' : '<p class="muted small">Problems open for review once the set is finished.</p>');
-  const weeks = Object.keys(state.weeks).sort().reverse().filter(k => state.weeks[k].done).slice(0, 10);
-  return `<section class="card"><div class="row between"><div><p class="eyebrow">Week ${wi.num} · from ${wi.mon.toLocaleDateString(undefined, {month:'short', day:'numeric'})}</p><h1>This week's set</h1></div>${w ? `<span class="pill">${right}/${w.ids.length} correct</span>` : ''}</div>${body}${rows}</section>
-    <div class="grid2">
-      <section class="card"><h2>Timed mock assessment</h2><p class="muted">${MOCK_N} random problems in ${MOCK_MIN} minutes, with no feedback until you submit, like the real OA.</p>
-        ${mocks.length ? `<div class="hist">${mocks.map(h => `<div><span>${dayStr(h.at)}</span><span class="mono">${h.score}/${h.total}</span></div>`).join('')}</div>` : ''}
-        <div class="row"><button type="button" class="btn primary" data-act="mock">Start a mock</button></div></section>
-      <section class="card"><h2>Review</h2><p class="muted">Short sets with feedback after each problem.</p>
-        <div class="slists"><button type="button" class="slist" data-act="review-attempted"${attemptedIds.length ? '' : ' disabled'}><span>Attempted, not solved</span><span class="mono">${attemptedIds.length}</span></button>
-        <button type="button" class="slist" data-act="review-oa"><span>Your OA + variants (20 at random)</span><span class="mono">${solvedIn(oavIds)}/${oavIds.length}</span></button></div></section>
-    </div>
-    ${weekCodingHTML(wi)}
-    <section class="card"><h2>Past weeks</h2>${weeks.length ? `<div class="hist">${weeks.map(k => `<div><span>${k.replace('-W', ' · week ')}</span><span class="mono">${state.weeks[k].score}/${state.weeks[k].ids.length}</span></div>`).join('')}</div>` : '<p class="muted">Finished weekly sets show up here.</p>'}</section>
-    <section class="card" id="progress-card"><div class="row between"><div><h2>Your progress</h2><p class="muted">${esc(store.status)}.</p></div>
-      ${ui.confirmReset ? '<div class="row"><span>Erase all progress?</span><button type="button" class="btn small" data-act="reset-yes">Erase everything</button><button type="button" class="btn small primary" data-act="reset-no">Keep my progress</button></div>' : '<button type="button" class="btn small ghost" data-act="reset">Reset progress</button>'}</div>
-      ${acct.ready ? (acct.user ? `<div class="row between acctrow"><span>Signed in as <b>${esc(acct.user.email || acct.user.displayName || 'you')}</b>. Progress syncs to every device where you sign in.</span><button type="button" class="btn small" data-act="signout">Sign out</button></div>`
-        : '<div class="row between acctrow"><span>Sign in with Google to keep your progress on every device.</span><button type="button" class="btn small primary" data-act="signin">Sign in with Google</button></div>') : ''}
-      ${STANDALONE ? '<div class="row between acctrow"><span class="muted">Backup: download your progress as a file, or load one from another device (it merges, nothing is lost).</span><div class="row"><button type="button" class="btn small" data-act="export">Export progress</button><button type="button" class="btn small" data-act="import">Import progress</button><input type="file" id="import-file" accept=".json,application/json" hidden></div></div>' : ''}</section>`;
-}
-function weekCodingHTML(wi){
-  const cw = weekCoding().map(id => CODE_BY_ID[id]);
-  return `<section class="card"><div class="row between"><div><p class="eyebrow">Coding · week ${wi.num}</p><h2>This week's coding</h2></div><span class="pill">${cw.filter(p => codeStatus(p.id) === 'solved').length}/${cw.length} solved</span></div>
-    <p class="muted">One easy, one medium and one hard problem from the Coding tab, picked from the ones you have not solved yet.</p>
-    <div class="tablewrap"><table class="ptable compact ctable"><tbody>${cw.map(p => `<tr data-copen="${p.id}" data-from="weekly"><td class="c-st">${codeStatusCell(p.id)}</td><td class="c-ti"><a href="#code${p.n}" data-copen="${p.id}" data-from="weekly">${esc(p.title)}</a></td><td class="c-ty">${esc(LANGS[p.lang])}</td><td class="c-co">${coMini(p.id)}</td><td class="c-df"><span class="dbadge d-${p.d}">${DIFF[p.d]}</span></td></tr>`).join('')}</tbody></table></div></section>`;
-}
 function topicIds(ch){
   const ids = CH_IDS[ch];
   const att = ids.filter(id => statusOf(id) === 'attempted'), un = ids.filter(id => statusOf(id) === 'todo'), ok = ids.filter(isSolved);
@@ -950,7 +923,7 @@ const JUDGE_NAME = {python:'Python (Pyodide)', c:'C (Clang, WebAssembly)', cpp:'
 function viewCode(){
   const C = ui.cp, p = CODE_BY_ID[C.id], pos = C.list.indexOf(C.id), s = state.code[p.id] || {}, st = codeStatus(p.id);
   const src = s.src != null ? s.src : p.starter;
-  const back = ui.cback && ui.cback.tab === 'weekly' ? 'Back to weekly' : 'Coding problems';
+  const back = ui.cback && ui.cback.tab === 'profile' ? 'Back to profile' : ui.cback && ui.cback.view === 'company' ? 'Back to ' + CO_BY_ID[ui.cback.co].name : 'Coding problems';
   return `<div class="cpv-wrap"><div class="pvbar"><button type="button" class="btn ghost small" data-act="c-back">← ${back}</button>
     <div class="row"><span class="muted mono">${pos + 1} / ${C.list.length}</span>
     <button type="button" class="iconbtn" data-act="c-prev" aria-label="Previous problem"${pos <= 0 ? ' disabled' : ''}>‹</button>
@@ -1176,25 +1149,12 @@ async function judgeCode(mode){
   if (all) {
     const s = state.code[id] || {};
     setCode(id, {subs:(s.subs || []).concat([{at:Date.now(), v:verdict, p:passed, t:results.length}]).slice(-20)});
+    logSubmit(id, verdict === 'Accepted');
     if (verdict === 'Accepted' && codeStatus(id) !== 'solved') { setCode(id, {solved:Date.now()}); toast('Accepted: ' + p.title); }
     save(); renderHeader();
     const left = $('.cstate'); if (left) left.outerHTML = codeLeftHTML();
   }
   showRun();
-}
-
-// This week's coding: one easy, one medium and one hard problem, chosen once per week from unsolved ones.
-function weekCoding(){
-  const wk = isoWeek(new Date()).key;
-  if (!state.codeWeek || state.codeWeek.wk !== wk) {
-    const rnd = rngFrom('code:' + wk);
-    const ids = ['E', 'M', 'H'].map(d => {
-      const all = CODING.filter(p => p.d === d), todo = all.filter(p => codeStatus(p.id) !== 'solved'), pool = todo.length ? todo : all;
-      return pool[Math.floor(rnd() * pool.length)].id;
-    });
-    state.codeWeek = {wk, ids}; save();
-  }
-  return state.codeWeek.ids.filter(id => CODE_BY_ID[id]);
 }
 
 // ---------- Company tags (the data lives in companies.js) ----------
@@ -1326,8 +1286,8 @@ const HOME_TABS = [
     code:'struct node *reverse(struct node *h) {\n    struct node *prev = NULL;\n    while (h) {\n        struct node *next = h->next;\n        h->next = prev;\n        prev = h;\n        h = next;\n    }\n    return prev;\n}', vis:'list', cap:'Clang in your browser · 5/5 tests'},
   {name:'Prepare by company', file:'companies', go:'companies', link:'Browse companies',
     code:'NVIDIA     GPUs, AI systems\nAMD        CPUs, GPUs\nIntel      CPUs, foundry\nApple      custom SoCs\nQualcomm   mobile SoCs\nGoogle     TPUs\n…and 9 more', vis:'cos', cap:'tagged theory + coding lists'},
-  {name:'Ace the assessment', file:'mock.oa', go:'weekly', link:'Take a timed mock',
-    code:'Timed mock · 15 problems · 50 min\n\n  #3  A 2:1 mux builds an OR gate…\n      ○ A  ○ B  ● C  ○ D\n\n  Weekly sets resume where you\n  left off, every week.', vis:'timer', cap:'50:00 on the clock'},
+  {name:'Ace the assessment', file:'mock.oa', go:'theory', link:'Take a timed mock',
+    code:'Timed mock · 15 problems · 50 min\n\n  #3  A 2:1 mux builds an OR gate…\n      ○ A  ○ B  ● C  ○ D\n\n  Your profile tracks streaks,\n  activity and every submission.', vis:'timer', cap:'50:00 on the clock'},
 ];
 const HOME_TOPICS = [
   {name:'Digital logic', ch:9, art:'gates'}, {name:'Timing and clocks', ch:11, art:'clock'}, {name:'CMOS and transistors', ch:5, art:'mos'},
@@ -1382,7 +1342,7 @@ function viewHome(){
   const lines = s => esc(s).replace(/\b(module|endmodule|input|output|wire|reg|always|posedge|if|else|struct|while|return|NULL)\b/g, '<i class="t-k">$1</i>').replace(/(✓[^\n]*)/g, '<i class="t-s">$1</i>');
   return `<section class="hhero wrap wide"><div class="hcopy"><h1>Learn<br><em id="hword">${HERO_WORDS[H.word]}</em><br>from the ground up</h1>
       <p class="hsub">Master <b>${BANK.length} theory problems</b> and <b>${CODING.length} coding problems</b>, from Ohm's law to GPU pipelines, with a free book, interactive lessons, and a judge that runs <b>Verilog and C</b> in your browser.</p>
-      <div class="row"><button type="button" class="btn primary big" data-act="go" data-v="theory">Explore problems →</button><button type="button" class="btn big" data-act="go" data-v="quest">Start the quest</button></div>
+      <div class="row"><button type="button" class="btn primary big" data-act="go" data-v="theory">Explore problems →</button><button type="button" class="btn big" data-act="go" data-v="quest">Open the roadmap</button></div>
       <div class="langs">${['Verilog', 'SystemVerilog', 'C / C++', 'Python', 'CUDA', 'Tcl'].map(l => `<span>${l}</span>`).join('<i>·</i>')}</div></div>
     <div class="hcard"><div class="hbar"><span class="dots"><i></i><i></i><i></i></span><span class="mono">counter4.v</span><span class="hrun" id="hrun">▶ Run</span></div>
       <div class="hbody"><div class="hvis"><p class="hlab">WAVEFORM · q(t)</p>${homeVis('wave')}<p class="mono hstat" id="hstat">cycle 0 | q = 0</p></div>
@@ -1405,7 +1365,7 @@ function viewHome(){
       <div class="langs"><span>${BANK.length + CODING.length} problems</span><i>·</i><span>Verilog and C judge</span><i>·</i><span>233-page book</span></div></div>
       <div class="ctaart" aria-hidden="true">${Array.from({length:36}, (_, i) => `<i style="--d:${(i * 37) % 11}"></i>`).join('')}</div></div></section>
     <footer class="hfoot wrap wide"><div><a class="brand" href="#home" data-home>${$('.brand .logo') ? $('.brand .logo').outerHTML : ''}<span class="bname">Ground Up</span></a><p class="muted small">A free hardware engineering trainer, built on the book <em>Hardware from the Ground Up</em>.</p></div>
-      <div><b>Practice</b>${[['quest', 'Quest'], ['theory', 'Theory'], ['coding', 'Coding'], ['weekly', 'Weekly']].map(([t, l]) => `<button type="button" class="linkbtn plain" data-act="go" data-v="${t}">${l}</button>`).join('')}</div>
+      <div><b>Practice</b>${[['theory', 'Theory'], ['coding', 'Coding'], ['quest', 'Roadmap'], ['profile', 'Profile']].map(([t, l]) => `<button type="button" class="linkbtn plain" data-act="go" data-v="${t}">${l}</button>`).join('')}</div>
       <div><b>Careers</b>${[['companies', 'Companies'], ['roles', 'Roles']].map(([t, l]) => `<button type="button" class="linkbtn plain" data-act="go" data-v="${t}">${l}</button>`).join('')}</div>
       <p class="muted small hcopy2">Unofficial study material. Not affiliated with or endorsed by any company named here.</p></footer>`;
 }
@@ -1502,6 +1462,210 @@ function authAnim(){
   authRAF = requestAnimationFrame(draw);
 }
 
+// ---------- Profile (like LeetCode's): solved counts, streaks, a year of activity, recent submissions ----------
+const dayKey = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+function activity(){
+  const byDay = {};
+  state.log.forEach(([t]) => { const k = dayKey(t); byDay[k] = (byDay[k] || 0) + 1; });
+  const days = Object.keys(byDay).sort();
+  // Longest run of consecutive active days, and the run that reaches today (or yesterday, so it survives until the day ends).
+  let max = 0, run = 0, prev = null;
+  days.forEach(k => {
+    const d = new Date(k + 'T12:00:00');
+    run = prev && Math.round((d - prev) / 864e5) === 1 ? run + 1 : 1;
+    max = Math.max(max, run); prev = d;
+  });
+  let cur = 0;
+  const day = new Date(); day.setHours(12, 0, 0, 0);
+  if (!byDay[dayKey(day)]) day.setDate(day.getDate() - 1);
+  while (byDay[dayKey(day)]) { cur++; day.setDate(day.getDate() - 1); }
+  const yearAgo = Date.now() - 365 * 864e5;
+  return {byDay, max, cur, active:days.length, year:state.log.filter(x => x[0] >= yearAgo).length, today:!!byDay[dayKey(Date.now())]};
+}
+// A year of activity, one square per day, weeks as columns (like LeetCode and GitHub).
+function heatmapSVG(byDay){
+  const cell = 11, gap = 3, today = new Date(); today.setHours(12, 0, 0, 0);
+  const start = new Date(today); start.setDate(start.getDate() - 364 - start.getDay());
+  const weeks = Math.ceil((today - start) / (7 * 864e5)) + 1;
+  let rects = '', labels = '', lastMonth = -1;
+  for (let w = 0; w < weeks; w++) {
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(start); day.setDate(start.getDate() + w * 7 + d);
+      if (day > today) continue;
+      const n = byDay[dayKey(day)] || 0, lvl = n === 0 ? 0 : n < 3 ? 1 : n < 6 ? 2 : n < 10 ? 3 : 4;
+      rects += `<rect x="${w * (cell + gap)}" y="${d * (cell + gap)}" width="${cell}" height="${cell}" rx="2.5" class="hm${lvl}"><title>${n} submission${n === 1 ? '' : 's'} on ${day.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'})}</title></rect>`;
+      if (d === 0 && day.getDate() <= 7 && day.getMonth() !== lastMonth) { lastMonth = day.getMonth(); labels += `<text x="${w * (cell + gap)}" y="${7 * (cell + gap) + 12}">${day.toLocaleDateString(undefined, {month:'short'})}</text>`; }
+    }
+  }
+  const W = weeks * (cell + gap), H = 7 * (cell + gap) + 16;
+  return `<svg class="heatmap" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Submissions per day over the past year">${rects}${labels}</svg>`;
+}
+const ago = t => { const s = (Date.now() - t) / 1000; return s < 60 ? 'just now' : s < 3600 ? Math.floor(s / 60) + ' min ago' : s < 86400 ? Math.floor(s / 3600) + ' h ago' : s < 86400 * 30 ? Math.floor(s / 86400) + ' days ago' : new Date(t).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'}); };
+function solvedCard(title, items, statusFn, total){
+  const by = d => { const l = items.filter(x => x.d === d); return [l.filter(x => statusFn(x.id) === 'solved').length, l.length]; };
+  const solved = items.filter(x => statusFn(x.id) === 'solved').length, att = items.filter(x => statusFn(x.id) === 'attempted').length;
+  return `<section class="card pfsolved"><h2>${title}</h2><div class="pfsrow"><div class="progring">${ring(solved / total, 120, 8, `${solved} of ${total} solved`)}<div class="ringlabel"><b>${solved}</b><span>/${total}</span><small>Solved</small></div></div>
+    <div class="pfdiff">${['E', 'M', 'H'].map(d => { const [s, t] = by(d); return `<div class="pfd d-${d}"><span>${DIFF[d]}</span><b class="mono">${s}/${t}</b></div>`; }).join('')}</div></div>
+    <p class="muted small">${att} attempted, not solved yet</p></section>`;
+}
+function recentHTML(mode){
+  const seen = new Set(), rows = [];
+  for (let i = state.log.length - 1; i >= 0 && rows.length < 15; i--) {
+    const [t, id, ok] = state.log[i];
+    if (mode === 'ac' && (!ok || seen.has(id))) continue;
+    seen.add(id);
+    const Q = BY_ID[id], P = CODE_BY_ID[id];
+    if (!Q && !P) continue;
+    const title = Q ? `${Q.n}. ${Q.q}` : `${P.n}. ${P.title}`;
+    rows.push(`<li><a href="${Q ? '#p' + Q.n : '#code' + P.n}" ${Q ? `data-open="${id}"` : `data-copen="${id}"`} data-from="profile"><span class="rtitle">${esc(title)}</span>
+      <span class="rmeta">${mode === 'all' ? `<span class="${ok ? 'v-ok' : 'v-bad'}">${ok ? 'Accepted' : 'Wrong Answer'}</span>` : ''}<span class="cotag">${Q ? 'Theory' : esc(LANGS[P.lang])}</span><span class="muted">${ago(t)}</span></span></a></li>`);
+  }
+  return rows.length ? `<ul class="recent">${rows.join('')}</ul>` : `<p class="muted">${mode === 'ac' ? 'Problems you solve show up here.' : 'Every answer and submission shows up here.'}</p>`;
+}
+function viewProfile(){
+  const A = activity(), u = acct.user, P = ui.prof || (ui.prof = {recent:'ac'});
+  const name = u ? (u.displayName || (u.email || '').split('@')[0] || 'You') : 'Guest';
+  const initial = (name[0] || 'G').toUpperCase();
+  const langs = {};
+  CODING.forEach(p => { if (codeStatus(p.id) === 'solved') langs[p.lang] = (langs[p.lang] || 0) + 1; });
+  const groups = [['Advanced', [18, 19, 20, 21, 22]], ['Intermediate', [10, 11, 12, 13, 14, 15, 16, 17]], ['Fundamental', [1, 2, 3, 4, 5, 6, 7, 8, 9, 23]]];
+  const skills = groups.map(([g, chs]) => {
+    const tags = chs.map(ch => [ch, solvedIn(CH_IDS[ch])]).filter(x => x[1]).sort((a, b) => b[1] - a[1]);
+    return `<div class="pfskill"><b>${g}</b><div class="row">${tags.length ? tags.map(([ch, n]) => `<button type="button" class="topicchip" data-act="topic-filter" data-ch="${ch}">${esc(TOPICS[ch])} <span class="muted">×${n}</span></button>`).join('') : '<span class="muted small">Nothing solved yet</span>'}</div></div>`;
+  }).join('');
+  const quests = UNITS.filter(U => unitPassed(U.id)).length;
+  const mocks = state.hist.filter(h => h.mode === 'mock').slice(0, 4);
+  return `<div class="pfgrid"><aside class="pfside">
+    <section class="card pfme"><div class="pfwho">${u && u.photoURL ? `<img class="pfav" src="${esc(u.photoURL)}" alt="" referrerpolicy="no-referrer">` : `<span class="pfav">${esc(initial)}</span>`}
+      <div><h1>${esc(name)}</h1><p class="muted small">${u ? esc(u.email || '') : esc(store.status)}</p></div></div>
+      ${acct.ready ? (u ? '<button type="button" class="btn small" data-act="signout">Sign out</button>' : '<button type="button" class="btn small primary" data-act="signin">Sign in to sync your progress</button>') : `<p class="muted small">${esc(store.status)}.</p>`}
+      <div class="pfquick"><div><b>${quests}<span class="muted">/${UNITS.length}</span></b><span>quests</span></div><div><b>${A.active}</b><span>active days</span></div><div><b>${state.log.length}</b><span>submissions</span></div></div></section>
+    <section class="card"><h2>Languages</h2>${Object.keys(langs).length ? `<div class="pflangs">${Object.keys(langs).sort((a, b) => langs[b] - langs[a]).map(l => `<div><span class="cotag">${esc(LANGS[l])}</span><span class="muted small"><b class="mono">${langs[l]}</b> problems solved</span></div>`).join('')}</div>` : '<p class="muted small">Solve a coding problem to see your languages.</p>'}</section>
+    <section class="card"><h2>Skills</h2>${skills}</section>
+    <section class="card" id="progress-card"><h2>Your data</h2><p class="muted small">${acct.user ? 'Synced to your account on every device where you sign in.' : 'Saved in this browser.'}</p>
+      ${STANDALONE ? '<div class="row"><button type="button" class="btn small" data-act="export">Export progress</button><button type="button" class="btn small" data-act="import">Import progress</button><input type="file" id="import-file" accept="application/json,.json" hidden></div>' : ''}
+      ${ui.confirmReset ? '<div class="row"><span class="small">Erase all progress?</span><button type="button" class="btn small" data-act="reset-yes">Erase everything</button><button type="button" class="btn small primary" data-act="reset-no">Keep it</button></div>' : '<button type="button" class="btn small ghost" data-act="reset">Reset progress</button>'}</section>
+  </aside>
+  <section class="pfmain">
+    <div class="pfcards">${solvedCard('Theory', BANK, statusOf, BANK.length)}${solvedCard('Coding', CODING, codeStatus, CODING.length)}
+      <section class="card pfstreak"><h2>Streak</h2><div class="pfflame${A.today ? ' on' : ''}" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2c1 4-3 6-3 10a3 3 0 006 0c0-2-1-3-1-5 3 2 5 5 5 8a7 7 0 01-14 0c0-6 7-8 7-13z"/></svg></div>
+        <b class="pfbig">${A.cur} day${A.cur === 1 ? '' : 's'}</b><span class="muted small">${A.today ? 'Solved today. Keep it going.' : A.cur ? 'Solve one today to keep your streak.' : 'Solve one problem to start a streak.'}</span>
+        <div class="pfquick"><div><b>${A.max}</b><span>max streak</span></div><div><b>${A.active}</b><span>active days</span></div></div></section></div>
+    <section class="card"><div class="row between"><h2><b class="mono">${A.year}</b> submissions in the past one year</h2><span class="muted small">Total active days: <b>${A.active}</b> · Max streak: <b>${A.max}</b></span></div>
+      <div class="hmwrap">${heatmapSVG(A.byDay)}</div>
+      <div class="hmlegend"><span class="muted small">Less</span>${[0, 1, 2, 3, 4].map(l => `<i class="hm${l}"></i>`).join('')}<span class="muted small">More</span></div></section>
+    <section class="card"><div class="row between"><div class="seg" role="tablist"><button type="button" role="tab" aria-selected="${P.recent === 'ac'}" data-act="pf-recent" data-v="ac">Recent AC</button><button type="button" role="tab" aria-selected="${P.recent === 'all'}" data-act="pf-recent" data-v="all">Submissions</button></div>
+      <button type="button" class="linkbtn" data-act="go" data-v="theory">View all problems →</button></div>${recentHTML(P.recent)}</section>
+    ${mocks.length ? `<section class="card"><h2>Timed mocks</h2><div class="hist">${mocks.map(h => `<div><span>${dayStr(h.at)}</span><span class="mono">${h.score}/${h.total}</span></div>`).join('')}</div></section>` : ''}
+  </section></div>`;
+}
+
+// ---------- Roadmap map: every topic you need for a VLSI role, as a graph of prerequisites ----------
+// Nodes: q = theory quest (u), c = hands-on coding track (area), r = role path (Roles page), x = interview prep.
+// x is the column (0–4), y the row; edges run from prerequisite to topic.
+const RM_NODES = [
+  {id:'u1', u:1, x:0, y:0}, {id:'u7', u:7, x:1, y:0}, {id:'u23', u:23, x:4, y:0},
+  {id:'u2', u:2, x:0, y:1}, {id:'u3', u:3, x:2, y:1}, {id:'c-cpp', area:'C and C++', label:'C and C++ coding', x:4, y:1},
+  {id:'u4', u:4, x:0, y:2}, {id:'c-py', area:'Python and MATLAB', label:'Python and MATLAB', x:4, y:2},
+  {id:'u5', u:5, x:0, y:3}, {id:'c-sh', area:'Linux and scripting', label:'Linux, shell and scripting', x:4, y:3},
+  {id:'u6', u:6, x:0, y:4}, {id:'u8', u:8, x:1, y:4},
+  {id:'u9', u:9, x:1, y:5},
+  {id:'u10', u:10, x:1, y:6}, {id:'u22', u:22, x:3, y:6},
+  {id:'u18', u:18, x:0, y:7}, {id:'u12', u:12, x:1, y:7}, {id:'u11', u:11, x:2, y:7},
+  {id:'u19', u:19, x:1, y:8}, {id:'u13', u:13, x:2, y:8},
+  {id:'u14', u:14, x:0, y:9}, {id:'c-rtl', area:'RTL design', label:'RTL design coding', x:1, y:9}, {id:'u16', u:16, x:2, y:9}, {id:'u20', u:20, x:3, y:9},
+  {id:'u15', u:15, x:0, y:10}, {id:'c-ver', area:'Verification', label:'Verification coding', x:1, y:10}, {id:'u17', u:17, x:2, y:10}, {id:'u21', u:21, x:3, y:10},
+  {id:'c-pd', area:'Physical design', label:'Physical design: Tcl and SDC', x:2, y:11}, {id:'c-gpu', area:'GPU and CUDA', label:'CUDA and GPU coding', x:3, y:11},
+  {id:'r-circuit', role:'Custom Circuit Design (SRAM, analog, SerDes)', label:'Role: circuit design', x:0, y:12},
+  {id:'r-asic', role:'ASIC Design (RTL)', label:'Role: ASIC design', x:1, y:12},
+  {id:'r-dv', role:'Design Verification', label:'Role: verification', x:2, y:12},
+  {id:'r-pd', role:'Physical Design and Timing', label:'Role: physical design', x:3, y:12},
+  {id:'r-arch', role:'Architecture and Performance', label:'Role: architecture', x:4, y:12},
+  {id:'x-prep', label:'Interview prep by company', x:2, y:13},
+];
+const RM_EDGES = [['u1', 'u2'], ['u1', 'u3'], ['u2', 'u4'], ['u4', 'u5'], ['u5', 'u6'], ['u5', 'u8'], ['u7', 'u8'], ['u8', 'u9'], ['u9', 'u10'], ['u9', 'u22'],
+  ['u10', 'u18'], ['u10', 'u12'], ['u10', 'u11'], ['u12', 'u19'], ['u11', 'u19'], ['u11', 'u13'], ['u13', 'u14'], ['u13', 'u16'], ['u14', 'u15'], ['u16', 'u17'],
+  ['u19', 'c-rtl'], ['c-rtl', 'c-ver'], ['u19', 'u20'], ['u22', 'u20'], ['u20', 'u21'], ['u17', 'c-pd'], ['u21', 'c-gpu'], ['u23', 'c-cpp'], ['c-cpp', 'c-py'], ['c-py', 'c-sh'],
+  ['u15', 'r-circuit'], ['c-ver', 'r-asic'], ['c-ver', 'r-dv'], ['c-pd', 'r-pd'], ['c-sh', 'r-pd'], ['c-gpu', 'r-arch'],
+  ['r-circuit', 'x-prep'], ['r-asic', 'x-prep'], ['r-dv', 'x-prep'], ['r-pd', 'x-prep'], ['r-arch', 'x-prep']];
+const RM = {w:176, h:58, dx:204, dy:88, by:Object.fromEntries(RM_NODES.map(n => [n.id, n]))};
+const RM_W = 4 * RM.dx + RM.w, RM_H = 13 * RM.dy + RM.h;
+// Progress (0–1) and state of one node.
+function rmInfo(n){
+  if (n.u) {
+    const U = UNITS[n.u - 1], passed = unitPassed(n.u), cd = cardsDone(U), nu = nextUnit();
+    return {title:U.title, kind:`Quest ${n.u} · theory`, frac:passed ? 1 : cd / (U.cards.length + 1), state:passed ? 'done' : nu && nu.id === n.u ? 'current' : unitUnlocked(n.u) ? 'open' : 'locked'};
+  }
+  if (n.area) {
+    const l = CODING.filter(p => p.area === n.area), s = codeSolvedIn(l);
+    return {title:n.label, kind:'Hands-on coding', frac:l.length ? s / l.length : 0, state:s === l.length ? 'done' : s ? 'current' : 'open', count:`${s}/${l.length} solved`};
+  }
+  if (n.role) {
+    const R = ROLES.find(r => r.name === n.role), done = R.ch.filter(unitPassed).length;
+    return {title:n.label, kind:'Role path', frac:done / R.ch.length, state:done === R.ch.length ? 'done' : 'open', count:`${done}/${R.ch.length} quests`};
+  }
+  const s = solvedIn(BANK.map(Q => Q.id));
+  return {title:n.label, kind:'Interview prep', frac:s / BANK.length, state:'open', count:`${s}/${BANK.length} theory solved`};
+}
+function rmNodesHTML(){
+  const pos = n => [n.x * RM.dx, n.y * RM.dy];
+  const lines = RM_EDGES.map(([a, b]) => {
+    const A = RM.by[a], B = RM.by[b], [ax, ay] = pos(A), [bx, by] = pos(B);
+    const x1 = ax + RM.w / 2, y1 = ay + RM.h, x2 = bx + RM.w / 2, y2 = by, mid = y2 - (RM.dy - RM.h) / 2;
+    const done = rmInfo(A).state === 'done';
+    return `<path class="${done ? 'lit' : ''}" d="M${x1} ${y1} V${mid} H${x2} V${y2}"/>`;
+  }).join('');
+  const sel = ui.rm.sel;
+  const nodes = RM_NODES.map(n => {
+    const I = rmInfo(n), [x, y] = pos(n);
+    return `<button type="button" class="rmnode ${I.state} k-${n.u ? 'q' : n.area ? 'c' : n.role ? 'r' : 'x'}${sel === n.id ? ' sel' : ''}" style="left:${x}px;top:${y}px" data-act="rm-sel" data-v="${n.id}" aria-label="${esc(I.title)}">
+      <span class="rmt">${esc(I.title)}</span><span class="rmbar"><i style="width:${Math.round(I.frac * 100)}%"></i></span></button>`;
+  }).join('');
+  return `<svg class="rmlines" width="${RM_W}" height="${RM_H}" aria-hidden="true">${lines}</svg>${nodes}`;
+}
+function rmPanelHTML(){
+  const n = RM.by[ui.rm.sel] || RM_NODES[0], I = rmInfo(n);
+  let body = '', btn = '';
+  if (n.u) {
+    const U = UNITS[n.u - 1], ids = CH_IDS[n.u];
+    body = `<p class="muted small">${esc(U.goal || '')}</p><ol class="rmlessons">${U.cards.map((c, i) => `<li class="${state.learn.cards['u' + n.u + 'c' + i] ? 'ok' : ''}">${esc(c.t)}</li>`).join('')}<li class="${unitPassed(n.u) ? 'ok' : ''}">Checkpoint: ${UNIT_PASS} of ${UNIT_N} right</li></ol>
+      <p class="muted small">${solvedIn(ids)}/${ids.length} theory problems solved in this topic.</p>`;
+    btn = `<button type="button" class="btn primary" data-act="open-unit" data-u="${n.u}">${unitPassed(n.u) ? 'Review quest' : unitUnlocked(n.u) ? (cardsDone(U) ? 'Continue quest' : 'Start quest') : 'Open (test out)'} →</button><button type="button" class="btn" data-act="topic-filter" data-ch="${n.u}">Practice problems</button>`;
+  } else if (n.area) {
+    body = `<p class="muted small">Write real ${esc(n.area === 'RTL design' ? 'Verilog' : n.area)} code. ${CODING.filter(p => p.area === n.area && p.run).length} of these problems are judged right in your browser.</p><p class="small"><b>${esc(I.count)}</b></p>`;
+    btn = `<button type="button" class="btn primary" data-act="c-area-go" data-v="${esc(n.area)}">Open coding problems →</button>`;
+  } else if (n.role) {
+    const R = ROLES.find(r => r.name === n.role);
+    body = `<p class="muted small">${esc(R.what)}</p><div class="row">${R.ch.map(c => `<button type="button" class="topicchip${unitPassed(c) ? ' ok' : ''}" data-act="rm-sel" data-v="u${c}">${unitPassed(c) ? '✓ ' : ''}${esc(TOPICS[c])}</button>`).join('')}</div><p class="muted small">Also: ${esc(R.add)}</p>`;
+    btn = '<button type="button" class="btn primary" data-act="go" data-v="roles">See all roles →</button>';
+  } else {
+    body = '<p class="muted small">Practice the theory and coding lists tagged for the company you are applying to, including the questions reported from real assessments.</p>';
+    btn = '<button type="button" class="btn primary" data-act="go" data-v="companies">Browse companies →</button>';
+  }
+  return `<p class="eyebrow">${esc(I.kind)}</p><h3>${esc(I.title)}</h3><div class="rmprog"><span class="rmbar"><i style="width:${Math.round(I.frac * 100)}%"></i></span><span class="mono small">${Math.round(I.frac * 100)}%</span></div>${body}<div class="row">${btn}</div>`;
+}
+function roadmapHTML(){
+  const done = UNITS.filter(U => unitPassed(U.id)).length, cs = codeSolvedIn(CODING);
+  const z = ui.rm.z;
+  return `<div class="rmwrap"><div class="rmboard"><div class="rmtools"><button type="button" class="iconbtn" data-act="rm-zoom" data-v="in" aria-label="Zoom in">+</button><button type="button" class="iconbtn" data-act="rm-zoom" data-v="out" aria-label="Zoom out">−</button><button type="button" class="iconbtn" data-act="rm-zoom" data-v="fit" aria-label="Fit to screen">⤢</button></div>
+      <div class="rmscroll" id="rmscroll"><div class="rmstage" style="width:${RM_W * z + 48}px;height:${RM_H * z + 48}px"><div class="rminner" style="transform:scale(${z})">${rmNodesHTML()}</div></div></div>
+      <div class="rmlegend"><span><i class="lg q"></i>Theory quest</span><span><i class="lg c"></i>Coding track</span><span><i class="lg r"></i>Role path</span><span><i class="lg done"></i>Done</span></div></div>
+    <aside class="rmside"><section><h3>Who is it for?</h3><ul class="rmwho"><li>Students aiming for VLSI and hardware internships or new-grad roles</li><li>Anyone new to hardware who wants one clear path</li><li>Engineers moving into ASIC design, verification or physical design</li><li>Candidates preparing for hardware OAs and interviews</li></ul></section>
+      <section><h3>Progress</h3><div class="rmgauge">${ring(done / UNITS.length, 132, 10, `${done} of ${UNITS.length} quests passed`)}<div class="ringlabel"><b>${done}</b><span>/${UNITS.length} quests</span></div></div><p class="muted small center">${cs}/${CODING.length} coding problems solved</p></section>
+      <section class="rmdetail" id="rmdetail">${rmPanelHTML()}</section></aside></div>`;
+}
+function rmRefreshSel(){
+  document.querySelectorAll('.rmnode').forEach(b => b.classList.toggle('sel', b.dataset.v === ui.rm.sel));
+  const d = $('#rmdetail'); if (d) d.innerHTML = rmPanelHTML();
+}
+function rmZoom(v){
+  const sc = $('#rmscroll');
+  if (v === 'fit') ui.rm.z = sc ? Math.max(0.45, Math.min(1, (sc.clientWidth - 100) / RM_W)) : 1;
+  else ui.rm.z = Math.max(0.45, Math.min(1.6, ui.rm.z + (v === 'in' ? 0.15 : -0.15)));
+  const st = $('.rmstage'), inn = $('.rminner');
+  if (st) { st.style.width = (RM_W * ui.rm.z + 48) + 'px'; st.style.height = (RM_H * ui.rm.z + 48) + 'px'; inn.style.transform = `scale(${ui.rm.z})`; }
+}
+
 // ---------- events ----------
 document.addEventListener('click', e => {
   if (e.target.closest('[data-home]')) { e.preventDefault(); if (ui.auth) closeAuth(); goTab('home'); return; }
@@ -1526,7 +1690,7 @@ document.addEventListener('click', e => {
   if (co) {
     e.preventDefault();
     const cfrom = (co.closest('[data-from]') || {dataset:{}}).dataset.from;
-    if (cfrom === 'weekly') openCode(co.dataset.copen, weekCoding(), {view:'tab', tab:'weekly'});
+    if (cfrom === 'profile') openCode(co.dataset.copen, CODING.map(p => p.id), {view:'tab', tab:'profile'});
     else if (cfrom === 'company') openCode(co.dataset.copen, coCoding(ui.co.id), {view:'company', co:ui.co.id});
     else openCode(co.dataset.copen, codeFiltered().map(p => p.id), {view:'tab', tab:'coding'});
     return;
@@ -1535,7 +1699,7 @@ document.addEventListener('click', e => {
   if (op) {
     e.preventDefault();
     const id = op.dataset.open, fromEl = op.closest('[data-from]'), from = fromEl && fromEl.dataset.from;
-    if (from === 'weekly') { const w = state.weeks[isoWeek(new Date()).key]; openProblem(id, w ? w.ids : null, {view:'tab', tab:'weekly'}); }
+    if (from === 'profile') openProblem(id, null, {view:'tab', tab:'profile'});
     else if (ui.view === 'unit') openProblem(id, CH_IDS[ui.unit.id], {view:'unit'});
     else if (from === 'company') openProblem(id, ui.co.tab === 'rep' ? coReported(ui.co.id) : coTheory(ui.co.id), {view:'company', co:ui.co.id});
     else openProblem(id, filtered().map(Q => Q.id), {view:'tab', tab:'theory'});
@@ -1546,6 +1710,9 @@ function act(a){
   switch (a.dataset.act) {
     case 'open-unit': openUnit(+a.dataset.u); break;
     case 'go': goTab(a.dataset.v); break;
+    case 'rm-sel': ui.rm.sel = a.dataset.v; rmRefreshSel(); break;
+    case 'rm-zoom': rmZoom(a.dataset.v); break;
+    case 'theme': setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'); break;
     case 'co-open': openCompany(a.dataset.v); break;
     case 'co-back': goTab('companies'); break;
     case 'co-tab': ui.co.tab = a.dataset.v; render(); break;
@@ -1579,10 +1746,10 @@ function act(a){
     case 'quit': stopTimer(); returnFrom(S.from); break;
     case 'done-results': returnFrom(S.from); window.scrollTo(0, 0); break;
     case 'retry-missed': startSession('practice', S.ids.filter(id => !(id in S.ans) || !isCorrect(BY_ID[id], S.ans[id])), {title:'Retry the misses', from:S.from}); break;
-    case 'week': startWeek(); break;
-    case 'mock': startSession('mock', shuffle(BANK.map(q => q.id)).slice(0, MOCK_N), {title:'Timed mock assessment', from:{view:'tab', tab:'weekly'}}); break;
-    case 'review-attempted': startSession('practice', shuffle(BANK.filter(Q => statusOf(Q.id) === 'attempted').map(Q => Q.id)).slice(0, 25), {title:'Attempted, not solved', from:{view:'tab', tab:'weekly'}}); break;
-    case 'review-oa': startSession('practice', shuffle(listIds('oav')).slice(0, 20), {title:'Your OA + variants', from:{view:'tab', tab:'weekly'}}); break;
+    case 'pf-recent': ui.prof.recent = a.dataset.v; render(); break;
+    case 'mock': startSession('mock', shuffle(BANK.map(q => q.id)).slice(0, MOCK_N), {title:'Timed mock assessment', from:{view:'tab', tab:'theory'}}); break;
+    case 'review-attempted': startSession('practice', shuffle(BANK.filter(Q => statusOf(Q.id) === 'attempted').map(Q => Q.id)).slice(0, 25), {title:'Attempted, not solved', from:{view:'tab', tab:'theory'}}); break;
+    case 'review-oa': startSession('practice', shuffle(listIds('oav')).slice(0, 20), {title:'Your OA + variants', from:{view:'tab', tab:'theory'}}); break;
     case 'f-ch': ui.f.ch = a.dataset.v; $('#main').innerHTML = viewProblems(); break;
     case 'f-list': ui.f = Object.assign(blankFilters(), {list:a.dataset.v}); $('#main').innerHTML = viewProblems(); break;
     case 'f-list-go': ui.f = Object.assign(blankFilters(), {list:a.dataset.v}); goTab('theory'); break;
@@ -1637,7 +1804,7 @@ function act(a){
     case 'reset-yes': state = emptyState(); ui.confirmReset = false; save(); toast('Progress erased'); render(); break;
     case 'signin': openAuth(); break;
     case 'signout': firebase.auth().signOut(); break;
-    case 'to-progress': goTab('weekly'); { const c = $('#progress-card'); if (c) c.scrollIntoView(); } break;
+    case 'to-progress': goTab('profile'); break;
     case 'export': exportProgress(); break;
     case 'import': $('#import-file').click(); break;
   }
@@ -1707,6 +1874,18 @@ document.addEventListener('keydown', e => {
   if (ui.view === 'problem') { const b = $('[data-act="pv-submit"]:not(:disabled)') || $('.pvactions [data-act="pv-next"]:not(:disabled)'); if (b) { e.preventDefault(); b.click(); } }
 });
 
+// ---------- theme: white by default, dark on request (remembered in this browser) ----------
+const THEME_ICON = {dark:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>',
+  light:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>'};
+function setTheme(t){
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem('ground-up-theme', t); } catch (e) { /* storage unavailable */ }
+  const b = $('#theme'); if (b) { b.innerHTML = THEME_ICON[t === 'dark' ? 'light' : 'dark']; b.setAttribute('aria-label', t === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'); b.title = b.getAttribute('aria-label'); }
+}
+let savedTheme = 'light';
+try { savedTheme = localStorage.getItem('ground-up-theme') === 'dark' ? 'dark' : 'light'; } catch (e) { /* storage unavailable */ }
+setTheme(savedTheme);
+
 // ---------- boot ----------
 const local = lsLoad();
 if (local) state = normalize(local);
@@ -1716,7 +1895,7 @@ if (local) state = normalize(local);
   if (TABS.includes(h)) ui.tab = h;
   if (cm && CODING[+cm[1] - 1]) { ui.tab = 'coding'; ui.cback = {view:'tab', tab:'coding'}; ui.cp = blankCodePage(CODING[+cm[1] - 1].id, CODING.map(p => p.id)); ui.view = 'code'; }
   else if (h === 'learn') ui.tab = 'quest';
-  else if (h === 'practice') ui.tab = 'weekly';
+  else if (h === 'practice' || h === 'weekly') ui.tab = 'profile';
   else if (h === 'bank' || h === 'problems') ui.tab = 'theory';
   else if (h === 'jobs') ui.tab = 'roles';
   else if (/^company-/.test(h) && CO_BY_ID[h.slice(8)]) { ui.tab = 'companies'; ui.co = {id:h.slice(8), tab:'theory', d:'all'}; ui.view = 'company'; }

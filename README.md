@@ -5,13 +5,14 @@ A study kit for hardware engineering online assessments (built while preparing f
 - **Hardware from the Ground Up**: a 233-page beginner's book, written in LaTeX, that builds hardware from electricity to GPUs: transistors, CMOS gates, timing, power, PVT, manufacturing, memory, Verilog and verification, architecture, GPUs and computer arithmetic. Every chapter ends with exercises and answers.
 - **Ground Up Hardware Trainer**: a single-page web app for practicing it:
   - a home page with interactive try-it widgets, and a sign-in screen (Google or email) when accounts are turned on;
-  - a 23-quest learning path with interactive widgets;
+  - **Roadmap**: an interactive VLSI roadmap of 36 topics (23 theory quests with interactive widgets, the hands-on coding tracks, and the role each path leads to), plus the stages in detail;
   - **Theory**: a 682-problem multiple-choice and true/false list with solved/total progress, covering hardware theory plus Linux, git, scripting, DFT, physical-design flow and signal integrity;
   - a Coding tab with 64 hands-on problems (RTL in Verilog, SystemVerilog and cocotb verification, C and C++, Python, Bash, Tcl and SDC, Perl, CUDA, MATLAB) in Easy, Medium and Hard, with hints and reference solutions;
   - a LeetCode-style judge for 42 of them, running entirely in the browser: **Run** tries the example cases, **Submit** runs every hidden test and records the verdict (Accepted, Wrong Answer, Compile Error, Runtime Error, Time Limit Exceeded). Python runs in Pyodide; C and C++ compile with Clang built for WebAssembly; Verilog is synthesized by Yosys and simulated gate by gate;
   - **Companies**: every theory and coding problem tagged with the companies whose hardware roles test it, LeetCode style, with a page per company (NVIDIA's includes your OA and reported topics);
   - **Roles**: what hardware postings ask for, how well this kit covers it, and the roles to aim for;
-  - weekly sets and timed mock assessments.
+  - **Profile**, LeetCode style: solved counts, a year of activity as a heatmap, current and longest streaks, recent submissions, languages and skills, plus backup and reset;
+  - timed mock assessments, a light and dark theme, and the Theory list grouped by VLSI area (devices, front-end, back-end and signoff, tools).
 
 > Unofficial study material. Not produced, reviewed or endorsed by NVIDIA. Topics marked "reported" come from anonymous candidate reports (see the book's Appendix E) and are hints about the *kind* of question to expect, not real assessment content.
 
@@ -50,7 +51,7 @@ Open `docs/index.html` in any browser. It is one self-contained file: no server,
 **Saving progress:**
 - By default, progress is saved in that browser.
 - To keep one record across all your devices, turn on Google sign-in once by following [FIREBASE_SETUP.md](FIREBASE_SETUP.md). After that, a **Sign in** button appears in the top bar.
-- Either way, **Export progress** and **Import progress** on the Weekly page make a backup file, and importing merges instead of overwriting.
+- Either way, **Export progress** and **Import progress** on your Profile page make a backup file, and importing merges instead of overwriting.
 
 To put it online with **GitHub Pages**: push this repository, then in the repository's **Settings → Pages**, set **Source** to "Deploy from a branch", the branch to `main`, and the folder to `/docs`. The trainer will be at `https://<your-username>.github.io/<repository-name>/`.
 
@@ -113,7 +114,8 @@ This builds the page and clicks through it in headless Google Chrome:
 - the quest flow and checkpoints;
 - every lesson and widget;
 - the problem list filters, and submitting and retrying problems;
-- weekly sets, resuming them, and the timed mock;
+- the profile (streaks, heatmap, recent submissions) and the timed mock;
+- the roadmap map and the dark-mode toggle;
 - the home page, the Companies and Roles pages, and the company filters;
 - deep links and phone-width layout;
 - importing a backup, and the sign-in screen and sync (against a simulated Firebase);
