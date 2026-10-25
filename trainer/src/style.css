@@ -1184,7 +1184,40 @@ textarea.cin:focus { outline: 2px solid var(--accent-line); border-color: var(--
 /* Expand: the console takes the editor's place (the Run and Submit buttons stay). */
 .cpv.cmax .ceditor .editor, .oaide.cmax .editor { display: none; }
 .cpv.cmax .ceditor .console, .oaide.cmax .console { height: auto; flex: 1; }
-/* Full screen, like LeetCode: the problem and editor fill the window. */
-body.cfull { overflow: hidden; }
-body.cfull .cpv-wrap { position: fixed; inset: 0; z-index: 60; background: var(--bg); padding: 10px 12px; }
-body.cfull .cpv { height: calc(100vh - 66px); min-height: 0; }
+/* Full screen hides the site's top bar too, so the workspace gets the whole window. */
+body.cfull .topbar { display: none; }
+
+/* ---------- Coding workspace: fills the window like LeetCode, with draggable splits ---------- */
+.cpv, .oacode { grid-template-columns: minmax(0, var(--lsplit, 45%)) 10px minmax(0, 1fr); gap: 0; }
+.console { height: var(--csplit, 42%); }
+.console.tall { height: var(--csplit-tall, 60%); }
+.gsplit { flex: none; position: relative; touch-action: none; user-select: none; }
+.gsplit.v { cursor: col-resize; }
+.gsplit.h { height: 8px; cursor: row-resize; background: var(--surface-2); border-top: 1px solid var(--line); }
+.gsplit::after { content: ""; position: absolute; border-radius: 2px; background: var(--line); transition: background .15s; }
+.gsplit.v::after { left: 4px; top: 50%; width: 2px; height: 36px; margin-top: -18px; }
+.gsplit.h::after { top: 2px; left: 50%; width: 36px; height: 2px; margin-left: -18px; }
+.gsplit:hover::after, .gsplit.on::after { background: var(--accent); }
+.gsplit.v:hover, .gsplit.v.on { background: linear-gradient(90deg, transparent 4px, var(--accent-soft) 4px, var(--accent-soft) 6px, transparent 6px); }
+body.dragging, body.dragging * { cursor: inherit; user-select: none !important; }
+body.dragging .ed-area textarea { pointer-events: none; }
+.cpv.cmax .gsplit.h, .oaide.cmax .gsplit.h { display: none; }
+@media (min-width: 901px) {
+  body.ide { overflow: hidden; }
+  .main.ide { max-width: none; height: calc(100vh - var(--topbar-h, 52px)); padding: 8px 12px 10px; gap: 8px; overflow: hidden; box-sizing: border-box; }
+  body.cfull .main.ide { height: 100vh; }
+  .main.ide .cpv-wrap { flex: 1; min-height: 0; gap: 6px; }
+  .main.ide .cpv-wrap > .pvbar { flex: none; }
+  .main.ide .cpv { flex: 1; height: auto; min-height: 0; }
+  .main.ide .oabar { position: static; flex: none; padding: 8px 14px; }
+  .main.ide .oaexam { flex: 1; min-height: 0; align-items: stretch; }
+  .main.ide .oarail { position: static; max-height: none; }
+  .main.ide .oamain { min-height: 0; display: flex; }
+  .main.ide .oaq.oacodeq { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 8px; gap: 8px; }
+  .main.ide .oacode { flex: 1; height: auto; min-height: 0; }
+  .main.ide .oacodeq .oanavrow { flex: none; margin-top: 0; padding-top: 8px; }
+}
+@media (max-width: 900px) {
+  .cpv, .oacode { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .gsplit.v { display: none; }
+}

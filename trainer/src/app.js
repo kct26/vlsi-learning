@@ -516,6 +516,10 @@ function render(){
   if (needsVerify() && !(ui.view === 'tab' && ui.tab === 'privacy')) { homeStop(); oaStop(); const mv = $('#main'); mv.className = 'wrap main'; mv.innerHTML = viewVerify(); return; }
   const m = $('#main'), home = ui.view === 'tab' && ui.tab === 'home';
   m.className = home ? 'main home' : 'wrap main' + ((ui.view === 'tab' && ['theory', 'coding', 'companies', 'profile', 'quest', 'admin', 'oa'].includes(ui.tab)) || ui.view === 'code' || ui.view === 'company' || ui.view === 'position' ? ' wide' : '');
+  const ide = ideMode();
+  if (ide) m.className = 'main ide';
+  document.body.classList.toggle('ide', ide);
+  if (ide) { const tb = $('.topbar'); document.documentElement.style.setProperty('--topbar-h', (tb && !document.body.classList.contains('cfull') ? tb.offsetHeight : 0) + 'px'); }
   if (!home) homeStop();
   oaStop();
   if (ui.view === 'quiz') { m.innerHTML = viewQuiz(); updateTimer(); }
@@ -1061,6 +1065,22 @@ function toolNote(lang){
     perl:'Run it with perl on any Linux or macOS machine.', cuda:'Compile it with nvcc on a machine with an NVIDIA GPU (Google Colab works).', matlab:'Run it in MATLAB or GNU Octave.'}[lang] || '') + ' Mark it solved when your version works.';
 }
 const JUDGE_NAME = {python:'Python (Pyodide)', c:'C (Clang, WebAssembly)', cpp:'C++17 (Clang, WebAssembly)', verilog:'Verilog (Yosys + gate simulator)'};
+// The coding workspace fills the window like LeetCode: drag the handles to resize the problem, the code and the
+// console. The split is remembered in this browser.
+const SPLIT_KEY = 'hardcode-split';
+function splitPrefs(){ try { const v = JSON.parse(localStorage.getItem(SPLIT_KEY) || '{}'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } }
+function splitStyle(){
+  const v = splitPrefs(), ok = x => typeof x === 'number' && x >= 15 && x <= 85;
+  return (ok(v.l) ? `--lsplit:${v.l}%;` : '') + (ok(v.c) ? `--csplit:${v.c}%;--csplit-tall:${v.c}%;` : '');
+}
+const vSplit = '<div class="gsplit v" data-split="v" role="separator" aria-orientation="vertical" aria-label="Drag to resize the problem and the code" title="Drag to resize"></div>';
+const hSplit = '<div class="gsplit h" data-split="h" role="separator" aria-orientation="horizontal" aria-label="Drag to resize the code and the console" title="Drag to resize"></div>';
+// The workspace layout is on for coding problems and for coding questions in the Online Assessment.
+function ideMode(){
+  if (ui.view === 'code') return true;
+  const O = state.oa;
+  return ui.view === 'tab' && ui.tab === 'oa' && hasPremium() && oaActive() && O.i >= 0 && O.items[O.i] && O.items[O.i].t === 'c' && !(O.end <= Date.now());
+}
 function viewCode(){
   const C = ui.cp, p = CODE_BY_ID[C.id], pos = C.list.indexOf(C.id), s = state.code[p.id] || {}, st = codeStatus(p.id);
   const src = s.src != null ? s.src : p.starter;
@@ -1070,12 +1090,12 @@ function viewCode(){
     <button type="button" class="iconbtn" data-act="c-prev" aria-label="Previous problem"${pos <= 0 ? ' disabled' : ''}>‹</button>
     <button type="button" class="iconbtn" data-act="c-next" aria-label="Next problem"${pos >= C.list.length - 1 ? ' disabled' : ''}>›</button>
     <button type="button" class="btn small ghost" data-act="c-full" aria-pressed="${!!ui.cfull}">${ui.cfull ? '⤡ Exit full screen' : '⛶ Full screen'}</button></div></div>
-    <div class="cpv${C.cmax ? ' cmax' : ''}">${codeLeftHTML()}
+    <div class="cpv${C.cmax ? ' cmax' : ''}" style="${splitStyle()}">${codeLeftHTML()}${vSplit}
     <section class="ceditor panel"><div class="ehead"><span class="etitle">&lt;/&gt; Code</span>${langPickHTML(p, userLang(p.id), 'c')}<span class="spacer"></span>
       <button type="button" class="btn small ghost" data-act="c-reset">Reset</button>${actionsHTML(p)}</div>
       <div class="editor" data-lang="${userLang(p.id)}"><pre class="gutter" aria-hidden="true">${gutter(src)}</pre><div class="ed-area"><pre class="hl" aria-hidden="true">${highlight(src, userLang(p.id))}\n</pre>
         <textarea id="code-editor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your code (Tab inserts spaces; Esc leaves the editor)">${esc(src)}</textarea></div></div>
-      ${consoleWrapHTML(p)}</section></div></div>`;
+      ${hSplit}${consoleWrapHTML(p)}</section></div></div>`;
 }
 
 // ---------- the editor: line numbers and light syntax colouring under a plain textarea ----------
@@ -2251,14 +2271,14 @@ function oaItemHTML(O, it, k){
       ${it.id in O.ans ? '<button type="button" class="linkbtn small" data-act="oa-clear">Clear answer</button>' : ''}${nav}`;
   }
   const p = CODE_BY_ID[it.id], src = O.src[it.id] != null ? O.src[it.id] : p.starter, lang = langOf(p, (O.lang || {})[p.id]), R = oaRunState(p.id);
-  return `<div class="oacode"><section class="panel oastmt"><div class="pscroll"><p class="eyebrow">Question ${k + 1} of ${n} · Coding</p><h2>${esc(p.title)}</h2>
+  return `<div class="oacode" style="${splitStyle()}"><section class="panel oastmt"><div class="pscroll"><p class="eyebrow">Question ${k + 1} of ${n} · Coding</p><h2>${esc(p.title)}</h2>
       <div class="body">${p.p.map(t => `<p>${inlineCode(t)}</p>`).join('')}</div>${samplesHTML(p)}
-      ${p.run ? `<p class="muted small">Hidden test cases ${ICON.lock} also check corner cases. They are graded when you submit the test.</p>` : ''}</div></section>
+      ${p.run ? `<p class="muted small">Hidden test cases ${ICON.lock} also check corner cases. They are graded when you submit the test.</p>` : ''}</div></section>${vSplit}
     <section class="panel ceditor oaide${R.cmax ? ' cmax' : ''}"><div class="ehead">${langPickHTML(p, lang, 'oa')}<span class="spacer"></span><button type="button" class="btn small ghost" data-act="oa-reset">Reset</button>
       ${p.run ? `<span class="eacts"><button type="button" class="btn small" data-act="oa-run"${R.busy ? ' disabled' : ''}>Run Code</button><button type="button" class="btn small go" data-act="oa-runall"${R.busy ? ' disabled' : ''}>Submit code</button></span>` : ''}</div>
       <div class="editor" data-lang="${lang}"><pre class="gutter" aria-hidden="true">${gutter(src)}</pre><div class="ed-area"><pre class="hl" aria-hidden="true">${highlight(src, lang)}\n</pre>
         <textarea id="oa-code" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your code (Tab inserts spaces)">${esc(src)}</textarea></div></div>
-      ${p.run ? consoleWrapHTML(p, R, 'oa') : '<div class="console"><div class="cbody"><p class="muted small">Graded by hand: compare with the solution after you submit.</p></div></div>'}</section></div>${nav}`;
+      ${hSplit}${p.run ? consoleWrapHTML(p, R, 'oa') : '<div class="console"><div class="cbody"><p class="muted small">Graded by hand: compare with the solution after you submit.</p></div></div>'}</section></div>${nav}`;
 }
 // Run Code (sample cases), Submit code (every test, hidden ones locked) and custom input inside the assessment.
 const oaRunState = id => (ui.oaRun || (ui.oaRun = {}))[id] || (ui.oaRun[id] = {busy:null, run:null, rcase:0, ctab:'result', custom:false, cin:null});
@@ -2704,6 +2724,25 @@ document.addEventListener('keydown', e => {
   e.preventDefault();
   e.target.setRangeText('  ', e.target.selectionStart, e.target.selectionEnd, 'end');
   e.target.dispatchEvent(new Event('input', {bubbles:true}));
+});
+// Drag a split handle: the left/right split is a share of the workspace width, the code/console split a share of the
+// editor column's height.
+document.addEventListener('pointerdown', e => {
+  const g = e.target.closest && e.target.closest('.gsplit'); if (!g) return;
+  e.preventDefault();
+  const vert = g.dataset.split === 'v', box = vert ? g.closest('.cpv, .oacode') : g.closest('.ceditor'); if (!box) return;
+  const prefs = splitPrefs(); document.body.classList.add('dragging'); g.classList.add('on');
+  const move = ev => {
+    const r = box.getBoundingClientRect();
+    if (vert) { const v = Math.round(Math.min(75, Math.max(25, (ev.clientX - r.left) / r.width * 100))); prefs.l = v; document.querySelectorAll('.cpv, .oacode').forEach(b => b.style.setProperty('--lsplit', v + '%')); }
+    else { const v = Math.round(Math.min(80, Math.max(15, (r.bottom - ev.clientY) / r.height * 100))); prefs.c = v; document.querySelectorAll('.cpv, .oacode').forEach(b => { b.style.setProperty('--csplit', v + '%'); b.style.setProperty('--csplit-tall', v + '%'); }); }
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
+    document.body.classList.remove('dragging'); g.classList.remove('on');
+    try { localStorage.setItem(SPLIT_KEY, JSON.stringify(prefs)); } catch (err) { /* private mode: keep it for this visit only */ }
+  };
+  window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
 });
 document.addEventListener('scroll', e => { if (e.target.id === 'code-editor') syncScroll(); else if (e.target.id === 'oa-code') syncScrollOf(e.target); }, true);
 document.addEventListener('submit', e => { if (e.target.id === 'authemail') { e.preventDefault(); authEmail(); } });

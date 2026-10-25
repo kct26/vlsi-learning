@@ -201,8 +201,16 @@ async function phase1(){
   click('.oanums button[data-v="15"]');
   ok($('#oa-code') && /Coding/.test($('#oaq .eyebrow').textContent), 'coding question has an editor');
   ok($('.oastmt') && /Sample Input 0/.test($('.oastmt').textContent) && /Sample Output 0/.test($('.oastmt').textContent) && $('[data-act="oa-run"]') && $('[data-act="oa-runall"]'), 'coding question shows its sample cases next to the editor, with Run Code and Submit code');
+  ok(document.body.classList.contains('ide') && document.documentElement.scrollHeight <= innerHeight + 1 && $('.oacode').getBoundingClientRect().bottom <= innerHeight, 'an OA coding question fills the window without page scrolling');
+  { const g = $('.oacode .gsplit.v'), r = $('.oacode').getBoundingClientRect();
+    g.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true, clientX:r.left + r.width / 2, clientY:r.top + 50}));
+    window.dispatchEvent(new PointerEvent('pointermove', {clientX:r.left + r.width * 0.3, clientY:r.top + 50}));
+    window.dispatchEvent(new PointerEvent('pointerup', {}));
+    ok($('.oacode').style.getPropertyValue('--lsplit') === '30%' && JSON.parse(localStorage.getItem('hardcode-split')).l === 30, 'dragging the split handle resizes the panels and is remembered');
+    localStorage.removeItem('hardcode-split'); }
   ok(/Test Results/.test($('.oaide .ctabs').textContent) && (/Custom Input/.test($('.oaide .ctabs').textContent) || !$('[data-act="oa-ctab"][data-v="case"]')), 'the OA console has Test Results and Custom Input tabs');
   click('[data-act="oa-go"][data-v="-1"]');
+  ok(!document.body.classList.contains('ide'), 'the question list is a normal page again');
   ok($$('.oalist [data-act="oa-go"]').filter(b => /Review/.test(b.textContent)).length === 6, 'answered questions show Review in the question list');
   tab('theory'); tab('oa');
   ok($('#oatimer') && st().oa && st().oa.items.length === 17, 'leaving and coming back resumes the same test');
@@ -427,12 +435,13 @@ async function phase6(){
   ok(/n =/.test($('#run-out').textContent) && /Expected/.test($('#run-out').textContent) && /Output/.test($('#run-out').textContent), 'a case shows its input, your output and the expected output');
   ok(/checking/.test($('#run-out .tcase').textContent) && /Stdout/.test($('#run-out').textContent), 'printed output is shown as stdout');
   ok($('.console.tall') && $('#run-out .outpair') && $('#run-out .tcase').firstElementChild.classList.contains('outpair'), 'after Run the console grows and Output / Expected come first');
+  ok(document.body.classList.contains('ide') && document.documentElement.scrollHeight <= innerHeight + 1, 'the problem page fills the window like LeetCode');
   click('[data-act="c-cmax"]');
   ok($('.cpv.cmax') && getComputedStyle($('.ceditor .editor')).display === 'none' && $('[data-act="c-run"]'), 'expand hides the editor so the results fill the panel');
   click('[data-act="c-cmax"]');
   ok(!$('.cpv.cmax') && getComputedStyle($('.ceditor .editor')).display !== 'none', 'expand toggles back');
   click('[data-act="c-full"]');
-  ok(document.body.classList.contains('cfull') && getComputedStyle($('.cpv-wrap')).position === 'fixed', 'full screen fills the window');
+  ok(document.body.classList.contains('cfull') && getComputedStyle($('.topbar')).display === 'none' && $('.cpv').getBoundingClientRect().bottom <= innerHeight, 'full screen hides the site bar too');
   click('[data-act="c-full"]');
   ok(!document.body.classList.contains('cfull'), 'full screen toggles off');
   const custom = on => { click('[data-act="c-ctab"][data-v="case"]'); click(on ? '[data-act="c-custom-on"]' : '[data-act="c-case"][data-v="0"]'); };
