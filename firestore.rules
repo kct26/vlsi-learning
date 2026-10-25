@@ -1,9 +1,16 @@
 rules_version = '2';
-// Each signed-in person can read and write only their own progress document: users/{their uid}.
+// Each signed-in person can read, write and delete only their own progress document: users/{their uid}.
+// Writes must have exactly the shape the site saves ({state: text under ~900 KB, updatedAt: number}),
+// so an account cannot be used to store anything else or to grow the database without limit.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['state', 'updatedAt'])
+        && request.resource.data.state is string
+        && request.resource.data.state.size() < 900000
+        && request.resource.data.updatedAt is number;
     }
   }
 }

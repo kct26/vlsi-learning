@@ -132,6 +132,15 @@ This needs `clang` and `iverilog` on your machine.
 
 Set `CHROME=/path/to/chrome` if Chrome is not at the macOS default location.
 
+## Security and privacy
+
+- **Accounts:** each signed-in account can read, write and delete only its own record (`firestore.rules`). Writes must have the exact shape the site saves, under about 900 KB. After editing the rules, publish them in the Firebase console under **Firestore → Rules**.
+- **The Firebase web config** in `docs/firebase-config.js` is public by design. The rules are what protect the data.
+- **Content-Security-Policy:** the standalone page sets one (in `build.js`) that allows only this site, jsDelivr (the judge's compilers), Google Fonts, and Google and Firebase for sign-in.
+- **Saved progress:** it can come from this browser, an account or an imported file, so it is rebuilt field by field as it loads. Nothing stored can be shown as page markup.
+- **The judge:** code runs inside the browser, in a Web Worker with a time limit, and is never uploaded.
+- **Privacy:** the site has no analytics, ads or tracking cookies. It has a Privacy page (`#privacy`), and the profile has **Delete my account and data**.
+
 ## Build the book
 
 The PDF is included. To rebuild it after editing a chapter, install [Tectonic](https://tectonic-typesetting.github.io) (it downloads the LaTeX packages it needs), then:

@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="A hardware OA trainer: a 22-quest learning path and a multiple-choice problem list built on Hardware from the Ground Up.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net https://www.gstatic.com https://apis.google.com; worker-src 'self' blob:; connect-src 'self' https://cdn.jsdelivr.net https://*.googleapis.com https://www.gstatic.com https://*.firebaseapp.com https://*.firebaseio.com wss://*.firebaseio.com; img-src 'self' data: https://*.googleusercontent.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-src https://*.firebaseapp.com https://accounts.google.com https://apis.google.com; object-src 'none'; base-uri 'none'; form-action 'self'; upgrade-insecure-requests">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <script src="firebase-config.js"></script>
 <title>Ground Up Hardware Trainer</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -906,6 +908,12 @@ code, pre, .code-editor, .editor, .hcode, .mono { font-variant-ligatures: none; 
 :root[data-theme="dark"] .bit.on { background: #ECEFE8; color: #0F120F; }
 :root[data-theme="dark"] #authpage { background: var(--bg); }
 .stagesh { margin-top: 8px; } .rmintro { margin-top: -10px; }
+
+/* Privacy page and the destructive button */
+.privgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.privlist { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 0.92rem; }
+.btn.danger { background: var(--bad); border-color: var(--bad); color: #FFFFFF; }
+@media (max-width: 800px) { .privgrid { grid-template-columns: 1fr; } }
 
 </style>
 </head>
@@ -4406,18 +4414,30 @@ function backfillLog(e){
   Object.keys(e.code).forEach(id => (e.code[id].subs || []).forEach(u => log.push([u.at, id, u.v === 'Accepted' ? 1 : 0])));
   return log.sort((a, b) => a[0] - b[0]).slice(-LOG_MAX);
 }
+// Saved progress can come from this browser, the account, or an imported file, so every field is rebuilt
+// with the type it should have. Text that will be shown is limited to known values; the rest are numbers.
+const num = v => { const n = +v; return isFinite(n) && n >= 0 ? n : 0; };
+const knownId = id => typeof id === 'string' && (id in BY_ID || CODING.some(p => p.id === id));
+const VERDICTS = ['Accepted', 'Wrong Answer', 'Compile Error', 'Runtime Error', 'Time Limit Exceeded', 'Error'];
 function normalize(s){
   const e = emptyState();
   if (!s || typeof s !== 'object') return e;
-  e.updatedAt = +s.updatedAt || 0;
-  if (s.q && typeof s.q === 'object') e.q = s.q;
-  if (s.weeks && typeof s.weeks === 'object') e.weeks = s.weeks;
-  if (Array.isArray(s.hist)) e.hist = s.hist;
-  const l = s.learn || {};
-  e.learn = {cards:l.cards || {}, units:l.units || {}, mux:l.mux || {}};
-  if (s.code && typeof s.code === 'object') e.code = s.code;
+  e.updatedAt = num(s.updatedAt);
+  if (s.q && typeof s.q === 'object') Object.keys(s.q).forEach(id => { const x = s.q[id]; if (knownId(id) && x && typeof x === 'object') e.q[id] = {n:num(x.n), c:num(x.c), ok:!!x.ok, at:num(x.at)}; });
+  if (s.weeks && typeof s.weeks === 'object') e.weeks = s.weeks;   // no longer shown; kept so older saves round-trip
+  if (Array.isArray(s.hist)) e.hist = s.hist.filter(h => h && typeof h === 'object').slice(0, 60)
+    .map(h => ({at:num(h.at), mode:['mock', 'unit', 'practice', 'week'].includes(h.mode) ? h.mode : 'practice', label:String(h.label || '').slice(0, 120), score:num(h.score), total:num(h.total)}));
+  const l = s.learn && typeof s.learn === 'object' ? s.learn : {}, obj = o => o && typeof o === 'object' ? o : {};
+  Object.keys(obj(l.cards)).forEach(k => { if (/^u\d+c\d+$/.test(k)) e.learn.cards[k] = num(l.cards[k]); });
+  Object.keys(obj(l.units)).forEach(k => { const x = obj(l.units[k]); if (/^\d+$/.test(k)) e.learn.units[k] = {best:num(x.best), passed:num(x.passed)}; });
+  Object.keys(obj(l.mux)).forEach(k => { if (/^\w{1,12}$/.test(k)) e.learn.mux[k] = num(l.mux[k]); });
+  if (s.code && typeof s.code === 'object') Object.keys(s.code).forEach(id => {
+    const x = s.code[id]; if (!knownId(id) || !x || typeof x !== 'object') return;
+    e.code[id] = {src:typeof x.src === 'string' ? x.src.slice(0, CODE_MAX) : null, solved:num(x.solved), at:num(x.at)};
+    if (Array.isArray(x.subs)) e.code[id].subs = x.subs.filter(u => u && VERDICTS.includes(u.v)).slice(-20).map(u => ({at:num(u.at), v:u.v, p:num(u.p), t:num(u.t)}));
+  });
   if (s.codeWeek && s.codeWeek.wk) e.codeWeek = s.codeWeek;
-  e.log = Array.isArray(s.log) ? s.log.filter(x => Array.isArray(x) && x.length === 3) : backfillLog(e);
+  e.log = Array.isArray(s.log) ? s.log.filter(x => Array.isArray(x) && x.length === 3 && knownId(x[1])).map(x => [num(x[0]), x[1], x[2] ? 1 : 0]).slice(-LOG_MAX) : backfillLog(e);
   return e;
 }
 let state = emptyState();
@@ -4540,6 +4560,27 @@ function renderAccount(){
   el.innerHTML = (acct.ready && !u ? '<button type="button" class="acctbtn" data-act="signin">Sign in</button>' : '') + me;
 }
 
+// Deletes the signed-in account: first its progress document (which only that account may delete), then the login.
+async function deleteAccount(){
+  const u = acct.user; if (!u) return;
+  const doc = firebase.firestore().collection('users').doc(u.uid);
+  store.mode = 'local'; acct.ref = null;   // stop syncing before the document goes
+  try {
+    await doc.delete();
+    try { await u.delete(); }
+    catch (e) {
+      if (!e || e.code !== 'auth/requires-recent-login') throw e;
+      const google = (u.providerData || []).some(p => p.providerId === 'google.com');
+      if (!google) { toast('Your progress was deleted. To delete the login too, sign out, sign in again, and press Delete once more.'); await firebase.auth().signOut(); return; }
+      await u.reauthenticateWithPopup(new firebase.auth.GoogleAuthProvider());
+      await u.delete();
+    }
+    state = emptyState(); lsSave();
+    toast('Your account and its saved progress were deleted.');
+    render();
+  } catch (e) { toast('Delete failed: ' + ((e && e.message) || e)); render(); }
+}
+
 // ---------- backup file ----------
 function exportProgress(){
   const blob = new Blob([JSON.stringify(state, null, 1)], {type:'application/json'});
@@ -4584,7 +4625,7 @@ function toast(text){
 }
 
 // ---------- UI state ----------
-const TABS = ['home', 'theory', 'coding', 'quest', 'companies', 'roles', 'profile'];
+const TABS = ['home', 'theory', 'coding', 'quest', 'companies', 'roles', 'profile', 'privacy'];
 const blankFilters = () => ({q:'', ch:'all', d:'all', status:'all', type:'all', list:'all', co:'all'});
 const ui = {tab:'home', co:null, coq:'', auth:null, home:{word:0, tab:1, tryi:0, faq:0, tryv:{v:0.9, f:2, b:5, T:1, l:0.6, x:200}, timers:[]}, view:'tab', session:null, unit:null, pv:null, back:null, cardPick:{}, cardPerm:{}, f:blankFilters(), confirmReset:false, timer:null, cf:null, cp:null, cback:null, codeTimer:null};
 function setHash(h){ try { history.replaceState(null, '', '#' + h); } catch (e) { /* ignore */ } }
@@ -4661,6 +4702,7 @@ function render(){
   else if (ui.tab === 'quest') { m.innerHTML = viewQuest(); if (ui.rm.fit) { ui.rm.fit = false; rmZoom('fit'); } }
   else if (ui.tab === 'theory') m.innerHTML = viewProblems();
   else if (ui.tab === 'profile') m.innerHTML = viewProfile();
+  else if (ui.tab === 'privacy') m.innerHTML = viewPrivacy();
   else if (ui.tab === 'companies') m.innerHTML = viewCompanies();
   else m.innerHTML = viewRoles();
 }
@@ -5577,7 +5619,7 @@ function viewHome(){
       <div class="ctaart" aria-hidden="true">${Array.from({length:36}, (_, i) => `<i style="--d:${(i * 37) % 11}"></i>`).join('')}</div></div></section>
     <footer class="hfoot wrap wide"><div><a class="brand" href="#home" data-home>${$('.brand .logo') ? $('.brand .logo').outerHTML : ''}<span class="bname">Ground Up</span></a><p class="muted small">A free hardware engineering trainer, built on the book <em>Hardware from the Ground Up</em>.</p></div>
       <div><b>Practice</b>${[['theory', 'Theory'], ['coding', 'Coding'], ['quest', 'Roadmap'], ['profile', 'Profile']].map(([t, l]) => `<button type="button" class="linkbtn plain" data-act="go" data-v="${t}">${l}</button>`).join('')}</div>
-      <div><b>Careers</b>${[['companies', 'Companies'], ['roles', 'Roles']].map(([t, l]) => `<button type="button" class="linkbtn plain" data-act="go" data-v="${t}">${l}</button>`).join('')}</div>
+      <div><b>Careers</b>${[['companies', 'Companies'], ['roles', 'Roles'], ['privacy', 'Privacy']].map(([t, l]) => `<button type="button" class="linkbtn plain" data-act="go" data-v="${t}">${l}</button>`).join('')}</div>
       <p class="muted small hcopy2">Unofficial study material. Not affiliated with or endorsed by any company named here.</p></footer>`;
 }
 // The hero's rotating word and its counter animation, running only while Home is shown.
@@ -5617,7 +5659,7 @@ function renderAuth(){
         <label><span class="row between">Password${create ? '' : '<button type="button" class="linkbtn small" data-act="auth-forgot">Forgot password?</button>'}</span><input type="password" id="au-pw" autocomplete="${create ? 'new-password' : 'current-password'}" placeholder="${create ? 'At least 6 characters' : 'Enter your password'}" required></label>
         ${A.err ? `<p class="autherr" role="alert">${esc(A.err)}</p>` : ''}${A.info ? `<p class="authinfo" role="status">${esc(A.info)}</p>` : ''}
         <button type="submit" class="btn primary authsubmit"${A.busy ? ' disabled' : ''}>${A.busy ? 'Please wait…' : create ? 'Create account' : 'Sign in'}</button></form>
-      <p class="muted small authfine">Your progress syncs to your account on every device. Without an account it stays in this browser.</p></div></div>
+      <p class="muted small authfine">Your progress syncs to your account on every device. Without an account it stays in this browser. <a href="#privacy" data-act="auth-privacy">Privacy</a></p></div></div>
     <div class="authr" aria-hidden="true"><canvas id="authcanvas"></canvas><div class="authquote"><b>${BANK.length + CODING.length} problems.</b><span>From one transistor to a GPU.</span></div></div>`;
   authAnim();
 }
@@ -5755,6 +5797,8 @@ function viewProfile(){
     <section class="card"><h2>Skills</h2>${skills}</section>
     <section class="card" id="progress-card"><h2>Your data</h2><p class="muted small">${acct.user ? 'Synced to your account on every device where you sign in.' : 'Saved in this browser.'}</p>
       ${STANDALONE ? '<div class="row"><button type="button" class="btn small" data-act="export">Export progress</button><button type="button" class="btn small" data-act="import">Import progress</button><input type="file" id="import-file" accept="application/json,.json" hidden></div>' : ''}
+      ${acct.user ? (ui.confirmDelete ? '<div class="row"><span class="small">Delete your account and everything saved in it? This cannot be undone.</span><button type="button" class="btn small danger" data-act="delete-yes">Delete account</button><button type="button" class="btn small primary" data-act="delete-no">Keep it</button></div>' : '<button type="button" class="btn small ghost" data-act="delete">Delete my account and data</button>') : ''}
+      <button type="button" class="linkbtn small" data-act="go" data-v="privacy">How your data is handled →</button>
       ${ui.confirmReset ? '<div class="row"><span class="small">Erase all progress?</span><button type="button" class="btn small" data-act="reset-yes">Erase everything</button><button type="button" class="btn small primary" data-act="reset-no">Keep it</button></div>' : '<button type="button" class="btn small ghost" data-act="reset">Reset progress</button>'}</section>
   </aside>
   <section class="pfmain">
@@ -5924,6 +5968,28 @@ document.addEventListener('wheel', e => {
   else { ui.rm.tx -= e.deltaX; rmApply(); }
 }, {passive:false});
 
+// ---------- Privacy: what is stored, where, and who can see it ----------
+function viewPrivacy(){
+  const claude = !STANDALONE;
+  return `<section class="pagehead"><p class="eyebrow">Privacy</p><h1>Your data, <em>plainly</em></h1>
+    <p class="muted">What this site keeps, where it keeps it, and how to remove it. No analytics, no ads, no tracking cookies, and nothing is sold or shared.</p></section>
+    <div class="privgrid">
+    <section class="card"><h2>Without an account</h2><p>Everything stays ${claude ? 'in the storage of the Claude page you are using' : 'in this browser (local storage)'}: your answers, the code you write, your submissions and streak history, and your light or dark theme choice. Nothing is sent anywhere. Clearing this site's data in your browser, or <b>Reset progress</b> on your profile, removes it.</p></section>
+    <section class="card"><h2>With an account</h2><ul class="privlist">
+      <li><b>Login</b> (Firebase Authentication, run by Google): your email address, and if you use Google sign-in, your name and profile photo link. Email sign-in stores your password only as a salted hash; nobody can read it.</li>
+      <li><b>Progress</b> (Cloud Firestore, run by Google): one record holding the same progress listed above, so it can follow you across devices.</li>
+      <li><b>Who can see it:</b> the database rules let each account read and write only its own record; other visitors cannot see yours. The site owner, as the Firebase project's administrator, can view accounts and records in the Firebase console.</li>
+      <li><b>Remove it:</b> press <b>Delete my account and data</b> on your profile. It deletes your progress record and your login.</li></ul></section>
+    <section class="card"><h2>Services your browser contacts</h2><ul class="privlist">
+      <li><b>Google Fonts</b> for the Inter and JetBrains Mono typefaces.</li>
+      <li><b>jsDelivr</b> (a public code CDN) the first time you run code: Python (Pyodide), the C/C++ compiler (Clang) and the Verilog tool (Yosys). Your code is compiled and run inside your browser; it is never uploaded.</li>
+      <li><b>Google and Firebase</b> for sign-in and saving, only when accounts are used.</li>
+      <li>Like any website request, these services see your IP address and browser type. None of them get your answers or code.</li></ul></section>
+    <section class="card"><h2>Hosting</h2><p>The site itself is a static page served over HTTPS. The hosting provider keeps standard request logs (IP address and time) and this site adds nothing to them.</p>
+      <p class="muted small">Questions or a removal request: open an issue on the project's GitHub repository.</p></section>
+    </div>`;
+}
+
 // ---------- events ----------
 document.addEventListener('click', e => {
   if (e.target.closest('[data-home]')) { e.preventDefault(); if (ui.auth) closeAuth(); goTab('home'); return; }
@@ -5982,6 +6048,7 @@ function act(a){
     case 'try-bit': ui.home.tryv.b ^= 1 << +a.dataset.v; $('#trywid').innerHTML = tryHTML(1); break;
     case 'try-byte': ui.home.tryv.x ^= 1 << +a.dataset.v; $('#trywid').innerHTML = tryHTML(3); break;
     case 'auth-close': closeAuth(); break;
+    case 'auth-privacy': closeAuth(); goTab('privacy'); break;
     case 'auth-mode': ui.auth.mode = ui.auth.mode === 'create' ? 'signin' : 'create'; ui.auth.err = ''; ui.auth.info = ''; renderAuth(); break;
     case 'auth-google': authRun(() => firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider())); break;
     case 'auth-forgot': authForgot(); break;
@@ -6005,6 +6072,9 @@ function act(a){
     case 'quit': stopTimer(); returnFrom(S.from); break;
     case 'done-results': returnFrom(S.from); window.scrollTo(0, 0); break;
     case 'retry-missed': startSession('practice', S.ids.filter(id => !(id in S.ans) || !isCorrect(BY_ID[id], S.ans[id])), {title:'Retry the misses', from:S.from}); break;
+    case 'delete': ui.confirmDelete = true; render(); break;
+    case 'delete-no': ui.confirmDelete = false; render(); break;
+    case 'delete-yes': ui.confirmDelete = false; deleteAccount(); break;
     case 'pf-recent': ui.prof.recent = a.dataset.v; render(); break;
     case 'mock': startSession('mock', shuffle(BANK.map(q => q.id)).slice(0, MOCK_N), {title:'Timed mock assessment', from:{view:'tab', tab:'theory'}}); break;
     case 'review-attempted': startSession('practice', shuffle(BANK.filter(Q => statusOf(Q.id) === 'attempted').map(Q => Q.id)).slice(0, 25), {title:'Attempted, not solved', from:{view:'tab', tab:'theory'}}); break;

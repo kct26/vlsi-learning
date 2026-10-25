@@ -85,6 +85,17 @@ console.log(`ok: ${RAW.length} problems (E ${count(r => r[1] === 'E')}, M ${coun
 const body = read('shell.html')
   .replace('/*STYLE*/', () => read('style.css'))
   .replace('/*SCRIPTS*/', () => scripts);
+// What the standalone page may load or contact (a hosting provider that sends headers can repeat this, and add frame-ancestors).
+// The judge needs jsDelivr and WebAssembly; accounts need Google's sign-in and Firebase endpoints.
+const CSP = ["default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net https://www.gstatic.com https://apis.google.com",
+  "worker-src 'self' blob:",
+  "connect-src 'self' https://cdn.jsdelivr.net https://*.googleapis.com https://www.gstatic.com https://*.firebaseapp.com https://*.firebaseio.com wss://*.firebaseio.com",
+  "img-src 'self' data: https://*.googleusercontent.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "frame-src https://*.firebaseapp.com https://accounts.google.com https://apis.google.com",
+  "object-src 'none'", "base-uri 'none'", "form-action 'self'", "upgrade-insecure-requests"].join('; ');
 const args = process.argv.slice(2), fragment = args[0] === '--fragment';
 let out, html;
 if (fragment) {
@@ -96,6 +107,8 @@ if (fragment) {
   html = '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n' +
     '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n' +
     '<meta name="description" content="A hardware OA trainer: a 22-quest learning path and a multiple-choice problem list built on Hardware from the Ground Up.">\n' +
+    `<meta http-equiv="Content-Security-Policy" content="${CSP}">\n` +
+    '<meta name="referrer" content="strict-origin-when-cross-origin">\n' +
     '<script src="firebase-config.js"></script>\n' +
     body.slice(0, split) + '</head>\n<body>\n' + body.slice(split) + '\n</body>\n</html>\n';
 }

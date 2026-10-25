@@ -14,10 +14,10 @@ const fakeFirebase = `localStorage.clear();
   window.FIREBASE_CONFIG = {projectId:'test'};
   window.__fb = {users:{u1:{updatedAt:5, state:JSON.stringify({v:2, updatedAt:5, q:{'01-05':{n:1, c:1, ok:true, at:5}, '02-03':{n:1, c:1, ok:true, at:5}}, weeks:{}, hist:[], learn:{cards:{}, units:{}, mux:{}}})}}};
   (function(){ let cb = null, cur = null; const tell = () => setTimeout(() => cb && cb(cur), 0);
-    const auth = () => ({ onAuthStateChanged(f){ cb = f; tell(); }, signInWithPopup(){ cur = {uid:'u1', email:'me@test.dev', displayName:'Me'}; tell(); return Promise.resolve(); }, signOut(){ cur = null; tell(); return Promise.resolve(); } });
+    const auth = () => ({ onAuthStateChanged(f){ cb = f; tell(); }, signInWithPopup(){ cur = {uid:'u1', email:'me@test.dev', displayName:'Me', providerData:[{providerId:'google.com'}], delete(){ cur = null; tell(); return Promise.resolve(); }}; tell(); return Promise.resolve(); }, signOut(){ cur = null; tell(); return Promise.resolve(); } });
     auth.GoogleAuthProvider = function(){};
     window.firebase = { initializeApp(){}, auth,
-      firestore: () => ({ collection: () => ({ doc: id => ({ get: () => Promise.resolve({exists: !!window.__fb.users[id], data: () => window.__fb.users[id]}), set: d => { window.__fb.users[id] = d; return Promise.resolve(); } }) }) }) };
+      firestore: () => ({ collection: () => ({ doc: id => ({ get: () => Promise.resolve({exists: !!window.__fb.users[id], data: () => window.__fb.users[id]}), set: d => { window.__fb.users[id] = d; return Promise.resolve(); }, delete: () => { delete window.__fb.users[id]; return Promise.resolve(); } }) }) }) };
   })();`;
 [1, 2, 3, 4, 5, 6].forEach(p => {
   const pre = `<script>window.__PHASE=${p};${p === 2 ? seedAllUnlocked : p === 5 ? fakeFirebase : 'localStorage.clear();'}</script>\n`;

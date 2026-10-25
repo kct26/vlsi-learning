@@ -893,3 +893,9 @@ code, pre, .code-editor, .editor, .hcode, .mono { font-variant-ligatures: none; 
 :root[data-theme="dark"] .bit.on { background: #ECEFE8; color: #0F120F; }
 :root[data-theme="dark"] #authpage { background: var(--bg); }
 .stagesh { margin-top: 8px; } .rmintro { margin-top: -10px; }
+
+/* Privacy page and the destructive button */
+.privgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.privlist { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 0.92rem; }
+.btn.danger { background: var(--bad); border-color: var(--bad); color: #FFFFFF; }
+@media (max-width: 800px) { .privgrid { grid-template-columns: 1fr; } }

@@ -189,6 +189,9 @@ function phase1(){
   click('[data-act="done-results"]');
   ok($('#prows'), 'mock returns to Theory');
 
+  // Privacy page
+  tab('profile'); click('[data-act="go"][data-v="privacy"]');
+  ok(/Your data/.test(h1()) && /Firestore/.test($('#main').textContent) && /never uploaded/.test($('#main').textContent), 'privacy page explains storage and the judge');
   // Roles: what postings ask for, and hardware roles
   tab('roles');
   ok($$('.review').length === 14 + 12, '14 posting requirements and 12 hardware roles reviewed');
@@ -294,6 +297,14 @@ async function phase3b(){
   for (let k = 0; k < 40 && solvedHeader() === before; k++) await wait(250);   // reading the file is real I/O
   ok(solvedHeader() === before + 2, 'import merged 2 solved problems (' + before + ' -> ' + solvedHeader() + ')');
   ok(st().q['03-01'] && st().q['03-01'].c === 1, 'imported progress saved locally');
+  // A booby-trapped backup: markup in fields the profile shows must never reach the page.
+  const bad = '<img src=x onerror="window.__pwned=1">';
+  const evil = new File([JSON.stringify({v:2, q:{'03-03':{n:1, c:1, ok:true, at:Date.now()}}, hist:[{at:Date.now(), mode:'mock', label:bad, score:bad, total:bad}],
+    code:{'c-01':{src:bad, solved:0, at:1, subs:[{at:1, v:bad, p:bad, t:bad}, {at:2, v:'Accepted', p:bad, t:7}]}}, log:[[Date.now(), bad, 1], [Date.now(), '03-03', 1]], learn:{cards:{}, units:{}, mux:{}}})], 'evil.json', {type:'application/json'});
+  const dt2 = new DataTransfer(); dt2.items.add(evil); const inp2 = $('#import-file'); inp2.files = dt2.files; inp2.dispatchEvent(new Event('change', {bubbles:true}));
+  for (let k = 0; k < 40 && !(st().q['03-03']); k++) await wait(250);
+  tab('profile'); await wait(200);
+  ok(st().q['03-03'] && !window.__pwned && !$('#main img[src="x"]') && st().hist.every(h => typeof h.score === 'number') && st().log.every(x => x[1] !== bad), 'imported markup is neutralized (numbers stay numbers, unknown ids dropped)');
 }
 async function phase6(){
   // The Coding tab: list, filters, a hand-checked problem, the weekly card, and real judging of Python, C, C++ and Verilog.
@@ -405,6 +416,14 @@ async function phase5(){
   click('[data-act="signout"]');
   await wait(200);
   ok($('#acct .acctbtn') && /Saved in this browser/.test($('#sync').textContent), 'signing out returns to browser-only saving');
+  // Delete the account: the progress record and the login both go.
+  click('#acct .acctbtn'); click('[data-act="auth-google"]'); await wait(400);
+  ok(window.__fb.users.u1, 'signed back in, record exists');
+  click('#acct .avatar'); click('[data-act="delete"]');
+  ok($('[data-act="delete-yes"]') && /cannot be undone/.test($('#progress-card').textContent), 'delete asks for confirmation in the page');
+  click('[data-act="delete-yes"]'); await wait(500);
+  ok(!window.__fb.users.u1 && !$('#acct .avatar:not(.guest)'), 'account record deleted and signed out');
+  ok(solvedHeader() === 0, 'local copy cleared after deleting the account');
 }
 setTimeout(async () => {
   try { await [null, phase1, phase2, phase3b, phase4, phase5, phase6][PHASE](); } catch (e) { errors.push('THROW ' + e.message + ' ' + (e.stack || '').split('\n')[1]); }
