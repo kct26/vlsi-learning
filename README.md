@@ -1,14 +1,15 @@
-# Ground Up Hardware
+# HardCode (Ground Up Hardware)
 
 A study kit for hardware engineering online assessments (built while preparing for the NVIDIA Ignite hardware internship). It has two parts:
 
 - **Hardware from the Ground Up**: a 233-page beginner's book, written in LaTeX, that builds hardware from electricity to GPUs: transistors, CMOS gates, timing, power, PVT, manufacturing, memory, Verilog and verification, architecture, GPUs and computer arithmetic. Every chapter ends with exercises and answers.
-- **Ground Up Hardware Trainer**: a single-page web app for practicing it:
+- **HardCode**, the trainer: a single-page web app for practicing it:
   - a home page with interactive try-it widgets, and a sign-in screen (Google or email) when accounts are turned on;
   - **Roadmap**: an interactive VLSI roadmap of 36 topics (23 theory quests with interactive widgets, the hands-on coding tracks, and the role each path leads to), plus the stages in detail;
   - **Theory**: a 682-problem multiple-choice and true/false list with solved/total progress, covering hardware theory plus Linux, git, scripting, DFT, physical-design flow and signal integrity;
   - a Coding tab with 64 hands-on problems (RTL in Verilog, SystemVerilog and cocotb verification, C and C++, Python, Bash, Tcl and SDC, Perl, CUDA, MATLAB) in Easy, Medium and Hard, with hints and reference solutions;
   - a LeetCode-style judge for 42 of them, running entirely in the browser: **Run** tries the example cases, **Submit** runs every hidden test and records the verdict (Accepted, Wrong Answer, Compile Error, Runtime Error, Time Limit Exceeded). Python runs in Pyodide; C and C++ compile with Clang built for WebAssembly; Verilog is synthesized by Yosys and simulated gate by gate;
+  - **Online Assessment**: a timed mock OA in a random company's format (15 hardware questions and 2 judged coding problems in 75 minutes for NVIDIA's Ignite hardware format), with the company revealed when you submit. Other companies are listed as coming soon; add them in `trainer/src/assessments.js`;
   - **Companies**: every theory and coding problem tagged with the companies whose hardware roles test it, LeetCode style, with a page per company (NVIDIA's includes your OA and reported topics);
   - **Roles**: what hardware postings ask for, how well this kit covers it, and the roles to aim for;
   - **Profile**, LeetCode style: solved counts, a year of activity as a heatmap, current and longest streaks, recent submissions, languages and skills, plus backup and reset;
@@ -37,6 +38,7 @@ trainer/
     hidden-tests.js                 hidden tests for the C, C++ and Verilog problems
     judge.js                        the in-browser judge (C/C++ harness, Verilog simulator, checkers)
     companies.js                    companies and which problems carry their tags
+    assessments.js                  online assessment formats, one per company
     lessons.js                      quests and lesson cards
     widgets.js                      interactive lesson widgets
     app.js                          the app
@@ -139,6 +141,8 @@ Set `CHROME=/path/to/chrome` if Chrome is not at the macOS default location.
 - **Content-Security-Policy:** the standalone page sets one (in `build.js`) that allows only this site, jsDelivr (the judge's compilers), Google Fonts, and Google and Firebase for sign-in.
 - **Saved progress:** it can come from this browser, an account or an imported file, so it is rebuilt field by field as it loads. Nothing stored can be shown as page markup.
 - **The judge:** code runs inside the browser, in a Web Worker with a time limit, and is never uploaded.
+- **Sign-in gate:** with accounts turned on, signed-out visitors can open only Home and Privacy; anything else asks them to sign in, then takes them there. This shapes the experience, not secrecy: a static page's content is visible in its source.
+- **Admin dashboard:** `#admin`, only for the account IDs in `FIREBASE_ADMINS` (in `docs/firebase-config.js`), which must match `isAdmin()` in `firestore.rules`.
 - **Privacy:** the site has no analytics, ads or tracking cookies. It has a Privacy page (`#privacy`), and the profile has **Delete my account and data**.
 
 ## Build the book

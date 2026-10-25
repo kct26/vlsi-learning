@@ -53,7 +53,7 @@ function setMux(t, s, i0, i1){
 }
 const solvedHeader = () => +(($('#solved b') || {}).textContent || 0);
 
-function phase1(){
+async function phase1(){
   const visible = () => $('.topbar').innerText + ' ' + $('#main').innerText;
   // Home page
   ok($('.hhero h1') && /from the ground up/.test($('.hhero h1').textContent), 'home page opens first');
@@ -189,6 +189,28 @@ function phase1(){
   click('[data-act="done-results"]');
   ok($('#prows'), 'mock returns to Theory');
 
+  // Online assessment: a random company, hidden until the end
+  tab('oa');
+  ok($$('.oapool > div').length === COMPANIES.length && $$('.oapool > div.ready').length === 1 && /NVIDIA/.test($('.oapool .ready').textContent), 'pool: NVIDIA ready, the rest coming soon');
+  click('[data-act="oa-start"]');
+  ok($$('.oanums button').length === 17 && /^\d+:\d\d$/.test($('#oatimer').textContent), '15 hardware + 2 coding questions with a timer (' + $('#oatimer').textContent + ')');
+  ok(!/NVIDIA/.test($('#main').textContent) && /revealed when you submit/.test($('.oabar').textContent), 'company hidden during the test');
+  for (let i = 0; i < 6; i++) { click('#oaq .opt'); click('[data-act="oa-go"][data-v="' + (i + 1) + '"]'); }
+  click('[data-act="oa-flag"]');
+  ok($$('.oanums button.done').length === 6 && $$('.oanums button.flag').length === 1, 'answered and flagged questions show in the navigator');
+  click('.oanums button[data-v="15"]');
+  ok($('#oa-code') && /Coding/.test($('#oaq .eyebrow').textContent), 'coding question has an editor');
+  tab('theory'); tab('oa');
+  ok($('#oatimer') && st().oa && st().oa.items.length === 17, 'leaving and coming back resumes the same test');
+  click('[data-act="oa-submit"]');
+  ok(/unanswered/.test($('.oaconfirm').textContent), 'submit asks first');
+  click('[data-act="oa-submit-yes"]');
+  for (let k = 0; k < 20 && !$('.oareveal'); k++) await wait(100);
+  ok($('.oareveal') && /NVIDIA/.test($('.oareveal h1').textContent) && $$('.oareview li').length === 17, 'results reveal the company and review all 17');
+  ok(!st().oa && st().oaHist.length === 1 && st().oaHist[0].co === 'nvidia' && st().oaHist[0].right + st().oaHist[0].wrong === 6, 'attempt saved to history');
+  click('[data-act="oa-home"]');
+  ok(/NVIDIA/.test($('.ptable').textContent), 'past attempts list the revealed company');
+
   // Privacy page
   tab('profile'); click('[data-act="go"][data-v="privacy"]');
   ok(/Your data/.test(h1()) && /Firestore/.test($('#main').textContent) && /never uploaded/.test($('#main').textContent), 'privacy page explains storage and the judge');
@@ -277,7 +299,7 @@ function phase3(){
 function phase4(){
   const over = name => { const w = document.documentElement.scrollWidth, v = window.innerWidth; ok(w <= v + 1, `no horizontal scroll on ${name} at ${v}px (scrollWidth ${w})`); };
   over('home page');
-  ['quest', 'theory', 'roles', 'profile', 'companies'].forEach(t => { tab(t); over(t); });
+  ['quest', 'theory', 'oa', 'roles', 'profile', 'companies'].forEach(t => { tab(t); over(t); });
   click('[data-act="co-open"][data-v="nvidia"]'); over('company page');
   tab('theory'); click($$('#prows a[data-open]')[3]); over('problem page');
   tab('quest'); click('[data-act="open-unit"][data-u="1"]'); over('quest page');
@@ -375,6 +397,17 @@ async function phase6(){
   setCode(CODE.cpp02);
   ok(await judge('c-submit', 120) === 'Accepted', 'C++: the LRU cache is Accepted (' + verdict() + ' ' + $('#run-out').textContent.slice(0, 200) + ')');
 
+  // Online assessment graded for real: solve both coding problems, submit, and expect them Accepted.
+  tab('oa'); click('[data-act="oa-start"]');
+  for (const j of [15, 16]) {
+    click('.oanums button[data-v="' + j + '"]');
+    const id = st().oa.items[j].id, e = $('#oa-code'); e.value = CODING.find(p => p.id === id).sol; e.dispatchEvent(new Event('input', {bubbles:true}));
+    await wait(700);
+  }
+  click('[data-act="oa-submit"]'); click('[data-act="oa-submit-yes"]');
+  await until(() => $('.oareveal'), 240);
+  ok($('.oareveal') && st().oaHist[0].codeDone === 2, 'assessment coding graded by hidden tests: ' + (st().oaHist[0] || {}).codeDone + '/2 accepted');
+
   // Verilog, synthesized by Yosys and simulated cycle by cycle.
   tab('coding');
   click('#crows a[data-copen="rtl-02"]');
@@ -394,14 +427,22 @@ async function phase5(){
   await wait(300);
   ok($('#acct .acctbtn'), 'Sign in button in the top bar');
   ok(solvedHeader() === 1, 'starts with 1 problem solved in this browser');
-  click('#acct .acctbtn');
-  ok($('#authpage') && /Sign in to Ground Up/.test($('#authpage').textContent) && $('#au-email') && $('#au-pw'), 'sign-in screen with Google and email');
+  // Signed out, only Home (and Privacy) open; anything else asks you to sign in.
+  ok($('.hhero'), 'starts on Home');
+  tab('theory'); await wait(100);
+  ok($('.hhero') && !$('#prows') && $('#authpage'), 'signed out: Theory opens sign-in and stays on Home');
+  click('[data-act="auth-close"]');
+  click('.hfoot [data-act="go"][data-v="privacy"]');
+  ok(/Your data/.test(h1()) && !$('#authpage'), 'signed out: Privacy stays open');
+  tab('coding'); await wait(100);
+  ok(!$('#crows') && $('#authpage') && /Sign in to HardCode/.test($('#authpage').textContent) && $('#au-email') && $('#au-pw'), 'sign-in screen with Google and email');
   click('[data-act="auth-mode"]');
   ok(/Create your account/.test($('#authpage h1').textContent), 'switches to create account');
   click('[data-act="auth-mode"]');
   click('[data-act="auth-google"]');
   await wait(400);
   ok(!$('#authpage'), 'sign-in screen closes after signing in');
+  ok($('#crows'), 'after signing in you land on the page you asked for (Coding)');
   ok($('#acct .avatar'), 'avatar shown after signing in');
   ok(solvedHeader() === 3, 'account progress merged with this browser (' + solvedHeader() + ' solved)');
   const saved = JSON.parse(window.__fb.users.u1.state);

@@ -3,13 +3,13 @@
 //   node build.js --fragment out.html -> page body only (for hosts that add their own <html>/<head>, such as Claude artifacts)
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const src = path.join(__dirname, 'src'), read = f => fs.readFileSync(path.join(src, f), 'utf8');
-const SCRIPTS = ['questions.js', 'lessons.js', 'widgets.js', 'coding.js', 'hidden-tests.js', 'judge.js', 'companies.js', 'app.js'];
+const SCRIPTS = ['questions.js', 'lessons.js', 'widgets.js', 'coding.js', 'hidden-tests.js', 'judge.js', 'companies.js', 'assessments.js', 'app.js'];
 
 // Load the data files and widget table into one sandbox to check them.
 const ctx = {};
 vm.createContext(ctx);
-vm.runInContext(SCRIPTS.slice(0, 7).map(read).join('\n') + '\n;this.COMPANIES = COMPANIES; this.HIDDEN = HIDDEN; this.V_CHECKS = V_CHECKS; this.RAW = RAW; this.PARTS = PARTS; this.UNITS = UNITS; this.WIDGETS = WIDGETS; this.CODING = CODING; this.LANGS = LANGS; this.CODE_AREAS = CODE_AREAS;', ctx);
-const {RAW, PARTS, UNITS, WIDGETS, CODING, LANGS, CODE_AREAS, HIDDEN, V_CHECKS, COMPANIES} = ctx;
+vm.runInContext(SCRIPTS.slice(0, 8).map(read).join('\n') + '\n;this.ASSESSMENTS = ASSESSMENTS; this.COMPANIES = COMPANIES; this.HIDDEN = HIDDEN; this.V_CHECKS = V_CHECKS; this.RAW = RAW; this.PARTS = PARTS; this.UNITS = UNITS; this.WIDGETS = WIDGETS; this.CODING = CODING; this.LANGS = LANGS; this.CODE_AREAS = CODE_AREAS;', ctx);
+const {RAW, PARTS, UNITS, WIDGETS, CODING, LANGS, CODE_AREAS, HIDDEN, V_CHECKS, COMPANIES, ASSESSMENTS} = ctx;
 const errs = [], ids = new Set(), perCh = {}, texts = new Set();
 RAW.forEach((r, i) => {
   const [id, d, q, ans, expl, tags] = r, where = `RAW[${i}] ${id}`;
@@ -68,6 +68,18 @@ COMPANIES.forEach(c => {
   if (c.tags && !/^[ovrba]+$/.test(c.tags)) errs.push(where + ': unknown source tag in ' + c.tags);
   (c.ids || []).concat(c.reported || []).forEach(id => { if (!ids.has(id) && !codeIds.has(id)) errs.push(where + ': unknown problem id ' + id); });
   (c.reported || []).forEach(id => { if (!(c.ids || []).includes(id)) errs.push(where + ': reported id ' + id + ' must also be in ids'); });
+});
+// Online assessments: one per company; ready ones need a timer and sections whose coding ids exist.
+ASSESSMENTS.forEach(a => {
+  const where = 'assessment ' + a.co;
+  if (!coIds.has(a.co)) errs.push(where + ': unknown company');
+  if (!a.ready) return;
+  if (!a.title || !(a.minutes > 0) || !Array.isArray(a.sections) || !a.sections.length) errs.push(where + ': needs title, minutes and sections');
+  (a.sections || []).forEach(sec => {
+    if (!['mcq', 'code'].includes(sec.kind) || !(sec.n > 0)) errs.push(where + ': each section needs kind mcq or code and n > 0');
+    if (sec.kind === 'code') (sec.ids || []).forEach(id => { if (!codeIds.has(id)) errs.push(where + ': unknown coding problem ' + id); });
+    if (sec.kind === 'code' && (sec.ids || []).length < sec.n) errs.push(where + ': fewer coding ids than n');
+  });
 });
 Object.keys(HIDDEN).forEach(id => { if (!codeIds.has(id)) errs.push('hidden tests for unknown problem ' + id); });
 const partUnits = PARTS.flatMap(p => p.units).sort((a, b) => a - b).join(',');

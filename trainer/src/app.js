@@ -185,7 +185,7 @@ function ring(frac, size, stroke, label){
 
 // ---------- state and saving ----------
 const LS_KEY = 'ground-up-trainer-v1';
-const emptyState = () => ({v:2, updatedAt:0, q:{}, weeks:{}, hist:[], learn:{cards:{}, units:{}, mux:{}}, code:{}, codeWeek:null, log:[]});
+const emptyState = () => ({v:2, updatedAt:0, q:{}, weeks:{}, hist:[], learn:{cards:{}, units:{}, mux:{}}, code:{}, codeWeek:null, log:[], oa:null, oaHist:[]});
 const LOG_MAX = 5000;   // submissions kept for the profile's heatmap, streaks and recent list
 // Rebuilds a submission log from older saves that predate it: one entry per answered problem and per code submission.
 function backfillLog(e){
@@ -217,6 +217,23 @@ function normalize(s){
     if (Array.isArray(x.subs)) e.code[id].subs = x.subs.filter(u => u && VERDICTS.includes(u.v)).slice(-20).map(u => ({at:num(u.at), v:u.v, p:num(u.p), t:num(u.t)}));
   });
   if (s.codeWeek && s.codeWeek.wk) e.codeWeek = s.codeWeek;
+  if (Array.isArray(s.oaHist)) e.oaHist = s.oaHist.filter(h => h && typeof h === 'object' && OA_BY_CO[h.co]).slice(0, 30)
+    .map(h => ({at:num(h.at), co:h.co, right:num(h.right), wrong:num(h.wrong), n:num(h.n), codeDone:num(h.codeDone), codeN:num(h.codeN), score:num(h.score), total:num(h.total), pct:Math.min(100, num(h.pct)), used:num(h.used), neg:!!h.neg}));
+  if (s.oa && typeof s.oa === 'object' && OA_BY_CO[s.oa.co] && Array.isArray(s.oa.items)) {
+    const items = s.oa.items.filter(x => x && ((x.t === 'q' && BY_ID[x.id]) || (x.t === 'c' && CODING.some(p => p.id === x.id)))).map(x => ({t:x.t, id:x.id, s:num(x.s)}));
+    if (items.length) {
+      const o = {co:s.oa.co, start:num(s.oa.start), end:num(s.oa.end), neg:!!s.oa.neg, items, perm:{}, ans:{}, src:{}, flag:{}, i:Math.min(num(s.oa.i), items.length - 1)};
+      const P = obj(s.oa.perm), An = obj(s.oa.ans), Sr = obj(s.oa.src), F = obj(s.oa.flag);
+      items.forEach(x => {
+        if (x.t === 'q') {
+          const p = P[x.id]; o.perm[x.id] = Array.isArray(p) && p.length === 4 && [0, 1, 2, 3].every(d => p.includes(d)) ? p.map(Number) : [0, 1, 2, 3];
+          const a = An[x.id]; if (typeof a === 'boolean' || [0, 1, 2, 3].includes(a)) o.ans[x.id] = a;
+        } else if (typeof Sr[x.id] === 'string') o.src[x.id] = Sr[x.id].slice(0, CODE_MAX);
+        if (F[x.id]) o.flag[x.id] = 1;
+      });
+      e.oa = o;
+    }
+  }
   e.log = Array.isArray(s.log) ? s.log.filter(x => Array.isArray(x) && x.length === 3 && knownId(x[1])).map(x => [num(x[0]), x[1], x[2] ? 1 : 0]).slice(-LOG_MAX) : backfillLog(e);
   return e;
 }
@@ -291,6 +308,10 @@ function mergeStates(a, b){
   const lk = {};
   m.log.concat(o.log).forEach(x => { lk[x[0] + '|' + x[1]] = x; });
   m.log = Object.values(lk).sort((a, b) => a[0] - b[0]).slice(-LOG_MAX);
+  const hk = {};
+  m.oaHist.concat(o.oaHist).forEach(h => { hk[h.at] = h; });
+  m.oaHist = Object.values(hk).sort((x, y) => y.at - x.at).slice(0, 30);
+  if (o.oa && (!m.oa || o.oa.start > m.oa.start)) m.oa = o.oa;
   m.updatedAt = Math.max(m.updatedAt, o.updatedAt);
   return m;
 }
@@ -309,12 +330,15 @@ async function initAccounts(){
     acct.ready = true;
     firebase.auth().onAuthStateChanged(onAuth);
     if (ui.view === 'tab' && ui.tab === 'home') render();
-  } catch (e) { acct.ready = false; }
+  } catch (e) { acct.ready = false; acct.failed = true; render(); }   // if accounts cannot load, the site stays open
   renderAccount();
 }
 async function onAuth(user){
-  acct.user = user || null; acct.ref = null;
-  if (user && ui.auth) closeAuth();
+  acct.user = user || null; acct.ref = null; acct.known = true;
+  if (user && ui.auth) closeAuth(true);
+  if (user && ui.after) { Object.assign(ui, ui.after); ui.after = null; }   // go where they were heading before signing in
+  if (!user && ui.after) openAuth();
+  if (!user && ui.view === 'tab' && ui.tab === 'home') render();
   if (user && ui.tab === 'admin' && !ui.adm) setTimeout(loadAdmin, 0);
   if (!user) { store.mode = 'local'; setSync('Saved in this browser'); renderAccount(); if (ui.tab === 'profile' && ui.view === 'tab') render(); return; }
   setSync('Syncing…');
@@ -369,7 +393,7 @@ function exportProgress(){
   const blob = new Blob([JSON.stringify(state, null, 1)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'ground-up-progress-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.download = 'hardcode-progress-' + new Date().toISOString().slice(0, 10) + '.json';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
@@ -380,7 +404,7 @@ async function importProgress(file){
     state = mergeStates(state, data);
     save(); render();
     toast('Progress imported and merged');
-  } catch (e) { toast('That file is not a Ground Up progress file.'); }
+  } catch (e) { toast('That file is not a HardCode progress file.'); }
 }
 
 // ---------- progress ----------
@@ -408,7 +432,7 @@ function toast(text){
 }
 
 // ---------- UI state ----------
-const TABS = ['home', 'theory', 'coding', 'quest', 'companies', 'roles', 'profile', 'privacy', 'admin'];
+const TABS = ['home', 'theory', 'coding', 'oa', 'quest', 'companies', 'roles', 'profile', 'privacy', 'admin'];
 const blankFilters = () => ({q:'', ch:'all', d:'all', status:'all', type:'all', list:'all', co:'all'});
 const ui = {tab:'home', co:null, coq:'', auth:null, home:{word:0, tab:1, tryi:0, faq:0, tryv:{v:0.9, f:2, b:5, T:1, l:0.6, x:200}, timers:[]}, view:'tab', session:null, unit:null, pv:null, back:null, cardPick:{}, cardPerm:{}, f:blankFilters(), confirmReset:false, timer:null, cf:null, cp:null, cback:null, codeTimer:null};
 function setHash(h){ try { history.replaceState(null, '', '#' + h); } catch (e) { /* ignore */ } }
@@ -469,11 +493,22 @@ function verdictHTML(Q, chosen){
     `<div class="sol"><p>${esc(Q.e)}</p><small>${taughtLine(Q)}</small></div>`;
 }
 
+// On the standalone site with accounts turned on, signed-out visitors can only see Home (and Privacy).
+// Anything else opens sign-in and comes back to it afterwards. This guards the experience, not the content:
+// the whole trainer is in the page source, which a static site cannot hide.
+const OPEN_TABS = ['home', 'privacy'];
+const gated = () => STANDALONE && !!window.FIREBASE_CONFIG && !acct.failed && !acct.user;
 function render(){
+  if (gated() && !(ui.view === 'tab' && OPEN_TABS.includes(ui.tab))) {
+    if (!ui.after) ui.after = {tab:ui.tab, view:ui.view, pv:ui.pv, cp:ui.cp, co:ui.co, back:ui.back, cback:ui.cback, unit:ui.unit};
+    ui.tab = 'home'; ui.view = 'tab'; setHash('home');
+    if (acct.ready && acct.known && !ui.auth) setTimeout(openAuth, 0);
+  }
   renderHeader();
   const m = $('#main'), home = ui.view === 'tab' && ui.tab === 'home';
-  m.className = home ? 'main home' : 'wrap main' + ((ui.view === 'tab' && ['theory', 'coding', 'companies', 'profile', 'quest', 'admin'].includes(ui.tab)) || ui.view === 'code' || ui.view === 'company' ? ' wide' : '');
+  m.className = home ? 'main home' : 'wrap main' + ((ui.view === 'tab' && ['theory', 'coding', 'companies', 'profile', 'quest', 'admin', 'oa'].includes(ui.tab)) || ui.view === 'code' || ui.view === 'company' ? ' wide' : '');
   if (!home) homeStop();
+  oaStop();
   if (ui.view === 'quiz') { m.innerHTML = viewQuiz(); updateTimer(); }
   else if (ui.view === 'results') m.innerHTML = viewResults();
   else if (ui.view === 'unit') { m.innerHTML = viewUnit(); afterUnitRender(); }
@@ -487,6 +522,7 @@ function render(){
   else if (ui.tab === 'profile') m.innerHTML = viewProfile();
   else if (ui.tab === 'privacy') m.innerHTML = viewPrivacy();
   else if (ui.tab === 'admin') m.innerHTML = viewAdmin();
+  else if (ui.tab === 'oa') { m.innerHTML = viewOA(); if (oaActive()) oaTickStart(); }
   else if (ui.tab === 'companies') m.innerHTML = viewCompanies();
   else m.innerHTML = viewRoles();
 }
@@ -496,7 +532,6 @@ function viewQuest(){
   const done = UNITS.filter(U => unitPassed(U.id)).length, nu = nextUnit();
   if (!ui.rm) ui.rm = {sel:'u' + (nu ? nu.id : 1), z:1, tx:60, ty:24, fit:true};
   let html = `<section class="pagehead"><p class="eyebrow">VLSI roadmap</p><h1>The <em>VLSI</em> roadmap</h1>
-    <p class="muted">Everything you need to know to apply for VLSI roles, in the order to learn it: ${UNITS.length} theory quests from a single wire to a GPU, the hands-on coding tracks, and the role each path leads to. ${done}/${UNITS.length} quests passed.</p>
     ${nu ? `<div class="row"><button type="button" class="btn primary" data-act="open-unit" data-u="${nu.id}">${cardsDone(nu) ? 'Continue' : 'Start'}: Quest ${nu.id} · ${esc(nu.title)}</button></div>` : '<p><b>Every stage is complete.</b> Keep practicing in Theory and Coding.</p>'}</section>
     <h2 class="hh2 left stagesh">Stages in detail</h2>`;
   PARTS.forEach(p => {
@@ -1401,7 +1436,7 @@ function viewHome(){
       <div class="row">${acct.ready && !acct.user ? '<button type="button" class="btn primary big" data-act="signin">Create free account</button>' : '<button type="button" class="btn primary big" data-act="go" data-v="quest">Start learning</button>'}<button type="button" class="btn big ghost" data-act="go" data-v="theory">Browse problems</button></div>
       <div class="langs"><span>${BANK.length + CODING.length} problems</span><i>·</i><span>Verilog and C judge</span><i>·</i><span>233-page book</span></div></div>
       <div class="ctaart" aria-hidden="true">${Array.from({length:36}, (_, i) => `<i style="--d:${(i * 37) % 11}"></i>`).join('')}</div></div></section>
-    <footer class="hfoot wrap wide"><div><a class="brand" href="#home" data-home>${$('.brand .logo') ? $('.brand .logo').outerHTML : ''}<span class="bname">Ground Up</span></a><p class="muted small">A free hardware engineering trainer, built on the book <em>Hardware from the Ground Up</em>.</p></div>
+    <footer class="hfoot wrap wide"><div><a class="brand" href="#home" data-home>${$('.brand .logo') ? $('.brand .logo').outerHTML : ''}<span class="bname">HardCode</span></a><p class="muted small">A free hardware engineering trainer, built on the book <em>Hardware from the Ground Up</em>.</p></div>
       <div><b>Practice</b>${[['theory', 'Theory'], ['coding', 'Coding'], ['quest', 'Roadmap'], ['profile', 'Profile']].map(([t, l]) => `<button type="button" class="linkbtn plain" data-act="go" data-v="${t}">${l}</button>`).join('')}</div>
       <div><b>Careers</b>${[['companies', 'Companies'], ['roles', 'Roles'], ['privacy', 'Privacy']].map(([t, l]) => `<button type="button" class="linkbtn plain" data-act="go" data-v="${t}">${l}</button>`).join('')}</div>
       <p class="muted small hcopy2">Unofficial study material. Not affiliated with or endorsed by any company named here.</p></footer>`;
@@ -1428,14 +1463,15 @@ function homeStop(){ if (ui.home) { ui.home.timers.forEach(clearInterval); ui.ho
 
 // ---------- Sign-in screen (standalone site with accounts turned on) ----------
 function openAuth(){ if (!acct.ready) return; ui.auth = {mode:'signin', err:'', busy:false, info:''}; renderAuth(); }
-function closeAuth(){ ui.auth = null; const p = $('#authpage'); if (p) p.remove(); authStop(); document.body.classList.remove('authopen'); }
+// keep = true when signing in succeeded, so the page they asked for is still opened once Firebase reports the user
+function closeAuth(keep){ ui.auth = null; if (!keep && !acct.user) ui.after = null; const p = $('#authpage'); if (p) p.remove(); authStop(); document.body.classList.remove('authopen'); }
 function renderAuth(){
   const A = ui.auth; if (!A) return;
   let p = $('#authpage');
   if (!p) { p = document.createElement('div'); p.id = 'authpage'; p.setAttribute('role', 'dialog'); p.setAttribute('aria-modal', 'true'); p.setAttribute('aria-label', 'Sign in'); document.body.appendChild(p); document.body.classList.add('authopen'); }
   const create = A.mode === 'create';
-  p.innerHTML = `<div class="authl"><div class="authtop"><a class="brand" href="#home" data-act="auth-close">${$('.brand .logo').outerHTML}<span class="bname">Ground Up</span></a><button type="button" class="iconbtn" data-act="auth-close" aria-label="Close">×</button></div>
-    <div class="authform"><h1>${create ? 'Create your account' : 'Sign in to Ground Up'}</h1>
+  p.innerHTML = `<div class="authl"><div class="authtop"><a class="brand" href="#home" data-act="auth-close">${$('.brand .logo').outerHTML}<span class="bname">HardCode</span></a><button type="button" class="iconbtn" data-act="auth-close" aria-label="Close">×</button></div>
+    <div class="authform"><h1>${create ? 'Create your account' : 'Sign in to HardCode'}</h1>
       <p class="muted">${create ? 'Already have an account?' : "Don't have an account?"} <button type="button" class="linkbtn" data-act="auth-mode">${create ? 'Sign in' : 'Create account'}</button></p>
       <button type="button" class="btn authbtn" data-act="auth-google"${A.busy ? ' disabled' : ''}><svg viewBox="0 0 18 18" width="16" height="16" aria-hidden="true"><path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.7H9v3.3h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.5z"/><path fill="#34A853" d="M9 18c2.4 0 4.5-.8 5.9-2.2l-2.9-2.2c-.8.5-1.8.9-3 .9-2.3 0-4.3-1.6-5-3.7H1v2.3A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M4 10.8a5.4 5.4 0 0 1 0-3.6V4.9H1a9 9 0 0 0 0 8.2l3-2.3z"/><path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 1 4.9l3 2.3C4.7 5.2 6.7 3.6 9 3.6z"/></svg>Continue with Google</button>
       <div class="author"><span>or continue with email</span></div>
@@ -1456,7 +1492,7 @@ function authErr(e){
 async function authRun(fn){
   const A = ui.auth; if (!A || A.busy) return;
   A.busy = true; A.err = ''; A.info = ''; renderAuth();
-  try { await fn(); if (ui.auth && !ui.auth.info) closeAuth(); }
+  try { await fn(); if (ui.auth && !ui.auth.info) closeAuth(true); }
   catch (e) { const c = (e && e.code) || ''; if (ui.auth) { ui.auth.err = c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request' ? '' : authErr(e); } }
   if (ui.auth) { ui.auth.busy = false; renderAuth(); }
 }
@@ -1817,9 +1853,158 @@ function adminCSV(){
   const lines = [head.join(',')].concat(ui.adm.rows.map(r => [r.uid, r.name, r.email, iso(r.first), iso(r.last), r.solved, r.code, r.quests, r.cur, r.max, r.subs, r.acc.toFixed(3)].map(cell).join(',')));
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([lines.join('\n')], {type:'text/csv'}));
-  a.download = 'ground-up-users-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.download = 'hardcode-users-' + new Date().toISOString().slice(0, 10) + '.csv';
   document.body.appendChild(a); a.click(); a.remove();
 }
+
+// ---------- Online assessment: a random company's format, with the company revealed only at the end ----------
+// The formats live in assessments.js. An attempt in progress is saved (state.oa), so its timer keeps running
+// across reloads and devices, like a real proctored test.
+const OA_BY_CO = Object.fromEntries(ASSESSMENTS.map(a => [a.co, a]));
+const OA_CODE_PTS = 5;   // a coding problem is worth five multiple-choice questions, scaled by hidden tests passed
+const oaReady = () => ASSESSMENTS.filter(a => a.ready && CO_BY_ID[a.co]);
+const mmss = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+function oaBuild(A){
+  const c = CO_BY_ID[A.co], tags = c.tags || '', used = new Set(), items = [], perm = {};
+  const take = (pool, n) => shuffle(pool.filter(id => !used.has(id))).slice(0, n).map(id => { used.add(id); return id; });
+  A.sections.forEach((sec, si) => {
+    if (sec.kind === 'mcq') {
+      const oa = /[ov]/.test(tags) ? BANK.filter(Q => hasTag(Q, 'o') || hasTag(Q, 'v')).map(Q => Q.id) : [];
+      const rep = tags.includes('r') ? BANK.filter(Q => hasTag(Q, 'r')).map(Q => Q.id) : [];
+      const core = coTheory(A.co), P = sec.pick || {};
+      let ids = take(oa, P.oa || 0).concat(take(rep, P.reported || 0));
+      ids = ids.concat(take(core, sec.n - ids.length));
+      shuffle(ids).forEach(id => { items.push({t:'q', id, s:si}); perm[id] = shuffle([0, 1, 2, 3]); });
+    } else take(sec.ids.filter(id => CODE_BY_ID[id]), sec.n).forEach(id => items.push({t:'c', id, s:si}));
+  });
+  return items.length ? {co:A.co, start:Date.now(), end:Date.now() + A.minutes * 60000, neg:!!ui.oaNeg, items, perm, ans:{}, src:{}, flag:{}, i:0} : null;
+}
+function oaStart(){
+  const pool = oaReady(); if (!pool.length) return;
+  const A = pool[Math.floor(Math.random() * pool.length)], at = oaBuild(A);
+  if (!at) { toast('That assessment has no questions yet.'); return; }
+  state.oa = at; ui.oaRes = null; ui.oaConfirm = false; save(); render(); window.scrollTo(0, 0);
+}
+const oaActive = () => !!(state.oa && state.oa.items && state.oa.items.length && !ui.oaGrading);
+function oaStop(){ if (ui.oaTick) { clearInterval(ui.oaTick); ui.oaTick = null; } }
+function oaTickStart(){
+  oaStop();
+  ui.oaTick = setInterval(() => {
+    const T = $('#oatimer'); if (!T || !state.oa) { oaStop(); return; }
+    const left = state.oa.end - Date.now();
+    T.textContent = mmss(left); T.classList.toggle('low', left < 5 * 60000);
+    if (left <= 0) { oaStop(); oaSubmit(true); }
+  }, 1000);
+}
+function oaIntro(){
+  const pool = oaReady(), last = state.oaHist.slice(0, 8);
+  const A = pool[0], nq = A ? A.sections.filter(s => s.kind === 'mcq').reduce((n, s) => n + s.n, 0) : 0, nc = A ? A.sections.filter(s => s.kind === 'code').reduce((n, s) => n + s.n, 0) : 0;
+  return `<section class="pagehead"><p class="eyebrow">Online assessment</p><h1>A real OA, from a <em>random</em> company</h1>
+      <p class="muted">You get one company's assessment format, picked at random, with a single timer like HackerRank. The company stays hidden until you submit, so you practice the way the real thing feels: cold.</p></section>
+    <div class="oagrid"><section class="card oastart"><h2>Before you start</h2><ul class="privlist">
+        <li><b>${nq} hardware questions</b> (multiple choice and true/false) and <b>${nc} coding problem${nc === 1 ? '' : 's'}</b>, graded by hidden tests.</li>
+        <li><b>One timer</b> for the whole test${A ? ` (${A.minutes} minutes)` : ''}. It keeps running if you leave the page, and the test submits itself at zero.</li>
+        <li>No feedback until you submit. Flag questions to come back to them.</li>
+        <li>Your answers count toward your progress, streak and profile.</li></ul>
+      <label class="oaneg"><input type="checkbox" id="oa-neg"${ui.oaNeg ? ' checked' : ''}> Negative marking: lose ${A ? A.negative : 0.25} of a point per wrong multiple-choice answer (some tracks use it)</label>
+      <div class="row"><button type="button" class="btn primary big" data-act="oa-start"${pool.length ? '' : ' disabled'}>Start a random assessment →</button></div></section>
+    <section class="card"><h2>Companies in the pool</h2><p class="muted small">Assessments are drawn from the ready ones. The rest are on the way.</p>
+      <div class="oapool">${ASSESSMENTS.filter(a => CO_BY_ID[a.co]).map(a => `<div class="${a.ready ? 'ready' : ''}">${coAvatar(CO_BY_ID[a.co])}<span>${esc(CO_BY_ID[a.co].name)}</span><em>${a.ready ? 'Ready' : 'Coming soon'}</em></div>`).join('')}</div></section></div>
+    <section class="card"><h2>Past attempts</h2>${last.length ? `<div class="tablewrap"><table class="ptable"><thead><tr><th>When</th><th>Company</th><th>Hardware</th><th>Coding</th><th>Score</th><th>Time used</th></tr></thead><tbody>${last.map(h => `<tr><td>${ago(h.at)}</td><td>${esc((CO_BY_ID[h.co] || {}).name || '?')}</td><td class="mono">${h.right}/${h.n}</td><td class="mono">${h.codeDone}/${h.codeN}</td><td class="mono"><b>${Math.round(h.pct)}%</b></td><td class="mono">${mmss(h.used)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Your attempts show up here, with the company revealed.</p>'}</section>`;
+}
+function oaItemHTML(O, it, k){
+  const n = O.items.length;
+  const nav = `<div class="row between oanavrow"><button type="button" class="btn small" data-act="oa-go" data-v="${k - 1}"${k ? '' : ' disabled'}>← Previous</button>
+    <button type="button" class="btn small ghost${O.flag[it.id] ? ' on' : ''}" data-act="oa-flag" data-v="${esc(it.id)}">${O.flag[it.id] ? '⚑ Flagged' : '⚐ Flag for review'}</button>
+    <button type="button" class="btn small primary" data-act="oa-go" data-v="${k + 1}"${k < n - 1 ? '' : ' disabled'}>Next →</button></div>`;
+  if (it.t === 'q') {
+    const Q = BY_ID[it.id], items = Q.k === 'm' ? O.perm[it.id].map(p => ({v:p, text:Q.o[p]})) : [{v:true, text:'True'}, {v:false, text:'False'}];
+    return `<p class="eyebrow">Question ${k + 1} of ${n} · ${Q.k === 'm' ? 'Multiple choice' : 'True / false'}</p><p class="qtext">${esc(Q.q)}</p>
+      <div class="opts" role="radiogroup">${items.map((x, j) => `<button type="button" class="opt${O.ans[it.id] === x.v ? ' sel' : ''}" role="radio" aria-checked="${O.ans[it.id] === x.v}" data-act="oa-pick" data-v="${typeof x.v === 'boolean' ? (x.v ? 'T' : 'F') : x.v}"><span class="key">${'ABCD'[j]}</span><span>${esc(x.text)}</span></button>`).join('')}</div>
+      ${it.id in O.ans ? '<button type="button" class="linkbtn small" data-act="oa-clear">Clear answer</button>' : ''}${nav}`;
+  }
+  const p = CODE_BY_ID[it.id], src = O.src[it.id] != null ? O.src[it.id] : p.starter;
+  return `<p class="eyebrow">Question ${k + 1} of ${n} · Coding · ${esc(LANGS[p.lang])}</p><h2>${esc(p.title)}</h2>
+    <div class="body">${p.p.map(t => `<p>${inlineCode(t)}</p>`).join('')}</div>${p.ex ? `<pre class="code">${esc(p.ex)}</pre>` : ''}
+    <textarea id="oa-code" class="oaeditor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your code">${esc(src)}</textarea>
+    <div class="row">${p.run ? '<button type="button" class="btn small" data-act="oa-run">▶ Run examples</button>' : ''}<span class="muted small" id="oa-runout">${p.run ? 'Hidden tests run when you submit the test.' : 'Graded by hand: compare with the solution after you submit.'}</span></div>${nav}`;
+}
+function oaExam(){
+  const O = state.oa, k = Math.min(O.i, O.items.length - 1), it = O.items[k], A = OA_BY_CO[O.co];
+  const answered = O.items.filter(x => x.t === 'q' ? x.id in O.ans : (O.src[x.id] != null && O.src[x.id].trim() !== CODE_BY_ID[x.id].starter.trim())).length;
+  const secs = A.sections.map((s, si) => `<p class="eyebrow">${esc(s.title)}</p><div class="oanums">${O.items.map((x, j) => x.s !== si ? '' : `<button type="button" class="${j === k ? 'cur ' : ''}${(x.t === 'q' ? x.id in O.ans : O.src[x.id] != null && O.src[x.id].trim() !== CODE_BY_ID[x.id].starter.trim()) ? 'done ' : ''}${O.flag[x.id] ? 'flag' : ''}" data-act="oa-go" data-v="${j}" aria-label="Question ${j + 1}">${j + 1}</button>`).join('')}</div>`).join('');
+  return `<div class="oabar"><div><b>Hardware Engineering Online Assessment</b><span class="muted small">Company revealed when you submit${O.neg ? ' · negative marking on' : ''}</span></div>
+      <span class="oatime" aria-label="Time left"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg><span id="oatimer">${mmss(O.end - Date.now())}</span></span>
+      ${ui.oaConfirm ? `<span class="oaconfirm">Submit now? ${O.items.length - answered} unanswered.<button type="button" class="btn small primary" data-act="oa-submit-yes">Submit</button><button type="button" class="btn small" data-act="oa-submit-no">Keep going</button></span>`
+        : '<button type="button" class="btn small primary" data-act="oa-submit">Submit test</button>'}</div>
+    <div class="oaexam"><aside class="card oaside"><div class="row between"><b>Questions</b><span class="muted small">${answered}/${O.items.length} answered</span></div>${secs}
+      <div class="oalegend small muted"><span><i class="lg done"></i>Answered</span><span><i class="lg flag"></i>Flagged</span></div></aside>
+      <section class="card oaq" id="oaq">${oaItemHTML(O, it, k)}</section></div>`;
+}
+async function oaSubmit(timeUp){
+  const O = state.oa; if (!O || ui.oaGrading) return;
+  ui.oaGrading = true; ui.oaConfirm = false; oaStop();
+  const m = $('#main'); if (ui.tab === 'oa' && m) m.innerHTML = `<section class="pagehead"><p class="eyebrow">Online assessment</p><h1>${timeUp ? "Time's up." : 'Submitted.'} Grading…</h1><p class="muted" id="oa-grading">Checking your answers.</p></section>`;
+  const used = Math.min(Date.now(), O.end) - O.start, A = OA_BY_CO[O.co];
+  const qs = O.items.filter(x => x.t === 'q'), cs = O.items.filter(x => x.t === 'c');
+  const review = [];
+  let right = 0, wrong = 0;
+  qs.forEach(x => {
+    const Q = BY_ID[x.id], has = x.id in O.ans, ok = has && isCorrect(Q, O.ans[x.id]);
+    if (has) { record(Q, O.ans[x.id]); ok ? right++ : wrong++; }
+    review.push({t:'q', id:x.id, has, ok, pick:has ? choiceText(Q, O.ans[x.id]) : null});
+  });
+  let codeScore = 0, codeDone = 0;
+  for (let j = 0; j < cs.length; j++) {
+    const p = CODE_BY_ID[cs[j].id], src = O.src[p.id];
+    const touched = src != null && src.trim() !== p.starter.trim();
+    let r = {t:'c', id:p.id, touched, passed:0, total:p.run ? p.run.tests.length || 1 : 1, verdict:touched ? 'Not graded' : 'Not attempted'};
+    if (touched) setCode(p.id, {src:src.slice(0, CODE_MAX)});
+    if (touched && p.run) {
+      const g = $('#oa-grading'); if (g) g.textContent = `Running hidden tests on coding problem ${j + 1} of ${cs.length} (the first run downloads the compiler)…`;
+      try {
+        const res = await (p.run.kind === 'c' ? judgeC : p.run.kind === 'v' ? judgeV : judgePython)(p, src, true);
+        const results = res.results || [];
+        r.passed = results.filter(x => x.ok).length; r.total = results.length || r.total;
+        r.verdict = res.verdict || (r.passed === r.total ? 'Accepted' : 'Wrong Answer');
+      } catch (e) { r.verdict = 'Error'; }
+      logSubmit(p.id, r.verdict === 'Accepted');
+      if (r.verdict === 'Accepted' && codeStatus(p.id) !== 'solved') setCode(p.id, {solved:Date.now()});
+    }
+    codeScore += r.total ? r.passed / r.total : 0;
+    if (r.verdict === 'Accepted') codeDone++;
+    review.push(r);
+  }
+  const mcqPts = Math.max(0, right - (O.neg ? A.negative * wrong : 0)), total = qs.length + OA_CODE_PTS * cs.length;
+  const score = mcqPts + OA_CODE_PTS * codeScore;
+  const H = {at:Date.now(), co:O.co, right, wrong, n:qs.length, codeDone, codeN:cs.length, score:Math.round(score * 100) / 100, total, pct:total ? score / total * 100 : 0, used, neg:O.neg};
+  state.oaHist.unshift(H); state.oaHist = state.oaHist.slice(0, 30);
+  state.oa = null; ui.oaGrading = false;
+  ui.oaRes = Object.assign({review, timeUp}, H);
+  save(); renderHeader();
+  if (ui.tab === 'oa' && ui.view === 'tab') { render(); window.scrollTo(0, 0); }
+}
+function oaResults(){
+  const R = ui.oaRes, c = CO_BY_ID[R.co], A = OA_BY_CO[R.co];
+  return `<section class="card oareveal">${coAvatar(c, 'lg')}<div><p class="eyebrow">${R.timeUp ? "Time's up · " : ''}The company was</p><h1>${esc(c.name)}</h1><p class="muted">This assessment followed <b>${esc(c.name)} ${esc(A.title)}</b> (${esc(A.platform)}, ${A.minutes} minutes).</p></div>
+      <div class="oascore"><b>${Math.round(R.pct)}%</b><span>${R.score} / ${R.total} points</span></div></section>
+    <div class="admstats oastats">${[[`${R.right}/${R.n}`, 'hardware correct'], [R.wrong, 'wrong' + (R.neg ? ' (−' + A.negative + ' each)' : '')], [R.n - R.right - R.wrong, 'skipped'], [`${R.codeDone}/${R.codeN}`, 'coding accepted'], [mmss(R.used), 'time used'], [mmss(A.minutes * 60000), 'time allowed']].map(([n, l]) => `<div class="card"><b>${n}</b><span>${l}</span></div>`).join('')}</div>
+    <div class="row"><button type="button" class="btn primary" data-act="oa-again">Take another random assessment</button><button type="button" class="btn" data-act="co-open" data-v="${R.co}">Practice ${esc(c.name)}'s list →</button><button type="button" class="btn ghost" data-act="oa-home">Back to Online Assessment</button></div>
+    <section class="card"><h2>Review</h2><ol class="oareview">${R.review.map(r => {
+      if (r.t === 'c') { const p = CODE_BY_ID[r.id]; return `<li class="${r.verdict === 'Accepted' ? 'ok' : 'bad'}"><div class="row between"><b>${esc(p.title)}</b><span class="${r.verdict === 'Accepted' ? 'v-ok' : 'v-bad'}">${esc(r.verdict)}${r.touched && p.run ? ` · ${r.passed}/${r.total} tests` : ''}</span></div><button type="button" class="linkbtn small" data-copen="${r.id}">Open the problem and its solution →</button></li>`; }
+      const Q = BY_ID[r.id];
+      return `<li class="${r.ok ? 'ok' : r.has ? 'bad' : 'skip'}"><p>${esc(Q.q)}</p><p class="small">${r.has ? `Your answer: <b>${esc(r.pick)}</b> · ` : '<b>Skipped</b> · '}Correct: <b>${esc(correctText(Q))}</b></p><details><summary class="small">Why</summary><p class="small muted">${esc(Q.e)}</p></details></li>`;
+    }).join('')}</ol></section>`;
+}
+function viewOA(){
+  if (ui.oaGrading) return '<section class="pagehead"><p class="eyebrow">Online assessment</p><h1>Grading…</h1></section>';
+  if (state.oa && Date.now() >= state.oa.end) { setTimeout(() => oaSubmit(true), 0); return '<section class="pagehead"><p class="eyebrow">Online assessment</p><h1>Time\'s up. Grading…</h1></section>'; }
+  if (oaActive()) return oaExam();
+  if (ui.oaRes) return oaResults();
+  return oaIntro();
+}
+// Saves code typed during the test (debounced like the main editor).
+function oaSaveCode(){ const ed = $('#oa-code'); if (!ed || !state.oa) return; const it = state.oa.items[state.oa.i]; if (it && it.t === 'c') { state.oa.src[it.id] = ed.value.slice(0, CODE_MAX); save(); } }
 
 // ---------- Privacy: what is stored, where, and who can see it ----------
 function viewPrivacy(){
@@ -1928,6 +2113,28 @@ function act(a){
     case 'delete': ui.confirmDelete = true; render(); break;
     case 'delete-no': ui.confirmDelete = false; render(); break;
     case 'delete-yes': ui.confirmDelete = false; deleteAccount(); break;
+    case 'oa-start': ui.oaNeg = !!($('#oa-neg') && $('#oa-neg').checked); oaStart(); break;
+    case 'oa-go': { oaSaveCode(); const k = +a.dataset.v; if (state.oa && k >= 0 && k < state.oa.items.length) { state.oa.i = k; save(); render(); } break; }
+    case 'oa-pick': { const O = state.oa, it = O && O.items[O.i]; if (!it) break; const v = a.dataset.v; O.ans[it.id] = v === 'T' ? true : v === 'F' ? false : +v; save(); render(); break; }
+    case 'oa-clear': { const O = state.oa, it = O && O.items[O.i]; if (it) { delete O.ans[it.id]; save(); render(); } break; }
+    case 'oa-flag': if (state.oa) { const id = a.dataset.v; if (state.oa.flag[id]) delete state.oa.flag[id]; else state.oa.flag[id] = 1; save(); render(); } break;
+    case 'oa-run': {
+      oaSaveCode();
+      const O = state.oa, it = O && O.items[O.i], p = it && CODE_BY_ID[it.id], out = $('#oa-runout'); if (!p || !p.run) break;
+      a.disabled = true; out.textContent = 'Running the examples…';
+      (p.run.kind === 'c' ? judgeC : p.run.kind === 'v' ? judgeV : judgePython)(p, O.src[p.id] != null ? O.src[p.id] : p.starter, false).then(res => {
+        const o = $('#oa-runout'); if (!o) return;
+        const r = res.results || [], ok = r.filter(x => x.ok).length;
+        o.textContent = res.error && !r.length ? (res.verdict || 'Error') + ': ' + res.error.split('\n')[0] : `${ok}/${r.length} example${r.length === 1 ? '' : 's'} passed` + (ok < r.length ? ` · first failure: ${r.find(x => !x.ok).label}` : '');
+        const b = $('[data-act="oa-run"]'); if (b) b.disabled = false;
+      });
+      break;
+    }
+    case 'oa-submit': oaSaveCode(); ui.oaConfirm = true; render(); break;
+    case 'oa-submit-no': ui.oaConfirm = false; render(); break;
+    case 'oa-submit-yes': oaSaveCode(); oaSubmit(false); break;
+    case 'oa-again': ui.oaRes = null; render(); window.scrollTo(0, 0); break;
+    case 'oa-home': ui.oaRes = null; render(); break;
     case 'adm-open': goTab('admin'); loadAdmin(); break;
     case 'adm-reload': loadAdmin(); break;
     case 'adm-sort': ui.adm.dir = ui.adm.sort === a.dataset.v ? -ui.adm.dir : (a.dataset.v === 'name' ? 1 : -1); ui.adm.sort = a.dataset.v; render(); break;
@@ -2009,6 +2216,7 @@ document.addEventListener('input', e => {
     w.querySelectorAll('label b').forEach((b, i) => { b.textContent = t.querySelectorAll('label b')[i].textContent; });
     return;
   }
+  if (e.target.id === 'oa-code') { clearTimeout(ui.oaSaveT); ui.oaSaveT = setTimeout(oaSaveCode, 500); return; }
   if (e.target.id === 'code-editor') { syncEditor(); clearTimeout(ui.codeTimer); ui.codeTimer = setTimeout(saveEditorNow, 500); return; }
   if (e.target.closest('.cfbar')) { refreshCodeRows(); return; }
   if (e.target.closest('.fbar')) readFilters();
