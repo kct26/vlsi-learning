@@ -217,9 +217,9 @@ function normalize(s){
     if (Array.isArray(x.subs)) e.code[id].subs = x.subs.filter(u => u && VERDICTS.includes(u.v)).slice(-20).map(u => ({at:num(u.at), v:u.v, p:num(u.p), t:num(u.t)}));
   });
   if (s.codeWeek && s.codeWeek.wk) e.codeWeek = s.codeWeek;
-  if (Array.isArray(s.oaHist)) e.oaHist = s.oaHist.filter(h => h && typeof h === 'object' && OA_BY_CO[h.co]).slice(0, 30)
+  if (Array.isArray(s.oaHist)) e.oaHist = s.oaHist.filter(h => h && typeof h === 'object' && CO_BY_ID[h.co]).slice(0, 30)
     .map(h => ({at:num(h.at), co:h.co, right:num(h.right), wrong:num(h.wrong), n:num(h.n), codeDone:num(h.codeDone), codeN:num(h.codeN), score:num(h.score), total:num(h.total), pct:Math.min(100, num(h.pct)), used:num(h.used), neg:!!h.neg}));
-  if (s.oa && typeof s.oa === 'object' && OA_BY_CO[s.oa.co] && Array.isArray(s.oa.items)) {
+  if (s.oa && typeof s.oa === 'object' && CO_BY_ID[s.oa.co] && Array.isArray(s.oa.items)) {
     const items = s.oa.items.filter(x => x && ((x.t === 'q' && BY_ID[x.id]) || (x.t === 'c' && CODING.some(p => p.id === x.id)))).map(x => ({t:x.t, id:x.id, s:num(x.s)}));
     if (items.length) {
       const o = {co:s.oa.co, start:num(s.oa.start), end:num(s.oa.end), neg:!!s.oa.neg, items, perm:{}, ans:{}, src:{}, flag:{}, i:Math.min(num(s.oa.i), items.length - 1)};
@@ -340,7 +340,7 @@ async function onAuth(user){
   if (!user && ui.after) openAuth();
   if (!user && ui.view === 'tab' && ui.tab === 'home') render();
   if (user && ui.tab === 'admin' && !ui.adm) setTimeout(loadAdmin, 0);
-  if (!user) { store.mode = 'local'; setSync('Saved in this browser'); renderAccount(); if (ui.tab === 'profile' && ui.view === 'tab') render(); return; }
+  if (!user) { if (premium.loaded || premium.status !== 'none') { clearPremium(); premium.status = 'none'; premium.mine = null; } store.mode = 'local'; setSync('Saved in this browser'); renderAccount(); if (ui.tab === 'profile' && ui.view === 'tab') render(); return; }
   setSync('Syncing…');
   try {
     const ref = firebase.firestore().collection('users').doc(user.uid);
@@ -348,6 +348,7 @@ async function onAuth(user){
     if (snap.exists && snap.data().state) state = mergeStates(state, JSON.parse(snap.data().state));
     acct.ref = ref; store.mode = 'cloud';
     lsSave(); render(); cloudFlush();
+    loadPremium();
   } catch (e) { store.mode = 'local'; setSync('Could not reach your account; saved in this browser'); }
   renderAccount();
 }
@@ -355,7 +356,9 @@ function cloudFlush(){
   if (store.mode !== 'cloud' || !acct.ref) return;
   const u = acct.user || {};
   // name and email let the owner's admin dashboard tell accounts apart (see the Privacy page)
-  const body = {state:JSON.stringify(state), updatedAt:state.updatedAt || Date.now(), name:String(u.displayName || '').slice(0, 100), email:String(u.email || '').slice(0, 200)};
+  const md = u.metadata || {}, prov = ((u.providerData || [])[0] || {}).providerId || '';
+  const body = {state:JSON.stringify(state), updatedAt:state.updatedAt || Date.now(), name:String(u.displayName || '').slice(0, 100), email:String(u.email || '').slice(0, 200),
+    provider:String(prov).slice(0, 40), created:Date.parse(md.creationTime) || 0, lastLogin:Date.parse(md.lastSignInTime) || 0};
   acct.chain = acct.chain.then(() => acct.ref.set(body)).then(() => setSync('Saved to your account'))
     .catch(() => { setSync('Saving failed; will retry'); clearTimeout(acct.timer); acct.timer = setTimeout(cloudFlush, 5000); });
 }
@@ -432,7 +435,7 @@ function toast(text){
 }
 
 // ---------- UI state ----------
-const TABS = ['home', 'theory', 'coding', 'oa', 'quest', 'companies', 'roles', 'profile', 'privacy', 'admin'];
+const TABS = ['home', 'theory', 'coding', 'oa', 'quest', 'companies', 'roles', 'profile', 'privacy', 'admin', 'premium'];
 const blankFilters = () => ({q:'', ch:'all', d:'all', status:'all', type:'all', list:'all', co:'all'});
 const ui = {tab:'home', co:null, coq:'', auth:null, home:{word:0, tab:1, tryi:0, faq:0, tryv:{v:0.9, f:2, b:5, T:1, l:0.6, x:200}, timers:[]}, view:'tab', session:null, unit:null, pv:null, back:null, cardPick:{}, cardPerm:{}, f:blankFilters(), confirmReset:false, timer:null, cf:null, cp:null, cback:null, codeTimer:null};
 function setHash(h){ try { history.replaceState(null, '', '#' + h); } catch (e) { /* ignore */ } }
@@ -496,7 +499,7 @@ function verdictHTML(Q, chosen){
 // On the standalone site with accounts turned on, signed-out visitors can only see Home (and Privacy).
 // Anything else opens sign-in and comes back to it afterwards. This guards the experience, not the content:
 // the whole trainer is in the page source, which a static site cannot hide.
-const OPEN_TABS = ['home', 'privacy'];
+const OPEN_TABS = ['home', 'privacy', 'premium'];
 const gated = () => STANDALONE && !!window.FIREBASE_CONFIG && !acct.failed && !acct.user;
 function render(){
   if (gated() && !(ui.view === 'tab' && OPEN_TABS.includes(ui.tab))) {
@@ -505,6 +508,7 @@ function render(){
     if (acct.ready && acct.known && !ui.auth) setTimeout(openAuth, 0);
   }
   renderHeader();
+  document.body.classList.toggle('noprem', !hasPremium());
   const m = $('#main'), home = ui.view === 'tab' && ui.tab === 'home';
   m.className = home ? 'main home' : 'wrap main' + ((ui.view === 'tab' && ['theory', 'coding', 'companies', 'profile', 'quest', 'admin', 'oa'].includes(ui.tab)) || ui.view === 'code' || ui.view === 'company' ? ' wide' : '');
   if (!home) homeStop();
@@ -522,6 +526,7 @@ function render(){
   else if (ui.tab === 'profile') m.innerHTML = viewProfile();
   else if (ui.tab === 'privacy') m.innerHTML = viewPrivacy();
   else if (ui.tab === 'admin') m.innerHTML = viewAdmin();
+  else if (ui.tab === 'premium') m.innerHTML = viewPremium();
   else if (ui.tab === 'oa') { m.innerHTML = viewOA(); if (oaActive()) oaTickStart(); }
   else if (ui.tab === 'companies') m.innerHTML = viewCompanies();
   else m.innerHTML = viewRoles();
@@ -1229,10 +1234,17 @@ async function judgeCode(mode){
   showRun();
 }
 
-// ---------- Company tags (the data lives in companies.js) ----------
+// ---------- Company tags ----------
+// Company names are public (company-names.js). Which problems belong to each company, and the assessment formats,
+// are Premium: they arrive from Firestore for Premium accounts (or are embedded in private builds) and are applied
+// by applyPremium(). Until then every company has no tags, and the Premium pages show a lock.
+const COMPANIES = COMPANY_NAMES.map(c => Object.assign({}, c));
 const CO_BY_ID = Object.fromEntries(COMPANIES.map(c => [c.id, c]));
 const CO_TAGS = {};   // problem id -> [{co, rank, rep}], best first
-(function buildCompanyTags(){
+const PREMIUM_KEYS = ['chapters', 'areas', 'tags', 'ids', 'reported', 'note'];
+let ASSESSMENTS = [], OA_BY_CO = {};
+const premium = {loaded:false, status:'none'};   // status: none, checking, active, inactive, nocontent, error
+function buildCompanyTags(){
   BANK.forEach(Q => { CO_TAGS[Q.id] = []; });
   CODING.forEach(p => { CO_TAGS[p.id] = []; });
   COMPANIES.forEach((c, ci) => {
@@ -1250,12 +1262,30 @@ const CO_TAGS = {};   // problem id -> [{co, rank, rep}], best first
     (c.ids || []).forEach(id => add(id, 1, (c.reported || []).includes(id)));
   });
   Object.values(CO_TAGS).forEach(l => l.sort((a, b) => (b.rep - a.rep) || (a.rank - b.rank) || (a.ci - b.ci)));
-})();
+}
+function applyPremium(data){
+  if (!data || typeof data !== 'object' || !data.companies) return false;
+  COMPANIES.forEach(c => { const m = data.companies[c.id] || {}; PREMIUM_KEYS.forEach(k => { if (m[k] !== undefined) c[k] = m[k]; }); });
+  ASSESSMENTS = Array.isArray(data.assessments) ? data.assessments.filter(a => a && CO_BY_ID[a.co]) : [];
+  OA_BY_CO = Object.fromEntries(ASSESSMENTS.map(a => [a.co, a]));
+  buildCompanyTags(); premium.loaded = true;
+  return true;
+}
+function clearPremium(){
+  COMPANIES.forEach(c => PREMIUM_KEYS.forEach(k => { delete c[k]; }));
+  ASSESSMENTS = []; OA_BY_CO = {}; buildCompanyTags(); premium.loaded = false;
+}
+const hasPremium = () => premium.loaded;
+buildCompanyTags();
+// Private builds (the Claude artifact, the tests) carry the data inline; the public site never does.
+if (window.PREMIUM_INLINE && !(STANDALONE && window.FIREBASE_CONFIG)) applyPremium(window.PREMIUM_INLINE);
 const coTheory = co => BANK.filter(Q => CO_TAGS[Q.id].some(t => t.co === co)).map(Q => Q.id);
 const coCoding = co => CODING.filter(p => CO_TAGS[p.id].some(t => t.co === co)).map(p => p.id);
 const coReported = co => BANK.filter(Q => CO_TAGS[Q.id].some(t => t.co === co && t.rep)).map(Q => Q.id);
 const coReportedCode = co => CODING.filter(p => CO_TAGS[p.id].some(t => t.co === co && t.rep)).map(p => p.id);
 const coHas = (id, co) => co === 'all' || CO_TAGS[id].some(t => t.co === co);
+// A small logo standing in for a company's name (the name is kept for hover and screen readers).
+const coBadge = (c, rep) => `<span class="cobadge${rep ? ' rep' : ''}" title="${esc(c.name + (rep ? ' (reported)' : ''))}" role="img" aria-label="${esc(c.name + (rep ? ', reported' : ''))}">${coAvatar(c, 'xs')}</span>`;
 // A company's logo on a white tile (logos.js), or its short letters when there is no logo.
 function coAvatar(c, size){
   const L = typeof LOGOS !== 'undefined' && LOGOS[c.id], cls = 'coav' + (size ? ' ' + size : '');
@@ -1268,17 +1298,18 @@ function coMini(id){
   const l = CO_TAGS[id] || [];
   if (!l.length) return '';
   return `<span class="comini" title="${esc(l.map(t => CO_BY_ID[t.co].name + (t.rep ? ' (reported)' : '')).join(', '))}">` +
-    l.slice(0, 2).map(t => `<span class="cotag${t.rep ? ' rep' : ''}">${esc(CO_BY_ID[t.co].label || CO_BY_ID[t.co].name)}</span>`).join('') + (l.length > 2 ? `<span class="comore">+${l.length - 2}</span>` : '') + '</span>';
+    l.slice(0, 4).map(t => coBadge(CO_BY_ID[t.co], t.rep)).join('') + (l.length > 4 ? `<span class="comore">+${l.length - 4}</span>` : '') + '</span>';
 }
 // Full tags for a problem page; each opens that company's list.
 function coChips(id){
   const l = CO_TAGS[id] || [];
   if (!l.length) return '';
-  return `<div class="cochips"><span class="eyebrow">Companies</span>${l.map(t => `<button type="button" class="cochip${t.rep ? ' rep' : ''}" data-act="co-open" data-v="${t.co}">${esc(CO_BY_ID[t.co].name)}${t.rep ? ' · reported' : ''}</button>`).join('')}</div>`;
+  return `<div class="cochips"><span class="eyebrow">Companies</span>${l.map(t => `<button type="button" class="cologo${t.rep ? ' rep' : ''}" data-act="co-open" data-v="${t.co}" title="${esc(CO_BY_ID[t.co].name + (t.rep ? ' (reported)' : ''))}" aria-label="${esc(CO_BY_ID[t.co].name + (t.rep ? ', reported' : ''))}">${coAvatar(CO_BY_ID[t.co], 'sm')}</button>`).join('')}</div>`;
 }
 const coOpts = () => [['all', 'Company'], ...COMPANIES.map(c => [c.id, c.name])];
 
 function viewCompanies(){
+  if (!hasPremium()) return premiumLock('Companies');
   const term = (ui.coq || '').trim().toLowerCase();
   const list = COMPANIES.filter(c => !term || (c.name + ' ' + c.focus).toLowerCase().includes(term));
   return `<section class="pagehead"><p class="eyebrow">Companies</p><h1>Practice by <em>company</em></h1>
@@ -1297,6 +1328,7 @@ function coCardsHTML(list){
 }
 function openCompany(id){ ui.co = {id, tab:CO_BY_ID[id].tags || (CO_BY_ID[id].reported || []).length ? 'rep' : 'theory', d:'all'}; ui.view = 'company'; setHash('company-' + id); render(); window.scrollTo(0, 0); }
 function viewCompany(){
+  if (!hasPremium()) return premiumLock('Companies');
   const C = ui.co, c = CO_BY_ID[C.id], t = coTheory(c.id), k = coCoding(c.id), rt = coReported(c.id), rk = coReportedCode(c.id);
   const solved = solvedIn(t) + codeSolvedIn(k.map(id => CODE_BY_ID[id])), total = t.length + k.length;
   const tabs = [...(rt.length || rk.length ? [['rep', `Reported (${rt.length + rk.length})`]] : []), ['theory', `Theory (${t.length})`], ['coding', `Coding (${k.length})`]];
@@ -1348,7 +1380,7 @@ function viewRoles(){
       <p class="small">${esc(r.what)}</p>
       <dl><div><dt>Quests</dt><dd><div class="row">${r.ch.map(c => `<button type="button" class="topicchip" data-act="open-unit" data-u="${c}">Quest ${c} · ${esc(TOPICS[c])}</button>`).join('')}</div></dd></div>
       <div><dt>Coding track</dt><dd>${r.code ? codeCell([r.code]) : '<span class="muted">No coding track: this role is mostly analog or mechanical</span>'}</dd></div>
-      <div><dt>Hiring</dt><dd><div class="row">${hiring(r).map(c => `<button type="button" class="cochip" data-act="co-open" data-v="${c.id}">${esc(c.name)}</button>`).join('') || '<span class="muted">Most hardware companies</span>'}</div></dd></div>
+      <div><dt>Hiring</dt><dd><div class="row">${hiring(r).map(c => `<button type="button" class="cologo" data-act="co-open" data-v="${c.id}" title="${esc(c.name)}" aria-label="${esc(c.name)}">${coAvatar(c, 'sm')}</button>`).join('') || '<span class="muted">Most hardware companies</span>'}</div></dd></div>
       <div><dt>Also do</dt><dd>${esc(r.add)}</dd></div></dl></article>`).join('') + '</div></section>';
   return html;
 }
@@ -1385,7 +1417,7 @@ function homeVis(kind){
     ${Array.from({length:8}, (_, i) => `<g class="wbus" style="--i:${i}"><path d="M${36 + i * 32} 110 l4 -8 h24 l4 8 l-4 8 h-24 z"/><text x="${52 + i * 32}" y="114">${i}</text></g>`).join('')}</svg>`;
   if (kind === 'mosfet') return `<svg viewBox="0 0 300 150" aria-hidden="true"><path class="axis" d="M30 130 H280 M30 130 V15"/><path class="curve" d="M30 130 C90 130 110 128 130 120 S200 40 270 25"/><line class="vth" x1="118" y1="15" x2="118" y2="130"/><text x="122" y="28" class="lab">Vth</text><text x="250" y="145" class="lab">Vgs</text><text x="36" y="22" class="lab">Id</text><circle class="dot" r="5"><animateMotion dur="4s" repeatCount="indefinite" path="M30 130 C90 130 110 128 130 120 S200 40 270 25"/></circle></svg>`;
   if (kind === 'list') return `<svg viewBox="0 0 300 150" aria-hidden="true">${[0, 1, 2, 3].map(i => `<g class="lnode" style="--i:${i}"><rect x="${14 + i * 72}" y="55" width="44" height="34" rx="8"/><text x="${36 + i * 72}" y="77">${i + 1}</text>${i < 3 ? `<path class="larr" d="M${60 + i * 72} 72 h22"/>` : ''}</g>`).join('')}<text x="150" y="125" class="lab mid">prev ← h → next</text></svg>`;
-  if (kind === 'cos') return `<div class="viscos">${COMPANIES.slice(0, 9).map(c => `<span class="cotag">${esc(c.label || c.name)}</span>`).join('')}</div>`;
+  if (kind === 'cos') return `<div class="viscos">${COMPANIES.slice(0, 12).map(c => coAvatar(c, 'sm')).join('')}</div>`;
   return `<svg viewBox="0 0 300 150" aria-hidden="true"><circle cx="150" cy="75" r="52" class="tring"/><circle cx="150" cy="75" r="52" class="tarc"/><text x="150" y="82" class="ttxt">50:00</text></svg>`;
 }
 function homeArt(kind){
@@ -1426,7 +1458,7 @@ function viewHome(){
       <div class="hbody"><div class="hvis"><p class="hlab">WAVEFORM · q(t)</p>${homeVis('wave')}<p class="mono hstat" id="hstat">cycle 0 | q = 0</p></div>
       <pre class="hcode">${lines(HOME_TABS[1].code)}</pre></div>
       <ul class="hchecks" id="hchecks"><li>resets to 0</li><li>counts on every rising edge</li><li>wraps from 15 to 0</li></ul></div></section>
-    <section class="hstrip wrap wide"><p>Problems tagged for hardware roles at</p><div class="hcos">${COMPANIES.slice(0, 10).map(c => `<button type="button" data-act="co-open" data-v="${c.id}">${esc(c.name.replace(/ \(.*\)/, ''))}</button>`).join('')}</div></section>
+    <section class="hstrip wrap wide"><p>Problems tagged for hardware roles at</p><div class="hcos">${COMPANIES.map(c => `<button type="button" data-act="co-open" data-v="${c.id}" title="${esc(c.name)}" aria-label="${esc(c.name)}">${coAvatar(c, 'md')}</button>`).join('')}</div></section>
     <section class="hsec wrap wide"><h2 class="hh2">The complete hardware engineering trainer</h2>
       <div class="hplat"><div class="hptabs" role="tablist">${HOME_TABS.map((t, i) => `<button type="button" role="tab" aria-selected="${H.tab === i}" data-act="home-tab" data-v="${i}"><span class="hpi">${['◎', '⌁', '{ }', '▦', '⏱'][i]}</span>${esc(t.name)}</button>`).join('')}</div>
         <div class="hcard hpcard"><div class="hbar"><span class="dots"><i></i><i></i><i></i></span><span class="mono">${esc(tab.file)}</span></div>
@@ -1810,13 +1842,44 @@ async function loadAdmin(){
       const solved = Object.keys(st.q).filter(id => st.q[id].c > 0).length;
       const tries = Object.values(st.q).reduce((n, q) => n + q.n, 0), right = Object.values(st.q).reduce((n, q) => n + q.c, 0);
       return {uid:d.id, name:String(x.name || '').slice(0, 100), email:String(x.email || '').slice(0, 200), st, solved,
+        provider:{'google.com':'Google', 'password':'Email'}[x.provider] || (x.provider ? String(x.provider) : '–'), created:num(x.created), lastLogin:num(x.lastLogin),
+        oaN:st.oaHist.length, oaBest:st.oaHist.reduce((m, h) => Math.max(m, h.pct), 0),
         code:Object.keys(st.code).filter(id => st.code[id].solved).length, quests:Object.keys(st.learn.units).filter(u => st.learn.units[u].passed).length,
         subs:st.log.length, acc:tries ? right / tries : 0, cur:A.cur, max:A.max, active:A.active, byDay:A.byDay,
         first:times.length ? Math.min(...times) : 0, last:Math.max(num(x.updatedAt), times.length ? Math.max(...times) : 0)};
     });
   } catch (e) { ui.adm.err = (e && e.code === 'permission-denied') ? 'Firebase refused: this account is not allowed to read other users. Check FIREBASE_ADMINS and the published rules.' : 'Could not load users: ' + ((e && e.message) || e); }
+  if (ui.adm.rows) {
+    try {
+      const ps = await firebase.firestore().collection('premium').get(), P = {};
+      ps.docs.forEach(d => { P[d.id] = d.data() || {}; });
+      ui.adm.prem = P;
+      ui.adm.rows.forEach(r => { const p = P[r.uid]; r.prem = p || null; r.premOn = p && p.active && (!p.until || p.until > Date.now()) ? 1 : 0; });
+      const c = await firebase.firestore().collection('premium_content').doc('main').get();
+      ui.adm.content = c.exists ? {at:num(c.data().updatedAt), size:String(c.data().data || '').length} : null;
+    } catch (e) { ui.adm.premErr = 'Could not read subscriptions: ' + ((e && e.message) || e); }
+  }
   ui.adm.loading = false;
   if (ui.tab === 'admin' && ui.view === 'tab') render();
+}
+// Grants, edits or revokes Premium for one account (admin only; the rules refuse anyone else).
+async function adminSetPremium(uid, patch){
+  const ref = firebase.firestore().collection('premium').doc(uid), cur = (ui.adm.prem || {})[uid] || {};
+  const rec = Object.assign({active:false, plan:'monthly', since:0, until:null, note:'', by:acct.user.uid}, cur, patch, {by:acct.user.uid});
+  if (rec.active && !rec.since) rec.since = Date.now();
+  Object.keys(rec).forEach(k => { if (rec[k] === undefined) delete rec[k]; });   // Firestore refuses undefined values
+  try { await ref.set(rec); toast(rec.active ? 'Premium saved' : 'Premium revoked'); }
+  catch (e) { toast('Could not save: ' + ((e && e.message) || e)); }
+  loadAdmin();
+}
+// Uploads the Premium company data (private/premium-content.json from the build) to Firestore.
+async function adminUploadContent(file){
+  try {
+    const text = await file.text(), data = JSON.parse(text);
+    if (!data || !data.companies || !Array.isArray(data.assessments)) throw new Error('This is not a Premium content file (it needs companies and assessments).');
+    await firebase.firestore().collection('premium_content').doc('main').set({data:text, updatedAt:Date.now()});
+    applyPremium(data); toast('Premium content uploaded'); loadAdmin();
+  } catch (e) { toast('Upload failed: ' + ((e && e.message) || e)); }
 }
 function viewAdmin(){
   if (!isAdmin()) return `<section class="pagehead"><p class="eyebrow">Admin</p><h1>Owner only</h1><p class="muted">This page is only for the site owner's account.</p></section>`;
@@ -1837,26 +1900,48 @@ function viewAdmin(){
     Object.keys(r.st.code).forEach(id => { const s = r.st.code[id].subs || [], f = fails[id] || (fails[id] = {miss:0, users:0, solved:0}); f.miss += s.filter(u => u.v !== 'Accepted').length; if (s.length) f.users++; if (r.st.code[id].solved) f.solved++; });
   });
   const hard = Object.keys(fails).filter(id => fails[id].miss > 0).sort((a, b) => fails[b].miss - fails[a].miss).slice(0, 10);
-  const cols = [['name', 'User'], ['first', 'Joined'], ['last', 'Last active'], ['solved', 'Theory'], ['code', 'Coding'], ['quests', 'Quests'], ['cur', 'Streak'], ['max', 'Best'], ['subs', 'Submissions'], ['acc', 'Accuracy']];
+  const cols = [['name', 'User'], ['premOn', 'Premium'], ['provider', 'Sign-in'], ['created', 'Account created'], ['lastLogin', 'Last sign-in'], ['last', 'Last active'], ['solved', 'Theory'], ['code', 'Coding'], ['quests', 'Quests'], ['cur', 'Streak'], ['max', 'Best'], ['subs', 'Submissions'], ['oaN', 'OAs'], ['acc', 'Accuracy']];
   const key = D.sort, sorted = rows.slice().sort((a, b) => { const x = a[key], y = b[key]; return (typeof x === 'string' ? x.localeCompare(y) : x - y) * D.dir; });
   const date = t => t ? new Date(t).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'}) : '–';
   return `<section class="pagehead"><p class="eyebrow">Admin</p><h1>Admin <em>dashboard</em></h1><p class="muted">Every signed-in account and its saved progress. Visitors who never sign in are not counted. Only your account can open this page.</p>
       <div class="row"><button type="button" class="btn small" data-act="adm-reload">Refresh</button>${STANDALONE ? '<button type="button" class="btn small" data-act="adm-csv">Download CSV</button>' : ''}</div></section>
-    <div class="admstats">${[[rows.length, 'accounts'], [within(1), 'active today'], [within(7), 'active in 7 days'], [within(30), 'active in 30 days'], [rows.reduce((n, r) => n + r.subs, 0), 'submissions'], [rows.reduce((n, r) => n + r.solved, 0), 'theory solves']].map(([n, l]) => `<div class="card"><b>${n.toLocaleString()}</b><span>${l}</span></div>`).join('')}</div>
+    <div class="admstats">${[[rows.length, 'accounts'], [rows.filter(r => r.premOn).length, 'Premium'], [within(1), 'active today'], [within(7), 'active in 7 days'], [within(30), 'active in 30 days'], [rows.reduce((n, r) => n + r.subs, 0), 'submissions'], [rows.reduce((n, r) => n + r.oaN, 0), 'assessments taken']].map(([n, l]) => `<div class="card"><b>${n.toLocaleString()}</b><span>${l}</span></div>`).join('')}</div>
     <section class="card"><h2>Daily active users, last 30 days</h2><div class="dau" role="img" aria-label="Daily active users over the last 30 days">${dau.map((n, i) => `<div title="${days[i].toLocaleDateString(undefined, {month:'short', day:'numeric'})}: ${n} user${n === 1 ? '' : 's'}"><i style="height:${Math.round(n / peak * 100)}%"></i></div>`).join('')}</div>
       <div class="row between muted small"><span>${days[0].toLocaleDateString(undefined, {month:'short', day:'numeric'})}</span><span>peak ${Math.max(...dau)}</span><span>today</span></div></section>
     <section class="card"><h2>Users</h2><div class="tablewrap"><table class="ptable admtable"><thead><tr>${cols.map(([k, l]) => `<th><button type="button" class="thsort${key === k ? ' on' : ''}" data-act="adm-sort" data-v="${k}">${l}${key === k ? (D.dir > 0 ? ' ↑' : ' ↓') : ''}</button></th>`).join('')}</tr></thead>
-      <tbody>${sorted.map(r => `<tr><td><b>${esc(r.name || '(no name)')}</b><br><span class="muted small">${esc(r.email || r.uid)}</span></td><td>${date(r.first)}</td><td>${r.last ? ago(r.last) : '–'}</td><td class="mono">${r.solved}</td><td class="mono">${r.code}</td><td class="mono">${r.quests}/${UNITS.length}</td><td class="mono">${r.cur}</td><td class="mono">${r.max}</td><td class="mono">${r.subs}</td><td class="mono">${Math.round(r.acc * 100)}%</td></tr>`).join('') || '<tr><td colspan="10" class="empty">No accounts yet.</td></tr>'}</tbody></table></div></section>
+      <tbody>${sorted.map(r => `<tr><td><b>${esc(r.name || '(no name)')}</b><br><span class="muted small">${esc(r.email || r.uid)}</span></td><td>${r.premOn ? `<span class="cotag rep">${esc(PLANS[r.prem.plan] || 'Active')}</span> <button type="button" class="linkbtn small" data-act="adm-prem" data-v="${esc(r.uid)}" data-on="0">Revoke</button>` : `<button type="button" class="btn small" data-act="adm-prem" data-v="${esc(r.uid)}" data-on="1">Grant</button>`}</td><td>${esc(r.provider)}</td><td>${date(r.created || r.first)}</td><td>${r.lastLogin ? ago(r.lastLogin) : '–'}</td><td>${r.last ? ago(r.last) : '–'}</td><td class="mono">${r.solved}</td><td class="mono">${r.code}</td><td class="mono">${r.quests}/${UNITS.length}</td><td class="mono">${r.cur}</td><td class="mono">${r.max}</td><td class="mono">${r.subs}</td><td class="mono">${r.oaN}${r.oaN ? ` · best ${Math.round(r.oaBest)}%` : ''}</td><td class="mono">${Math.round(r.acc * 100)}%</td></tr>`).join('') || '<tr><td colspan="14" class="empty">No accounts yet.</td></tr>'}</tbody></table></div></section>
+    ${adminSubsHTML(rows, date)}
     <div class="grid2"><section class="card"><h2>Hardest topics</h2><p class="muted small">Lowest share of correct answers across all users (topics with at least 3 answers).</p>
       ${topics.length ? `<div class="admbars">${topics.map(t => `<div><span>${esc(TOPICS[t.ch])}</span><i class="bar"><b style="width:${Math.round(t.acc * 100)}%"></b></i><span class="mono">${Math.round(t.acc * 100)}% · ${t.users.size} user${t.users.size === 1 ? '' : 's'}</span></div>`).join('')}</div>` : '<p class="muted">Not enough answers yet.</p>'}</section>
     <section class="card"><h2>Most-missed problems</h2><p class="muted small">Wrong answers and failed submissions, summed over users.</p>
       ${hard.length ? `<ul class="recent">${hard.map(id => { const Q = BY_ID[id], P = CODE_BY_ID[id], f = fails[id]; return `<li><a href="${Q ? '#p' + Q.n : '#code' + P.n}" ${Q ? `data-open="${id}"` : `data-copen="${id}"`}><span class="rtitle">${esc(Q ? Q.n + '. ' + Q.q : P.n + '. ' + P.title)}</span><span class="rmeta"><span class="v-bad">${f.miss} missed</span><span class="muted">${f.solved}/${f.users} solved</span></span></a></li>`; }).join('')}</ul>` : '<p class="muted">No misses yet.</p>'}</section></div>`;
 }
+function adminSubsHTML(rows, date){
+  const D = ui.adm, P = D.prem || {}, byUid = Object.fromEntries(rows.map(r => [r.uid, r])), now = Date.now();
+  const recs = Object.keys(P).map(uid => ({uid, r:byUid[uid], p:P[uid]})).sort((a, b) => (b.p.since || 0) - (a.p.since || 0));
+  const live = recs.filter(x => x.p.active && (!x.p.until || x.p.until > now));
+  const count = plan => live.filter(x => (x.p.plan || 'monthly') === plan).length;
+  const C = D.content;
+  return `<section class="card"><h2>Subscriptions</h2>${D.premErr ? `<p class="autherr">${esc(D.premErr)}</p>` : ''}
+      <div class="admstats subs4">${[[live.length, 'active'], [count('monthly'), 'monthly'], [count('yearly'), 'yearly'], [count('gift') + count('manual'), 'gift or manual'], [live.filter(x => x.p.since >= now - 30 * 864e5).length, 'new in 30 days'], [live.filter(x => x.p.until && x.p.until < now + 7 * 864e5).length, 'ending in 7 days']].map(([n, l]) => `<div class="card"><b>${n}</b><span>${l}</span></div>`).join('')}</div>
+      <p class="muted small">Grant Premium from the Users table after someone pays; then set their plan and end date here. Leave the end date empty for no end.</p>
+      ${recs.length ? `<div class="tablewrap"><table class="ptable admtable"><thead><tr><th>User</th><th>Status</th><th>Plan</th><th>Since</th><th>Ends</th><th>Note</th><th></th></tr></thead><tbody>${recs.map(x => { const on = x.p.active && (!x.p.until || x.p.until > now), id = esc(x.uid); return `<tr>
+        <td><b>${esc(x.r ? x.r.name || '(no name)' : '(no record)')}</b><br><span class="muted small">${esc(x.r ? x.r.email || x.uid : x.uid)}</span></td>
+        <td>${on ? '<span class="cotag rep">Active</span>' : x.p.active ? '<span class="cotag">Ended</span>' : '<span class="cotag">Revoked</span>'}</td>
+        <td><select id="adm-plan-${id}">${Object.keys(PLANS).map(k => `<option value="${k}"${(x.p.plan || 'monthly') === k ? ' selected' : ''}>${PLANS[k]}</option>`).join('')}</select></td>
+        <td>${date(x.p.since)}</td>
+        <td><input type="date" id="adm-until-${id}" value="${x.p.until ? new Date(x.p.until).toISOString().slice(0, 10) : ''}"></td>
+        <td><input type="text" id="adm-note-${id}" maxlength="200" value="${esc(x.p.note || '')}" placeholder="e.g. Stripe receipt"></td>
+        <td><div class="row"><button type="button" class="btn small primary" data-act="adm-prem-save" data-v="${id}">Save</button>${on ? `<button type="button" class="btn small ghost" data-act="adm-prem" data-v="${id}" data-on="0">Revoke</button>` : `<button type="button" class="btn small" data-act="adm-prem" data-v="${id}" data-on="1">Reactivate</button>`}</div></td></tr>`; }).join('')}</tbody></table></div>` : '<p class="muted">No subscribers yet.</p>'}</section>
+    <section class="card"><h2>Premium content</h2><p class="muted small">The company lists and assessment formats Premium accounts receive. Build the site, then upload <code>trainer/private/premium-content.json</code>. It never goes into the public page or the repository.</p>
+      <p>${C ? `Uploaded ${ago(C.at)} · ${(C.size / 1024).toFixed(1)} KB` : '<b>Not uploaded yet.</b> Premium accounts see a "coming soon" note until you upload it.'}</p>
+      <div class="row"><input type="file" id="adm-content-file" accept="application/json,.json"><button type="button" class="btn small primary" data-act="adm-content-up">Upload</button></div></section>`;
+}
 function adminCSV(){
-  const head = ['uid', 'name', 'email', 'joined', 'last_active', 'theory_solved', 'coding_solved', 'quests_passed', 'streak', 'best_streak', 'submissions', 'accuracy'];
+  const head = ['uid', 'name', 'email', 'premium', 'plan', 'premium_since', 'premium_until', 'sign_in', 'account_created', 'last_sign_in', 'joined', 'last_active', 'theory_solved', 'coding_solved', 'quests_passed', 'streak', 'best_streak', 'submissions', 'accuracy'];
   const cell = v => /[",\n]/.test(String(v)) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v);
   const iso = t => t ? new Date(t).toISOString() : '';
-  const lines = [head.join(',')].concat(ui.adm.rows.map(r => [r.uid, r.name, r.email, iso(r.first), iso(r.last), r.solved, r.code, r.quests, r.cur, r.max, r.subs, r.acc.toFixed(3)].map(cell).join(',')));
+  const lines = [head.join(',')].concat(ui.adm.rows.map(r => [r.uid, r.name, r.email, r.premOn ? 'yes' : 'no', r.prem ? r.prem.plan || '' : '', iso(r.prem && r.prem.since), iso(r.prem && r.prem.until), r.provider, iso(r.created), iso(r.lastLogin), iso(r.first), iso(r.last), r.solved, r.code, r.quests, r.cur, r.max, r.subs, r.acc.toFixed(3)].map(cell).join(',')));
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([lines.join('\n')], {type:'text/csv'}));
   a.download = 'hardcode-users-' + new Date().toISOString().slice(0, 10) + '.csv';
@@ -1866,7 +1951,6 @@ function adminCSV(){
 // ---------- Online assessment: a random company's format, with the company revealed only at the end ----------
 // The formats live in assessments.js. An attempt in progress is saved (state.oa), so its timer keeps running
 // across reloads and devices, like a real proctored test.
-const OA_BY_CO = Object.fromEntries(ASSESSMENTS.map(a => [a.co, a]));
 const OA_CODE_PTS = 5;   // a coding problem is worth five multiple-choice questions, scaled by hidden tests passed
 const oaReady = () => ASSESSMENTS.filter(a => a.ready && CO_BY_ID[a.co]);
 const mmss = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
@@ -1916,7 +2000,7 @@ function oaIntro(){
       <div class="row"><button type="button" class="btn primary big" data-act="oa-start"${pool.length ? '' : ' disabled'}>Start a random assessment →</button></div></section>
     <section class="card"><h2>Companies in the pool</h2><p class="muted small">Assessments are drawn from the ready ones. The rest are on the way.</p>
       <div class="oapool">${ASSESSMENTS.filter(a => CO_BY_ID[a.co]).map(a => `<div class="${a.ready ? 'ready' : ''}">${coAvatar(CO_BY_ID[a.co])}<span>${esc(CO_BY_ID[a.co].name)}</span><em>${a.ready ? 'Ready' : 'Coming soon'}</em></div>`).join('')}</div></section></div>
-    <section class="card"><h2>Past attempts</h2>${last.length ? `<div class="tablewrap"><table class="ptable"><thead><tr><th>When</th><th>Company</th><th>Hardware</th><th>Coding</th><th>Score</th><th>Time used</th></tr></thead><tbody>${last.map(h => `<tr><td>${ago(h.at)}</td><td>${esc((CO_BY_ID[h.co] || {}).name || '?')}</td><td class="mono">${h.right}/${h.n}</td><td class="mono">${h.codeDone}/${h.codeN}</td><td class="mono"><b>${Math.round(h.pct)}%</b></td><td class="mono">${mmss(h.used)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Your attempts show up here, with the company revealed.</p>'}</section>`;
+    <section class="card"><h2>Past attempts</h2>${last.length ? `<div class="tablewrap"><table class="ptable"><thead><tr><th>When</th><th>Company</th><th>Hardware</th><th>Coding</th><th>Score</th><th>Time used</th></tr></thead><tbody>${last.map(h => `<tr><td>${ago(h.at)}</td><td>${CO_BY_ID[h.co] ? coBadge(CO_BY_ID[h.co]) : '?'}</td><td class="mono">${h.right}/${h.n}</td><td class="mono">${h.codeDone}/${h.codeN}</td><td class="mono"><b>${Math.round(h.pct)}%</b></td><td class="mono">${mmss(h.used)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Your attempts show up here, with the company revealed.</p>'}</section>`;
 }
 function oaItemHTML(O, it, k){
   const n = O.items.length;
@@ -2003,6 +2087,7 @@ function oaResults(){
     }).join('')}</ol></section>`;
 }
 function viewOA(){
+  if (!hasPremium()) return premiumLock('The Online Assessment');
   if (ui.oaGrading) return '<section class="pagehead"><p class="eyebrow">Online assessment</p><h1>Grading…</h1></section>';
   if (state.oa && Date.now() >= state.oa.end) { setTimeout(() => oaSubmit(true), 0); return '<section class="pagehead"><p class="eyebrow">Online assessment</p><h1>Time\'s up. Grading…</h1></section>'; }
   if (oaActive()) return oaExam();
@@ -2011,6 +2096,59 @@ function viewOA(){
 }
 // Saves code typed during the test (debounced like the main editor).
 function oaSaveCode(){ const ed = $('#oa-code'); if (!ed || !state.oa) return; const it = state.oa.items[state.oa.i]; if (it && it.t === 'c') { state.oa.src[it.id] = ed.value.slice(0, CODE_MAX); save(); } }
+
+// ---------- Premium: who has it, loading its data, and the Premium page ----------
+// premium/{uid} = {active, plan, since, until, note, by} is written only by the admin (see firestore.rules);
+// premium_content/main = {data: JSON text, updatedAt} is readable only by accounts whose premium record is active.
+const PREMIUM_CFG = () => Object.assign({link:null, price:null, period:'month', yearly:null}, window.PREMIUM || {});
+const PLANS = {monthly:'Monthly', yearly:'Yearly', gift:'Gift', manual:'Manual'};
+async function loadPremium(){
+  if (!acct.user || !window.firebase) return;
+  premium.status = 'checking';
+  try {
+    const db = firebase.firestore();
+    let active = isAdmin();
+    if (!active) {
+      const d = await db.collection('premium').doc(acct.user.uid).get(), p = d.exists ? d.data() : null;
+      active = !!(p && p.active === true && (!p.until || p.until > Date.now()));
+      premium.mine = p;
+    }
+    premium.status = active ? 'active' : 'inactive';
+    if (active) {
+      const c = await db.collection('premium_content').doc('main').get();
+      if (c.exists && c.data().data) { applyPremium(JSON.parse(c.data().data)); premium.content = c.data().updatedAt || 0; }
+      else premium.status = 'nocontent';
+    }
+  } catch (e) { premium.status = 'error'; }
+  render();
+}
+// The lock shown on Premium pages for accounts without Premium.
+function premiumLock(what){
+  return `<section class="pagehead"><p class="eyebrow">Premium</p><h1>${esc(what)} is <em>Premium</em></h1>
+      <p class="muted">${premium.status === 'checking' ? 'Checking your subscription…' : premium.status === 'nocontent' ? 'Your Premium is active, but the company data has not been uploaded yet. Check back soon.' : 'Company problem lists, company tags and filters, and the random-company Online Assessment come with HardCode Premium.'}</p>
+      <div class="row"><button type="button" class="btn primary big" data-act="go" data-v="premium">See Premium →</button></div></section>
+    <div class="cogrid locked">${COMPANIES.map(c => `<div class="cocard">${coAvatar(c)}<span class="cobody"><b>${esc(c.name)}</b><small>${esc(c.focus)}</small><span class="lockline small">${ICON.lock} Premium</span></span></div>`).join('')}</div>`;
+}
+function viewPremium(){
+  const P = PREMIUM_CFG(), u = acct.user, active = hasPremium() || premium.status === 'active';
+  const mine = premium.mine || {};
+  const link = P.link && u ? P.link + (P.link.includes('?') ? '&' : '?') + 'client_reference_id=' + encodeURIComponent(u.uid) + (u.email ? '&prefilled_email=' + encodeURIComponent(u.email) : '') : P.link;
+  const cta = active ? `<p class="prem-ok">${ICON.solved} You have Premium${mine.until ? ` until ${new Date(mine.until).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'})}` : ''}.</p><div class="row"><button type="button" class="btn primary big" data-act="go" data-v="companies">Open Companies →</button></div>`
+    : !u && acct.ready ? '<div class="row"><button type="button" class="btn primary big" data-act="signin">Sign in to subscribe</button></div>'
+    : link ? `<div class="row"><a class="btn primary big" href="${esc(link)}" target="_blank" rel="noopener">Subscribe${P.price ? ' · ' + esc(P.price) : ''} →</a></div><p class="muted small">After you pay, Premium is switched on for <b>${esc(u ? u.email || u.uid : 'your account')}</b>, usually within a day. Pay with the same email you use here.</p>`
+    : '<div class="row"><button type="button" class="btn primary big" disabled>Subscriptions open soon</button></div>';
+  return `<section class="pagehead prem-hero"><p class="eyebrow">HardCode Premium</p><h1>Practice for the <em>company</em> you want</h1>
+      <p class="muted">Every theory and coding problem tagged by the companies that test it, the problems candidates actually reported, and timed online assessments in each company's format.</p>${cta}</section>
+    <div class="prem-grid">
+      ${[['Company problem lists', `${COMPANIES.length} companies, each with its theory, coding and reported problems, filtered by difficulty.`],
+        ['Company tags and filters', 'See which companies test every problem, and filter Theory and Coding by company.'],
+        ['Online Assessment', "A timed mock OA in a random company's real format, graded by hidden tests, with the company revealed at the end."],
+        ['Reported questions', 'The questions and topics candidates reported from real assessments, kept together for each company.']].map(([t, d]) => `<section class="card"><h3>${ICON.solved} ${esc(t)}</h3><p class="muted small">${esc(d)}</p></section>`).join('')}
+    </div>
+    <section class="card"><h2>Companies included</h2><div class="prem-logos">${COMPANIES.map(c => `<span>${coAvatar(c)}<b>${esc(c.name)}</b></span>`).join('')}</div></section>
+    <section class="card"><h2>How it works</h2><ol class="privlist"><li>Sign in, then press <b>Subscribe</b> and pay with the same email as your account.</li><li>The site owner switches Premium on for your account, usually within a day.</li><li>Sign in on any device: Companies, company tags and the Online Assessment unlock.</li></ol>
+      <p class="muted small">Free forever: Theory, Coding, the judge, the Roadmap, Roles and your profile.</p></section>`;
+}
 
 // ---------- Privacy: what is stored, where, and who can see it ----------
 function viewPrivacy(){
@@ -2145,6 +2283,9 @@ function act(a){
     case 'adm-reload': loadAdmin(); break;
     case 'adm-sort': ui.adm.dir = ui.adm.sort === a.dataset.v ? -ui.adm.dir : (a.dataset.v === 'name' ? 1 : -1); ui.adm.sort = a.dataset.v; render(); break;
     case 'adm-csv': adminCSV(); break;
+    case 'adm-prem': adminSetPremium(a.dataset.v, a.dataset.on === '1' ? {active:true, since:((ui.adm.prem || {})[a.dataset.v] || {}).active ? undefined : Date.now()} : {active:false}); break;
+    case 'adm-prem-save': { const id = a.dataset.v, u = $('#adm-until-' + CSS.escape(id)).value; adminSetPremium(id, {plan:$('#adm-plan-' + CSS.escape(id)).value, until:u ? Date.parse(u + 'T23:59:59') : null, note:$('#adm-note-' + CSS.escape(id)).value.slice(0, 200)}); break; }
+    case 'adm-content-up': { const fi = $('#adm-content-file'); if (fi && fi.files[0]) adminUploadContent(fi.files[0]); else toast('Choose premium-content.json first.'); break; }
     case 'pf-recent': ui.prof.recent = a.dataset.v; render(); break;
     case 'mock': startSession('mock', shuffle(BANK.map(q => q.id)).slice(0, MOCK_N), {title:'Timed mock assessment', from:{view:'tab', tab:'theory'}}); break;
     case 'review-attempted': startSession('practice', shuffle(BANK.filter(Q => statusOf(Q.id) === 'attempted').map(Q => Q.id)).slice(0, 25), {title:'Attempted, not solved', from:{view:'tab', tab:'theory'}}); break;

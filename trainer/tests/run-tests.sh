@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 CHROME="${CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
 OUT="$PWD/tests/out"
 rm -rf "$OUT"; mkdir -p "$OUT"
-node build.js --fragment "$OUT/fragment.html"
+node build.js --fragment "$OUT/fragment.html" --with-premium
 node tests/make-tests.js "$OUT/fragment.html" "$OUT"
 status=0
 for p in 1 2 3 4 5; do

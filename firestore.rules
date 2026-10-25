@@ -12,12 +12,27 @@ service cloud.firestore {
       allow read: if (request.auth != null && request.auth.uid == uid) || isAdmin();
       allow delete: if request.auth != null && request.auth.uid == uid;
       allow create, update: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['state', 'updatedAt', 'name', 'email'])
+        && request.resource.data.keys().hasOnly(['state', 'updatedAt', 'name', 'email', 'provider', 'created', 'lastLogin'])
         && request.resource.data.state is string
         && request.resource.data.state.size() < 900000
         && request.resource.data.updatedAt is number
         && (!('name' in request.resource.data) || (request.resource.data.name is string && request.resource.data.name.size() <= 100))
-        && (!('email' in request.resource.data) || (request.resource.data.email is string && request.resource.data.email.size() <= 200));
+        && (!('email' in request.resource.data) || (request.resource.data.email is string && request.resource.data.email.size() <= 200))
+        && (!('provider' in request.resource.data) || (request.resource.data.provider is string && request.resource.data.provider.size() <= 40))
+        && (!('created' in request.resource.data) || request.resource.data.created is number)
+        && (!('lastLogin' in request.resource.data) || request.resource.data.lastLogin is number);
+    }
+    // Premium status: each account can read its own; only the admin can grant, edit or revoke it.
+    match /premium/{uid} {
+      allow read: if (request.auth != null && request.auth.uid == uid) || isAdmin();
+      allow write: if isAdmin();
+    }
+    // Premium company data: readable only by the admin and accounts whose premium record is active.
+    match /premium_content/{doc} {
+      allow read: if isAdmin() || (request.auth != null
+        && exists(/databases/$(database)/documents/premium/$(request.auth.uid))
+        && get(/databases/$(database)/documents/premium/$(request.auth.uid)).data.active == true);
+      allow write: if isAdmin();
     }
   }
 }

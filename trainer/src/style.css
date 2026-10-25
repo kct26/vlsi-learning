@@ -1013,3 +1013,40 @@ h1, h2, h3, .hh2 { letter-spacing: -0.02em; }
 .coav.logo.wide { width: 76px; padding: 6px 8px; }
 .coav.lg.logo { padding: 12px; } .coav.lg.logo.wide { width: 140px; padding: 12px 14px; }
 .oapool .coav.logo { padding: 4px; } .oapool .coav.logo.wide { width: 52px; }
+.pside { position: static; }   /* the sidebar scrolls with the page so its bottom is always reachable */
+
+/* Premium: the top-bar button (LeetCode style), locked company content, and the Premium page */
+.premiumbtn { display: inline-flex; align-items: center; gap: 6px; border: 0; background: #FFF4E0; color: #B45309; font-weight: 600; font-size: 0.86rem; padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+.premiumbtn:hover { background: #FFE7BF; }
+.premiumbtn svg { width: 15px; height: 15px; fill: currentColor; }
+:root[data-theme="dark"] .premiumbtn { background: #33270F; color: #F2B65A; }
+.noprem .c-co, .noprem #f-co, .noprem #cf-co, .noprem .cochips { display: none !important; }
+.cogrid.locked .cocard { cursor: default; opacity: .75; }
+.cogrid.locked .cocard:hover { transform: none; box-shadow: var(--shadow-sm); border-color: var(--line); }
+.lockline { display: inline-flex; align-items: center; gap: 5px; color: #B45309; font-weight: 600; }
+.lockline svg { width: 13px; height: 13px; }
+.prem-hero h1 em { color: var(--em-color); }
+.prem-ok { display: inline-flex; align-items: center; gap: 8px; color: var(--ok); font-weight: 600; }
+.prem-ok svg { width: 18px; height: 18px; }
+.prem-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.prem-grid h3 { display: flex; align-items: center; gap: 8px; font-size: 1rem; }
+.prem-grid h3 svg { width: 18px; height: 18px; color: var(--ok); flex: none; }
+.prem-logos { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+.prem-logos span { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
+.admstats.subs4 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.admtable select, .admtable input[type="date"], .admtable input[type="text"] { border: 1px solid var(--line); background: var(--surface); padding: 4px 6px; font: inherit; font-size: 0.82rem; }
+@media (max-width: 900px) { .prem-grid { grid-template-columns: 1fr 1fr; } .premiumbtn { padding: 6px 9px; } }
+@media (max-width: 560px) { .prem-grid { grid-template-columns: 1fr; } }
+
+/* Logos in place of company names: tiny in table rows, small as chips, medium on the home page */
+.coav.xs { width: 22px; height: 22px; font-size: 0.55rem; } .coav.xs.logo { padding: 3px; } .coav.xs.logo.wide { width: 40px; padding: 3px 4px; }
+.coav.sm { width: 32px; height: 32px; font-size: 0.65rem; } .coav.sm.logo { padding: 5px; } .coav.sm.logo.wide { width: 58px; padding: 5px 6px; }
+.coav.md { width: 44px; height: 44px; } .coav.md.logo.wide { width: 84px; }
+.cobadge { display: inline-flex; position: relative; }
+.cobadge.rep::after, .cologo.rep::after { content: ""; position: absolute; right: -2px; top: -2px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); border: 1.5px solid var(--surface); }
+.comini { gap: 4px; align-items: center; }
+.cologo { position: relative; border: 0; background: none; padding: 0; cursor: pointer; display: inline-flex; transition: transform .15s; }
+.cologo:hover { transform: translateY(-1px); } .cologo:hover .coav { border-color: var(--hover-line); }
+.viscos { display: flex; flex-wrap: wrap; gap: 8px; }
+.hcos { gap: 14px 18px; } .hcos button { padding: 0; } .hcos button:hover .coav { border-color: var(--hover-line); }
+.ptable .c-co { width: 150px; }

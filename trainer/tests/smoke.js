@@ -191,7 +191,7 @@ async function phase1(){
 
   // Online assessment: a random company, hidden until the end
   tab('oa');
-  ok($$('.oapool > div').length === COMPANIES.length && $$('.oapool > div.ready').length === 1 && /NVIDIA/.test($('.oapool .ready').textContent), 'pool: NVIDIA ready, the rest coming soon');
+  ok($$('.oapool > div').length === COMPANY_NAMES.length && $$('.oapool > div.ready').length === 1 && /NVIDIA/.test($('.oapool .ready').textContent), 'pool: NVIDIA ready, the rest coming soon');
   click('[data-act="oa-start"]');
   ok($$('.oanums button').length === 17 && /^\d+:\d\d$/.test($('#oatimer').textContent), '15 hardware + 2 coding questions with a timer (' + $('#oatimer').textContent + ')');
   ok(!/NVIDIA/.test($('#main').textContent) && /revealed when you submit/.test($('.oabar').textContent), 'company hidden during the test');
@@ -209,7 +209,7 @@ async function phase1(){
   ok($('.oareveal') && /NVIDIA/.test($('.oareveal h1').textContent) && $$('.oareview li').length === 17, 'results reveal the company and review all 17');
   ok(!st().oa && st().oaHist.length === 1 && st().oaHist[0].co === 'nvidia' && st().oaHist[0].right + st().oaHist[0].wrong === 6, 'attempt saved to history');
   click('[data-act="oa-home"]');
-  ok(/NVIDIA/.test($('.ptable').textContent), 'past attempts list the revealed company');
+  ok($('.ptable .cobadge[aria-label="NVIDIA"]'), 'past attempts show the revealed company logo');
 
   // Privacy page
   tab('profile'); click('[data-act="go"][data-v="privacy"]');
@@ -221,13 +221,13 @@ async function phase1(){
   ok(arithRev && arithRev.querySelector('.vpill').textContent === 'Strong match', 'computer arithmetic is a strong match');
   ok($$('.vpill.bad').length === 1 && /CAD/.test($('.vpill.bad').closest('.review').textContent), 'mechanical CAD flagged as not covered');
   ok(!/NVIDIA asks|JR2027047/.test($('#main').textContent), 'roles page is general, not one job posting');
-  ok($$('.review .cochip').length > 20, 'each role lists companies that hire for it');
+  ok($$('.review .cologo').length > 20, 'each role shows the logos of companies that hire for it');
   click('[data-act="f-list-go"][data-v="sk-arith"]');
   ok($$('#prows tr').length === RAW.filter(r => (r[5] || '').includes('a')).length, 'skill link opens the arithmetic list (' + $$('#prows tr').length + ')');
 
   // Companies
   tab('companies');
-  ok($$('.cocard').length === COMPANIES.length, COMPANIES.length + ' company cards');
+  ok($$('.cocard').length === COMPANY_NAMES.length, COMPANY_NAMES.length + ' company cards');
   const cq = $('#co-q'); cq.value = 'memory'; cq.dispatchEvent(new Event('input', {bubbles:true}));
   ok($$('.cocard').length === 1 && /Micron/.test($('.cocard').textContent), 'company search finds Micron');
   cq.value = ''; cq.dispatchEvent(new Event('input', {bubbles:true}));
@@ -242,7 +242,7 @@ async function phase1(){
   click('[data-act="co-d"][data-v="H"]');
   ok($$('#corows .c-df').every(c => c.textContent === 'Hard') && $$('#corows tr').length < nvN, 'company list filters by difficulty');
   click($$('#corows a[data-open]')[0]);
-  ok(/Back to NVIDIA/.test($('[data-act="pv-back"]').textContent) && $('.cochips .cochip'), 'problem from a company list shows its company tags');
+  ok(/Back to NVIDIA/.test($('[data-act="pv-back"]').textContent) && $('.cochips .cologo'), 'problem from a company list shows its company logos');
   click('[data-act="pv-back"]');
   ok(/NVIDIA/.test(h1()), 'back returns to the company page');
   tab('theory'); click('[data-act="f-reset"]');
@@ -455,12 +455,27 @@ async function phase5(){
   click('[data-act="pv-back"]'); click('#acct .avatar');
   ok(/me@test\.dev/.test($('.pfme').textContent) && /Synced to your account/.test($('#progress-card').textContent), 'profile shows the signed-in account');
   ok(window.__fb.users.u1.email === 'me@test.dev' && window.__fb.users.u1.name === 'Me', 'saved record carries name and email for the dashboard');
+  // Premium: the admin gets the company data from the database; the Premium page shows Premium as active.
+  await wait(300);
+  tab('companies');
+  ok($$('.cocard').length === COMPANY_NAMES.length && !$('.cogrid.locked') && !document.body.classList.contains('noprem'), 'admin account: Companies unlocked from the database');
+  ok(window.__fb.users.u1.provider === 'google.com' && window.__fb.users.u1.created > 0 && window.__fb.users.u1.lastLogin > 0, 'record carries sign-in method, creation and last sign-in');
+  click('.premiumbtn');
+  ok(/Practice for the/.test(h1()) && /You have Premium/.test($('#main').textContent), 'Premium page shows the subscription is active');
+  click('#acct .avatar');
   // Admin dashboard (u1 is the admin here)
   click('[data-act="adm-open"]'); await wait(400);
   ok(/Admin dashboard/.test(h1()) && $$('.admtable tbody tr').length === 2, 'admin dashboard lists both accounts');
   ok(/Ada/.test($('.admtable').textContent) && /ada@test\.dev/.test($('.admtable').textContent), 'shows names and emails');
   ok($$('.dau > div').length === 30 && $('.admstats b').textContent === '2', 'stats and a 30-day activity chart');
   ok(/Timing/.test($('.admbars').textContent) && /missed/.test($('.recent').textContent), 'hardest topics and most-missed problems');
+  ok($$('.admtable thead th').length >= 14 && /Google/.test($('.admtable').textContent), 'users table shows Premium, sign-in method and dates');
+  click('[data-act="adm-prem"][data-v="u2"][data-on="1"]'); await wait(400);
+  ok(window.__fb.premium && window.__fb.premium.u2 && window.__fb.premium.u2.active === true && window.__fb.premium.u2.by === 'u1', 'admin grants Premium to Ada');
+  const until = $('#adm-until-u2'); until.value = '2027-01-31'; $('#adm-plan-u2').value = 'yearly'; $('#adm-note-u2').value = 'Stripe receipt 123';
+  click('[data-act="adm-prem-save"][data-v="u2"]'); await wait(400);
+  ok(window.__fb.premium.u2.plan === 'yearly' && window.__fb.premium.u2.until > Date.parse('2027-01-30') && window.__fb.premium.u2.note === 'Stripe receipt 123', 'plan, end date and note saved');
+  ok(/Subscriptions/.test($('#main').textContent) && /Yearly/.test($('#main').textContent) && /Uploaded/.test($('#main').textContent), 'subscriptions and premium-content sections');
   click('[data-act="adm-sort"][data-v="subs"]');
   ok(/Submissions ./.test($('.thsort.on').textContent), 'columns sort');
   click('#acct .avatar');
@@ -475,6 +490,16 @@ async function phase5(){
   click('[data-act="delete-yes"]'); await wait(500);
   ok(!window.__fb.users.u1 && !$('#acct .avatar:not(.guest)'), 'account record deleted and signed out');
   ok(solvedHeader() === 0, 'local copy cleared after deleting the account');
+  // A signed-in account without Premium: company content stays locked.
+  window.__fbUid = 'u3'; click('#acct .acctbtn'); click('[data-act="auth-google"]'); await wait(500);
+  tab('companies'); await wait(100);
+  ok($('.cogrid.locked') && /Premium/.test(h1()) && document.body.classList.contains('noprem'), 'no Premium: Companies shows the lock');
+  tab('oa');
+  ok(/Premium/.test(h1()) && !$('[data-act="oa-start"]'), 'no Premium: Online Assessment locked');
+  tab('theory');
+  ok(!$$('#prows .c-co').some(c => c.offsetParent) && !(window.__fb.premium_content && false), 'no Premium: no company column in Theory');
+  click('.premiumbtn');
+  ok(/Subscriptions open soon|Subscribe/.test($('#main').textContent), 'Premium page offers to subscribe');
 }
 setTimeout(async () => {
   try { await [null, phase1, phase2, phase3b, phase4, phase5, phase6][PHASE](); } catch (e) { errors.push('THROW ' + e.message + ' ' + (e.stack || '').split('\n')[1]); }

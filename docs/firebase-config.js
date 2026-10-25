@@ -12,3 +12,8 @@ window.FIREBASE_CONFIG = {
 // Accounts that may open the admin dashboard (#admin) and read every user's progress.
 // This list only shows the page; the database rules in firestore.rules are what allow the reads, so keep both in sync.
 window.FIREBASE_ADMINS = ['eyxiENSKbCdNlg1Xo3D2uAaNaGS2'];
+
+// HardCode Premium. link: your Stripe Payment Link (or other checkout URL); the site adds the account's
+// id (client_reference_id) and email (prefilled_email) so you can match each payment to an account.
+// price: shown on the Subscribe button, e.g. '$5 / month'. Leave link null to show "Subscriptions open soon".
+window.PREMIUM = {link: null, price: null};

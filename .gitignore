@@ -11,3 +11,6 @@ trainer/tests/out/
 # System and editor files
 .DS_Store
 node_modules/
+
+# Premium data: never commit (served from Firestore to Premium accounts only)
+trainer/private/

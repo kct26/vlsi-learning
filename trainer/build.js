@@ -1,15 +1,20 @@
 // Builds the trainer into one self-contained HTML file, after checking the question bank and lessons.
 //   node build.js                    -> ../docs/index.html (standalone page, for GitHub Pages or opening locally)
 //   node build.js --fragment out.html -> page body only (for hosts that add their own <html>/<head>, such as Claude artifacts)
+//   --with-premium (with --fragment)  -> also embed the Premium company data, for private builds only (the Claude artifact, tests)
+// Premium data lives in private/premium-data.js (not in git). When present, it is checked and written to
+// private/premium-content.json, the file the admin dashboard uploads to Firestore.
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const src = path.join(__dirname, 'src'), read = f => fs.readFileSync(path.join(src, f), 'utf8');
-const SCRIPTS = ['questions.js', 'lessons.js', 'widgets.js', 'coding.js', 'hidden-tests.js', 'judge.js', 'companies.js', 'assessments.js', 'logos.js', 'app.js'];
+const SCRIPTS = ['questions.js', 'lessons.js', 'widgets.js', 'coding.js', 'hidden-tests.js', 'judge.js', 'company-names.js', 'logos.js', 'app.js'];
 
 // Load the data files and widget table into one sandbox to check them.
 const ctx = {};
 vm.createContext(ctx);
-vm.runInContext(SCRIPTS.slice(0, 8).map(read).join('\n') + '\n;this.ASSESSMENTS = ASSESSMENTS; this.COMPANIES = COMPANIES; this.HIDDEN = HIDDEN; this.V_CHECKS = V_CHECKS; this.RAW = RAW; this.PARTS = PARTS; this.UNITS = UNITS; this.WIDGETS = WIDGETS; this.CODING = CODING; this.LANGS = LANGS; this.CODE_AREAS = CODE_AREAS;', ctx);
-const {RAW, PARTS, UNITS, WIDGETS, CODING, LANGS, CODE_AREAS, HIDDEN, V_CHECKS, COMPANIES, ASSESSMENTS} = ctx;
+const PRIV = path.join(__dirname, 'private', 'premium-data.js'), hasPremium = fs.existsSync(PRIV);
+vm.runInContext(SCRIPTS.slice(0, 7).map(read).join('\n') + (hasPremium ? '\n' + fs.readFileSync(PRIV, 'utf8') : '\nconst PREMIUM_DATA = {companies:{}, assessments:[]};') + '\n;this.PREMIUM_DATA = PREMIUM_DATA; this.COMPANY_NAMES = COMPANY_NAMES; this.HIDDEN = HIDDEN; this.V_CHECKS = V_CHECKS; this.RAW = RAW; this.PARTS = PARTS; this.UNITS = UNITS; this.WIDGETS = WIDGETS; this.CODING = CODING; this.LANGS = LANGS; this.CODE_AREAS = CODE_AREAS;', ctx);
+const {RAW, PARTS, UNITS, WIDGETS, CODING, LANGS, CODE_AREAS, HIDDEN, V_CHECKS, COMPANY_NAMES, PREMIUM_DATA} = ctx;
+const COMPANIES = COMPANY_NAMES.map(c => Object.assign({}, c, PREMIUM_DATA.companies[c.id] || {})), ASSESSMENTS = PREMIUM_DATA.assessments;
 const errs = [], ids = new Set(), perCh = {}, texts = new Set();
 RAW.forEach((r, i) => {
   const [id, d, q, ans, expl, tags] = r, where = `RAW[${i}] ${id}`;
@@ -59,6 +64,7 @@ CODING.forEach((p, i) => {
 });
 // Company tags: every id must exist, chapters must be quests, areas must be Coding areas.
 const coIds = new Set();
+Object.keys(PREMIUM_DATA.companies).forEach(id => { if (!COMPANY_NAMES.some(c => c.id === id)) errs.push('premium data for unknown company ' + id); });
 COMPANIES.forEach(c => {
   const where = 'company ' + c.id;
   if (!c.id || coIds.has(c.id) || !c.name || !c.focus) errs.push(where + ': missing or duplicate id, or missing name or focus');
@@ -108,11 +114,11 @@ const CSP = ["default-src 'self'",
   "font-src 'self' https://fonts.gstatic.com",
   "frame-src https://*.firebaseapp.com https://accounts.google.com https://apis.google.com",
   "object-src 'none'", "base-uri 'none'", "form-action 'self'", "upgrade-insecure-requests"].join('; ');
-const args = process.argv.slice(2), fragment = args[0] === '--fragment';
+const args = process.argv.slice(2), fragment = args[0] === '--fragment', withPremium = fragment && args.includes('--with-premium');
 let out, html;
 if (fragment) {
   out = path.resolve(args[1] || 'trainer-fragment.html');
-  html = body;
+  html = withPremium && hasPremium ? body.replace('<script>', () => '<script>window.PREMIUM_INLINE = ' + JSON.stringify(PREMIUM_DATA) + ';</script>\n<script>') : body;
 } else {
   out = path.resolve(args[0] || path.join(__dirname, '..', 'docs', 'index.html'));
   const split = body.indexOf('<header');
@@ -133,4 +139,7 @@ if (!fragment && !fs.existsSync(cfg)) fs.writeFileSync(cfg, `// Google sign-in s
 // firebaseConfig object from your Firebase project (it is safe to publish; access is controlled by firestore.rules).
 window.FIREBASE_CONFIG = null;
 `);
+// The upload file for the admin dashboard (private, never served).
+if (hasPremium) fs.writeFileSync(path.join(__dirname, 'private', 'premium-content.json'), JSON.stringify(PREMIUM_DATA));
+if (!hasPremium) console.log('note: private/premium-data.js not found; building without Premium data checks');
 console.log('wrote ' + path.relative(process.cwd(), out) + ' (' + Math.round(html.length / 1024) + ' KB)');
