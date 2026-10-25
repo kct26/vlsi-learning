@@ -1,16 +1,23 @@
 rules_version = '2';
 // Each signed-in person can read, write and delete only their own progress document: users/{their uid}.
-// Writes must have exactly the shape the site saves ({state: text under ~900 KB, updatedAt: number}),
-// so an account cannot be used to store anything else or to grow the database without limit.
+// The site owner's account (listed in isAdmin, and in FIREBASE_ADMINS in docs/firebase-config.js) can also read
+// every document, for the admin dashboard. Nobody else can list or read other people's progress.
+// Writes must have exactly the shape the site saves, so an account cannot store anything else or grow without limit.
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && request.auth.uid in ['eyxiENSKbCdNlg1Xo3D2uAaNaGS2'];
+    }
     match /users/{uid} {
-      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow read: if (request.auth != null && request.auth.uid == uid) || isAdmin();
+      allow delete: if request.auth != null && request.auth.uid == uid;
       allow create, update: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['state', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['state', 'updatedAt', 'name', 'email'])
         && request.resource.data.state is string
         && request.resource.data.state.size() < 900000
-        && request.resource.data.updatedAt is number;
+        && request.resource.data.updatedAt is number
+        && (!('name' in request.resource.data) || (request.resource.data.name is string && request.resource.data.name.size() <= 100))
+        && (!('email' in request.resource.data) || (request.resource.data.email is string && request.resource.data.email.size() <= 200));
     }
   }
 }

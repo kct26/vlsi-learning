@@ -899,3 +899,21 @@ code, pre, .code-editor, .editor, .hcode, .mono { font-variant-ligatures: none; 
 .privlist { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; font-size: 0.92rem; }
 .btn.danger { background: var(--bad); border-color: var(--bad); color: #FFFFFF; }
 @media (max-width: 800px) { .privgrid { grid-template-columns: 1fr; } }
+
+/* Admin dashboard */
+.admstats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+.admstats .card { gap: 2px; padding: 16px; }
+.admstats b { font-size: 1.7rem; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.admstats span { font-size: 0.75rem; color: var(--muted); }
+.dau { display: grid; grid-template-columns: repeat(30, 1fr); gap: 4px; align-items: end; height: 120px; }
+.dau div { height: 100%; display: flex; align-items: flex-end; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.dau i { display: block; width: 100%; background: var(--accent); border-radius: 4px; min-height: 0; }
+.admtable { table-layout: auto; }
+.admtable td, .admtable th { white-space: nowrap; }
+.thsort { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+.thsort.on { color: var(--ink); font-weight: 600; }
+.admbars { display: flex; flex-direction: column; gap: 10px; }
+.admbars > div { display: grid; grid-template-columns: 170px 1fr 120px; gap: 10px; align-items: center; font-size: 0.85rem; }
+.admbars .bar { height: 8px; border-radius: 999px; background: var(--bad-soft); overflow: hidden; }
+.admbars .bar b { display: block; height: 100%; background: var(--ok); }
+@media (max-width: 900px) { .admstats { grid-template-columns: repeat(3, 1fr); } .admbars > div { grid-template-columns: 1fr; } }

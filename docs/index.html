@@ -915,6 +915,24 @@ code, pre, .code-editor, .editor, .hcode, .mono { font-variant-ligatures: none; 
 .btn.danger { background: var(--bad); border-color: var(--bad); color: #FFFFFF; }
 @media (max-width: 800px) { .privgrid { grid-template-columns: 1fr; } }
 
+/* Admin dashboard */
+.admstats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+.admstats .card { gap: 2px; padding: 16px; }
+.admstats b { font-size: 1.7rem; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.admstats span { font-size: 0.75rem; color: var(--muted); }
+.dau { display: grid; grid-template-columns: repeat(30, 1fr); gap: 4px; align-items: end; height: 120px; }
+.dau div { height: 100%; display: flex; align-items: flex-end; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.dau i { display: block; width: 100%; background: var(--accent); border-radius: 4px; min-height: 0; }
+.admtable { table-layout: auto; }
+.admtable td, .admtable th { white-space: nowrap; }
+.thsort { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+.thsort.on { color: var(--ink); font-weight: 600; }
+.admbars { display: flex; flex-direction: column; gap: 10px; }
+.admbars > div { display: grid; grid-template-columns: 170px 1fr 120px; gap: 10px; align-items: center; font-size: 0.85rem; }
+.admbars .bar { height: 8px; border-radius: 999px; background: var(--bad-soft); overflow: hidden; }
+.admbars .bar b { display: block; height: 100%; background: var(--ok); }
+@media (max-width: 900px) { .admstats { grid-template-columns: repeat(3, 1fr); } .admbars > div { grid-template-columns: 1fr; } }
+
 </style>
 </head>
 <body>
@@ -4535,6 +4553,7 @@ async function initAccounts(){
 async function onAuth(user){
   acct.user = user || null; acct.ref = null;
   if (user && ui.auth) closeAuth();
+  if (user && ui.tab === 'admin' && !ui.adm) setTimeout(loadAdmin, 0);
   if (!user) { store.mode = 'local'; setSync('Saved in this browser'); renderAccount(); if (ui.tab === 'profile' && ui.view === 'tab') render(); return; }
   setSync('Syncing…');
   try {
@@ -4548,7 +4567,9 @@ async function onAuth(user){
 }
 function cloudFlush(){
   if (store.mode !== 'cloud' || !acct.ref) return;
-  const body = {state:JSON.stringify(state), updatedAt:state.updatedAt || Date.now()};
+  const u = acct.user || {};
+  // name and email let the owner's admin dashboard tell accounts apart (see the Privacy page)
+  const body = {state:JSON.stringify(state), updatedAt:state.updatedAt || Date.now(), name:String(u.displayName || '').slice(0, 100), email:String(u.email || '').slice(0, 200)};
   acct.chain = acct.chain.then(() => acct.ref.set(body)).then(() => setSync('Saved to your account'))
     .catch(() => { setSync('Saving failed; will retry'); clearTimeout(acct.timer); acct.timer = setTimeout(cloudFlush, 5000); });
 }
@@ -4625,7 +4646,7 @@ function toast(text){
 }
 
 // ---------- UI state ----------
-const TABS = ['home', 'theory', 'coding', 'quest', 'companies', 'roles', 'profile', 'privacy'];
+const TABS = ['home', 'theory', 'coding', 'quest', 'companies', 'roles', 'profile', 'privacy', 'admin'];
 const blankFilters = () => ({q:'', ch:'all', d:'all', status:'all', type:'all', list:'all', co:'all'});
 const ui = {tab:'home', co:null, coq:'', auth:null, home:{word:0, tab:1, tryi:0, faq:0, tryv:{v:0.9, f:2, b:5, T:1, l:0.6, x:200}, timers:[]}, view:'tab', session:null, unit:null, pv:null, back:null, cardPick:{}, cardPerm:{}, f:blankFilters(), confirmReset:false, timer:null, cf:null, cp:null, cback:null, codeTimer:null};
 function setHash(h){ try { history.replaceState(null, '', '#' + h); } catch (e) { /* ignore */ } }
@@ -4689,7 +4710,7 @@ function verdictHTML(Q, chosen){
 function render(){
   renderHeader();
   const m = $('#main'), home = ui.view === 'tab' && ui.tab === 'home';
-  m.className = home ? 'main home' : 'wrap main' + ((ui.view === 'tab' && ['theory', 'coding', 'companies', 'profile', 'quest'].includes(ui.tab)) || ui.view === 'code' || ui.view === 'company' ? ' wide' : '');
+  m.className = home ? 'main home' : 'wrap main' + ((ui.view === 'tab' && ['theory', 'coding', 'companies', 'profile', 'quest', 'admin'].includes(ui.tab)) || ui.view === 'code' || ui.view === 'company' ? ' wide' : '');
   if (!home) homeStop();
   if (ui.view === 'quiz') { m.innerHTML = viewQuiz(); updateTimer(); }
   else if (ui.view === 'results') m.innerHTML = viewResults();
@@ -4703,6 +4724,7 @@ function render(){
   else if (ui.tab === 'theory') m.innerHTML = viewProblems();
   else if (ui.tab === 'profile') m.innerHTML = viewProfile();
   else if (ui.tab === 'privacy') m.innerHTML = viewPrivacy();
+  else if (ui.tab === 'admin') m.innerHTML = viewAdmin();
   else if (ui.tab === 'companies') m.innerHTML = viewCompanies();
   else m.innerHTML = viewRoles();
 }
@@ -5717,9 +5739,9 @@ function authAnim(){
 
 // ---------- Profile (like LeetCode's): solved counts, streaks, a year of activity, recent submissions ----------
 const dayKey = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
-function activity(){
+function activity(log = state.log){
   const byDay = {};
-  state.log.forEach(([t]) => { const k = dayKey(t); byDay[k] = (byDay[k] || 0) + 1; });
+  log.forEach(([t]) => { const k = dayKey(t); byDay[k] = (byDay[k] || 0) + 1; });
   const days = Object.keys(byDay).sort();
   // Longest run of consecutive active days, and the run that reaches today (or yesterday, so it survives until the day ends).
   let max = 0, run = 0, prev = null;
@@ -5733,7 +5755,7 @@ function activity(){
   if (!byDay[dayKey(day)]) day.setDate(day.getDate() - 1);
   while (byDay[dayKey(day)]) { cur++; day.setDate(day.getDate() - 1); }
   const yearAgo = Date.now() - 365 * 864e5;
-  return {byDay, max, cur, active:days.length, year:state.log.filter(x => x[0] >= yearAgo).length, today:!!byDay[dayKey(Date.now())]};
+  return {byDay, max, cur, active:days.length, year:log.filter(x => x[0] >= yearAgo).length, today:!!byDay[dayKey(Date.now())]};
 }
 // A year of activity, one square per day, weeks as columns (like LeetCode and GitHub).
 function heatmapSVG(byDay){
@@ -5799,6 +5821,7 @@ function viewProfile(){
       ${STANDALONE ? '<div class="row"><button type="button" class="btn small" data-act="export">Export progress</button><button type="button" class="btn small" data-act="import">Import progress</button><input type="file" id="import-file" accept="application/json,.json" hidden></div>' : ''}
       ${acct.user ? (ui.confirmDelete ? '<div class="row"><span class="small">Delete your account and everything saved in it? This cannot be undone.</span><button type="button" class="btn small danger" data-act="delete-yes">Delete account</button><button type="button" class="btn small primary" data-act="delete-no">Keep it</button></div>' : '<button type="button" class="btn small ghost" data-act="delete">Delete my account and data</button>') : ''}
       <button type="button" class="linkbtn small" data-act="go" data-v="privacy">How your data is handled →</button>
+      ${isAdmin() ? '<button type="button" class="btn small primary" data-act="adm-open">Admin dashboard →</button>' : ''}
       ${ui.confirmReset ? '<div class="row"><span class="small">Erase all progress?</span><button type="button" class="btn small" data-act="reset-yes">Erase everything</button><button type="button" class="btn small primary" data-act="reset-no">Keep it</button></div>' : '<button type="button" class="btn small ghost" data-act="reset">Reset progress</button>'}</section>
   </aside>
   <section class="pfmain">
@@ -5968,6 +5991,74 @@ document.addEventListener('wheel', e => {
   else { ui.rm.tx -= e.deltaX; rmApply(); }
 }, {passive:false});
 
+// ---------- Admin dashboard: every signed-in user's progress, readable only by the accounts in FIREBASE_ADMINS ----------
+const isAdmin = () => !!(acct.user && Array.isArray(window.FIREBASE_ADMINS) && window.FIREBASE_ADMINS.includes(acct.user.uid));
+async function loadAdmin(){
+  ui.adm = Object.assign(ui.adm || {sort:'last', dir:-1}, {loading:true, err:'', rows:null});
+  render();
+  try {
+    const snap = await firebase.firestore().collection('users').get();
+    ui.adm.rows = snap.docs.map(d => {
+      const x = d.data() || {};
+      let st;
+      try { st = normalize(JSON.parse(x.state || '{}')); } catch (e) { st = emptyState(); }
+      const A = activity(st.log), times = st.log.map(l => l[0]).concat(Object.values(st.q).map(q => q.at)).filter(Boolean);
+      const solved = Object.keys(st.q).filter(id => st.q[id].c > 0).length;
+      const tries = Object.values(st.q).reduce((n, q) => n + q.n, 0), right = Object.values(st.q).reduce((n, q) => n + q.c, 0);
+      return {uid:d.id, name:String(x.name || '').slice(0, 100), email:String(x.email || '').slice(0, 200), st, solved,
+        code:Object.keys(st.code).filter(id => st.code[id].solved).length, quests:Object.keys(st.learn.units).filter(u => st.learn.units[u].passed).length,
+        subs:st.log.length, acc:tries ? right / tries : 0, cur:A.cur, max:A.max, active:A.active, byDay:A.byDay,
+        first:times.length ? Math.min(...times) : 0, last:Math.max(num(x.updatedAt), times.length ? Math.max(...times) : 0)};
+    });
+  } catch (e) { ui.adm.err = (e && e.code === 'permission-denied') ? 'Firebase refused: this account is not allowed to read other users. Check FIREBASE_ADMINS and the published rules.' : 'Could not load users: ' + ((e && e.message) || e); }
+  ui.adm.loading = false;
+  if (ui.tab === 'admin' && ui.view === 'tab') render();
+}
+function viewAdmin(){
+  if (!isAdmin()) return `<section class="pagehead"><p class="eyebrow">Admin</p><h1>Owner only</h1><p class="muted">This page is only for the site owner's account.</p></section>`;
+  const D = ui.adm;
+  if (!D || D.loading) return '<section class="pagehead"><p class="eyebrow">Admin</p><h1>Loading users…</h1></section>';
+  if (D.err) return `<section class="pagehead"><p class="eyebrow">Admin</p><h1>Admin dashboard</h1><p class="autherr">${esc(D.err)}</p></section>`;
+  const rows = D.rows, now = Date.now(), within = d => rows.filter(r => r.last >= now - d * 864e5).length;
+  // Daily active users over the last 30 days.
+  const days = Array.from({length:30}, (_, i) => { const t = new Date(); t.setHours(12, 0, 0, 0); t.setDate(t.getDate() - 29 + i); return t; });
+  const dau = days.map(t => rows.filter(r => r.byDay[dayKey(t)]).length), peak = Math.max(1, ...dau);
+  // Where people get stuck: accuracy by topic, and the problems with the most failed attempts.
+  const ch = {};
+  rows.forEach(r => Object.keys(r.st.q).forEach(id => { const Q = BY_ID[id]; if (!Q) return; const c = ch[Q.ch] || (ch[Q.ch] = {n:0, c:0, users:new Set()}); c.n += r.st.q[id].n; c.c += Math.min(r.st.q[id].c, r.st.q[id].n); c.users.add(r.uid); }));
+  const topics = Object.keys(ch).map(k => ({ch:+k, ...ch[k], acc:ch[k].n ? ch[k].c / ch[k].n : 0})).filter(t => t.n >= 3).sort((a, b) => a.acc - b.acc).slice(0, 8);
+  const fails = {};
+  rows.forEach(r => {
+    Object.keys(r.st.q).forEach(id => { const q = r.st.q[id], f = fails[id] || (fails[id] = {miss:0, users:0, solved:0}); f.miss += Math.max(0, q.n - q.c); f.users++; if (q.c) f.solved++; });
+    Object.keys(r.st.code).forEach(id => { const s = r.st.code[id].subs || [], f = fails[id] || (fails[id] = {miss:0, users:0, solved:0}); f.miss += s.filter(u => u.v !== 'Accepted').length; if (s.length) f.users++; if (r.st.code[id].solved) f.solved++; });
+  });
+  const hard = Object.keys(fails).filter(id => fails[id].miss > 0).sort((a, b) => fails[b].miss - fails[a].miss).slice(0, 10);
+  const cols = [['name', 'User'], ['first', 'Joined'], ['last', 'Last active'], ['solved', 'Theory'], ['code', 'Coding'], ['quests', 'Quests'], ['cur', 'Streak'], ['max', 'Best'], ['subs', 'Submissions'], ['acc', 'Accuracy']];
+  const key = D.sort, sorted = rows.slice().sort((a, b) => { const x = a[key], y = b[key]; return (typeof x === 'string' ? x.localeCompare(y) : x - y) * D.dir; });
+  const date = t => t ? new Date(t).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'}) : '–';
+  return `<section class="pagehead"><p class="eyebrow">Admin</p><h1>Admin <em>dashboard</em></h1><p class="muted">Every signed-in account and its saved progress. Visitors who never sign in are not counted. Only your account can open this page.</p>
+      <div class="row"><button type="button" class="btn small" data-act="adm-reload">Refresh</button>${STANDALONE ? '<button type="button" class="btn small" data-act="adm-csv">Download CSV</button>' : ''}</div></section>
+    <div class="admstats">${[[rows.length, 'accounts'], [within(1), 'active today'], [within(7), 'active in 7 days'], [within(30), 'active in 30 days'], [rows.reduce((n, r) => n + r.subs, 0), 'submissions'], [rows.reduce((n, r) => n + r.solved, 0), 'theory solves']].map(([n, l]) => `<div class="card"><b>${n.toLocaleString()}</b><span>${l}</span></div>`).join('')}</div>
+    <section class="card"><h2>Daily active users, last 30 days</h2><div class="dau" role="img" aria-label="Daily active users over the last 30 days">${dau.map((n, i) => `<div title="${days[i].toLocaleDateString(undefined, {month:'short', day:'numeric'})}: ${n} user${n === 1 ? '' : 's'}"><i style="height:${Math.round(n / peak * 100)}%"></i></div>`).join('')}</div>
+      <div class="row between muted small"><span>${days[0].toLocaleDateString(undefined, {month:'short', day:'numeric'})}</span><span>peak ${Math.max(...dau)}</span><span>today</span></div></section>
+    <section class="card"><h2>Users</h2><div class="tablewrap"><table class="ptable admtable"><thead><tr>${cols.map(([k, l]) => `<th><button type="button" class="thsort${key === k ? ' on' : ''}" data-act="adm-sort" data-v="${k}">${l}${key === k ? (D.dir > 0 ? ' ↑' : ' ↓') : ''}</button></th>`).join('')}</tr></thead>
+      <tbody>${sorted.map(r => `<tr><td><b>${esc(r.name || '(no name)')}</b><br><span class="muted small">${esc(r.email || r.uid)}</span></td><td>${date(r.first)}</td><td>${r.last ? ago(r.last) : '–'}</td><td class="mono">${r.solved}</td><td class="mono">${r.code}</td><td class="mono">${r.quests}/${UNITS.length}</td><td class="mono">${r.cur}</td><td class="mono">${r.max}</td><td class="mono">${r.subs}</td><td class="mono">${Math.round(r.acc * 100)}%</td></tr>`).join('') || '<tr><td colspan="10" class="empty">No accounts yet.</td></tr>'}</tbody></table></div></section>
+    <div class="grid2"><section class="card"><h2>Hardest topics</h2><p class="muted small">Lowest share of correct answers across all users (topics with at least 3 answers).</p>
+      ${topics.length ? `<div class="admbars">${topics.map(t => `<div><span>${esc(TOPICS[t.ch])}</span><i class="bar"><b style="width:${Math.round(t.acc * 100)}%"></b></i><span class="mono">${Math.round(t.acc * 100)}% · ${t.users.size} user${t.users.size === 1 ? '' : 's'}</span></div>`).join('')}</div>` : '<p class="muted">Not enough answers yet.</p>'}</section>
+    <section class="card"><h2>Most-missed problems</h2><p class="muted small">Wrong answers and failed submissions, summed over users.</p>
+      ${hard.length ? `<ul class="recent">${hard.map(id => { const Q = BY_ID[id], P = CODE_BY_ID[id], f = fails[id]; return `<li><a href="${Q ? '#p' + Q.n : '#code' + P.n}" ${Q ? `data-open="${id}"` : `data-copen="${id}"`}><span class="rtitle">${esc(Q ? Q.n + '. ' + Q.q : P.n + '. ' + P.title)}</span><span class="rmeta"><span class="v-bad">${f.miss} missed</span><span class="muted">${f.solved}/${f.users} solved</span></span></a></li>`; }).join('')}</ul>` : '<p class="muted">No misses yet.</p>'}</section></div>`;
+}
+function adminCSV(){
+  const head = ['uid', 'name', 'email', 'joined', 'last_active', 'theory_solved', 'coding_solved', 'quests_passed', 'streak', 'best_streak', 'submissions', 'accuracy'];
+  const cell = v => /[",\n]/.test(String(v)) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v);
+  const iso = t => t ? new Date(t).toISOString() : '';
+  const lines = [head.join(',')].concat(ui.adm.rows.map(r => [r.uid, r.name, r.email, iso(r.first), iso(r.last), r.solved, r.code, r.quests, r.cur, r.max, r.subs, r.acc.toFixed(3)].map(cell).join(',')));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([lines.join('\n')], {type:'text/csv'}));
+  a.download = 'ground-up-users-' + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
 // ---------- Privacy: what is stored, where, and who can see it ----------
 function viewPrivacy(){
   const claude = !STANDALONE;
@@ -5977,8 +6068,8 @@ function viewPrivacy(){
     <section class="card"><h2>Without an account</h2><p>Everything stays ${claude ? 'in the storage of the Claude page you are using' : 'in this browser (local storage)'}: your answers, the code you write, your submissions and streak history, and your light or dark theme choice. Nothing is sent anywhere. Clearing this site's data in your browser, or <b>Reset progress</b> on your profile, removes it.</p></section>
     <section class="card"><h2>With an account</h2><ul class="privlist">
       <li><b>Login</b> (Firebase Authentication, run by Google): your email address, and if you use Google sign-in, your name and profile photo link. Email sign-in stores your password only as a salted hash; nobody can read it.</li>
-      <li><b>Progress</b> (Cloud Firestore, run by Google): one record holding the same progress listed above, so it can follow you across devices.</li>
-      <li><b>Who can see it:</b> the database rules let each account read and write only its own record; other visitors cannot see yours. The site owner, as the Firebase project's administrator, can view accounts and records in the Firebase console.</li>
+      <li><b>Progress</b> (Cloud Firestore, run by Google): one record holding the same progress listed above, plus your name and email, so it can follow you across devices.</li>
+      <li><b>Who can see it:</b> the database rules let each account read and write only its own record; other visitors cannot see yours. The site owner can see every account and its progress (in the Firebase console and in an owner-only dashboard) to understand how the site is used, such as which topics people find hardest. It is never shared or sold.</li>
       <li><b>Remove it:</b> press <b>Delete my account and data</b> on your profile. It deletes your progress record and your login.</li></ul></section>
     <section class="card"><h2>Services your browser contacts</h2><ul class="privlist">
       <li><b>Google Fonts</b> for the Inter and JetBrains Mono typefaces.</li>
@@ -6075,6 +6166,10 @@ function act(a){
     case 'delete': ui.confirmDelete = true; render(); break;
     case 'delete-no': ui.confirmDelete = false; render(); break;
     case 'delete-yes': ui.confirmDelete = false; deleteAccount(); break;
+    case 'adm-open': goTab('admin'); loadAdmin(); break;
+    case 'adm-reload': loadAdmin(); break;
+    case 'adm-sort': ui.adm.dir = ui.adm.sort === a.dataset.v ? -ui.adm.dir : (a.dataset.v === 'name' ? 1 : -1); ui.adm.sort = a.dataset.v; render(); break;
+    case 'adm-csv': adminCSV(); break;
     case 'pf-recent': ui.prof.recent = a.dataset.v; render(); break;
     case 'mock': startSession('mock', shuffle(BANK.map(q => q.id)).slice(0, MOCK_N), {title:'Timed mock assessment', from:{view:'tab', tab:'theory'}}); break;
     case 'review-attempted': startSession('practice', shuffle(BANK.filter(Q => statusOf(Q.id) === 'attempted').map(Q => Q.id)).slice(0, 25), {title:'Attempted, not solved', from:{view:'tab', tab:'theory'}}); break;

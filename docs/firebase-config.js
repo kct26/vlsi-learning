@@ -8,3 +8,7 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "298030601488",
   appId: "1:298030601488:web:46886955e68e17f6590195"
 };
+
+// Accounts that may open the admin dashboard (#admin) and read every user's progress.
+// This list only shows the page; the database rules in firestore.rules are what allow the reads, so keep both in sync.
+window.FIREBASE_ADMINS = ['eyxiENSKbCdNlg1Xo3D2uAaNaGS2'];

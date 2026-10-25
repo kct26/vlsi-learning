@@ -413,6 +413,16 @@ async function phase5(){
   ok(JSON.parse(window.__fb.users.u1.state).q[r[0]], 'a new answer syncs to the account');
   click('[data-act="pv-back"]'); click('#acct .avatar');
   ok(/me@test\.dev/.test($('.pfme').textContent) && /Synced to your account/.test($('#progress-card').textContent), 'profile shows the signed-in account');
+  ok(window.__fb.users.u1.email === 'me@test.dev' && window.__fb.users.u1.name === 'Me', 'saved record carries name and email for the dashboard');
+  // Admin dashboard (u1 is the admin here)
+  click('[data-act="adm-open"]'); await wait(400);
+  ok(/Admin dashboard/.test(h1()) && $$('.admtable tbody tr').length === 2, 'admin dashboard lists both accounts');
+  ok(/Ada/.test($('.admtable').textContent) && /ada@test\.dev/.test($('.admtable').textContent), 'shows names and emails');
+  ok($$('.dau > div').length === 30 && $('.admstats b').textContent === '2', 'stats and a 30-day activity chart');
+  ok(/Timing/.test($('.admbars').textContent) && /missed/.test($('.recent').textContent), 'hardest topics and most-missed problems');
+  click('[data-act="adm-sort"][data-v="subs"]');
+  ok(/Submissions ./.test($('.thsort.on').textContent), 'columns sort');
+  click('#acct .avatar');
   click('[data-act="signout"]');
   await wait(200);
   ok($('#acct .acctbtn') && /Saved in this browser/.test($('#sync').textContent), 'signing out returns to browser-only saving');
