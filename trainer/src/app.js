@@ -892,7 +892,7 @@ function refreshCodeRows(){
 
 // Coding problem page, laid out like LeetCode: description, solution and submissions on the left;
 // the editor on the right with a console below it. Run tries the example cases; Submit runs every hidden test.
-const blankCodePage = (id, list) => ({id, list, hints:0, ltab:'desc', ctab:'case', ccase:0, rcase:0, run:null, busy:null});
+const blankCodePage = (id, list) => ({id, list, hints:0, ltab:'desc', ctab:'case', ccase:0, rcase:0, run:null, busy:null, custom:false, cin:null});
 function openCode(id, list, back){
   saveEditorNow();
   ui.cp = blankCodePage(id, list && list.length ? list : CODING.map(p => p.id));
@@ -918,8 +918,18 @@ function caseLabel(p, t){
   if (!p.run.kind) return p.run.fn + '(' + t[0].map(pyRepr).join(', ') + ')';
   return t[3] || t[0];
 }
+// Custom input, like HackerRank's "Test against custom input": your code and the reference solution both run on it.
+const canCustom = p => !!p.run && p.run.kind !== 'v';
+function customDefault(p){ const t = p.run.tests[0]; return p.run.kind ? t[0] : t[0].map(pyRepr).join(', '); }
+function customHint(p){
+  if (!p.run.kind) return `The arguments to <code>${esc(p.run.fn)}</code>, as Python values separated by commas.`;
+  return p.run.tests[0][2] === 'out' ? 'C statements to run. What they print is the output.' : 'A C expression that calls your code. Its value is the output.';
+}
 function testcaseHTML(p){
   const R = p.run, C = ui.cp;
+  if (C.custom && canCustom(p)) return `<div class="tcase"><label class="kv" for="c-cin"><span>Custom input</span></label>
+    <textarea id="c-cin" class="cin" spellcheck="false" autocomplete="off">${esc(C.cin != null ? C.cin : customDefault(p))}</textarea>
+    <p class="muted small">${customHint(p)} Run shows your output next to the reference solution's, plus anything you print as debug output.</p></div>`;
   if (R.kind === 'v') {
     const b = R.benches && R.benches[0];
     const what = R.check ? 'This design is checked for the properties in the statement, under random traffic. Run and Submit both run every check.'
@@ -934,28 +944,33 @@ function testcaseHTML(p){
     <div class="kv"><span>Expected</span><pre class="code">${esc(R.kind ? t[1] : pyRepr(t[1]))}</pre></div>
     <p class="muted small">Submit also runs ${R.tests.length - n} hidden test${R.tests.length - n === 1 ? '' : 's'}.</p></div>`;
 }
-function verdictClass(v){ return v === 'Accepted' ? 'ok' : 'bad'; }
+function verdictClass(v){ return v === 'Accepted' || v === 'Output matches' ? 'ok' : 'bad'; }
+// Results laid out like HackerRank: the test cases down the left (samples first, hidden ones locked), the selected one's
+// compiler message, input, output and expected output on the right, and anything printed as debug output.
+const sampleCount = p => p.run.kind === 'v' ? 1 : exampleCount(p);
+const outBox = (label, text, err) => `<div class="kv"><span>${label}</span><pre class="code${err ? ' err' : ''}">${esc(text === '' || text == null ? '(empty)' : text)}</pre></div>`;
+function caseDetail(r){
+  return `${outBox('Compiler message', r.ok ? 'Success' : 'Wrong Answer', !r.ok)}${r.at ? outBox('When', r.at) : ''}${outBox('Input (stdin)', r.label)}
+    ${r.exp !== '' || r.got !== '' ? outBox('Your output (stdout)', r.got, !r.ok) + outBox('Expected output', r.exp) : ''}`;
+}
 function resultHTML(p){
   const C = ui.cp, R = C.run;
   if (C.busy) return `<p class="runmsg"><span class="spin" aria-hidden="true"></span>${esc(C.busy)}</p>`;
-  if (!R) return '<p class="muted small">You must run your code first.</p>';
-  const head = `<div class="vhead"><h3 class="v-${verdictClass(R.verdict)}">${esc(R.verdict)}</h3>${R.total ? `<span class="muted">${R.passed} / ${R.total} testcases passed</span>` : ''}${R.ms != null ? `<span class="muted">Runtime ${R.ms} ms</span>` : ''}</div>`;
-  if (R.error) return head + `<pre class="code err">${esc(R.error)}</pre>`;
-  const out = R.stdout ? `<div class="kv"><span>Stdout</span><pre class="code">${esc(R.stdout)}</pre></div>` : '';
-  const caseBox = r => `${r.at ? `<div class="kv"><span>When</span><pre class="code">${esc(r.at)}</pre></div>` : ''}
-    <div class="kv"><span>${R.mode === 'submit' && !r.ok ? 'Input' : 'Test'}</span><pre class="code">${esc(r.label)}</pre></div>
-    ${r.exp !== '' || r.got !== '' ? `<div class="kv"><span>Output</span><pre class="code${r.ok ? '' : ' err'}">${esc(r.got)}</pre></div><div class="kv"><span>Expected</span><pre class="code">${esc(r.exp)}</pre></div>` : ''}`;
-  if (R.mode === 'submit') {
-    const bad = R.results.find(r => !r.ok);
-    return head + (bad ? `<p class="eyebrow">First failing testcase</p>${caseBox(bad)}` : '<p class="muted small">Every hidden test passed. Compare your approach with the Solution tab.</p>') + out;
-  }
-  const i = Math.min(C.rcase, R.results.length - 1);
-  return head + `<div class="casechips">${R.results.map((r, k) => `<button type="button" class="casechip ${r.ok ? 'pass' : 'fail'}${k === i ? ' on' : ''}" data-act="c-rcase" data-v="${k}">${r.ok ? '✓' : '✗'} ${R.results.length > 3 ? esc(r.label.slice(0, 26)) : 'Case ' + (k + 1)}</button>`).join('')}</div>` + caseBox(R.results[i]) + out;
+  if (!R) return `<p class="muted small">Run your code to see the results here.${canCustom(p) ? ' To debug with your own input, tick "Test against custom input".' : ''}</p>`;
+  const head = `<div class="vhead hrhead v-${verdictClass(R.verdict)}"><h3 class="v-${verdictClass(R.verdict)}">${esc(R.verdict)}</h3>${R.total ? `<span class="muted">${R.passed} / ${R.total} test cases passed</span>` : ''}${R.ms != null ? `<span class="muted">Runtime ${R.ms} ms</span>` : ''}</div>`;
+  const debug = R.stdout ? outBox('Debug output', R.stdout) : '';
+  if (R.error) return head + outBox('Compiler message', R.error, true) + debug;
+  if (R.mode === 'custom') return head + `<div class="hrdetail solo">${outBox('Input (stdin)', R.input)}${outBox('Your output (stdout)', R.got, !R.ok)}${outBox('Expected output (reference solution)', R.exp)}${debug}</div>`;
+  const nS = sampleCount(p), i = Math.min(C.rcase, R.results.length - 1), r = R.results[i];
+  const list = R.results.map((x, k) => `<button type="button" class="hrcase ${x.ok ? 'pass' : 'fail'}${k === i ? ' on' : ''}" data-act="c-rcase" data-v="${k}"><span>${k < nS ? 'Sample Test case' : 'Test case'} ${k}</span>${k >= nS ? `<span class="hrlock" title="Hidden">${ICON.lock}</span>` : ''}<i aria-label="${x.ok ? 'passed' : 'failed'}">${x.ok ? '✓' : '✗'}</i></button>`).join('');
+  const detail = i < nS ? caseDetail(r) : `<div class="hrlocked">${ICON.lock}<b>Hidden test case ${i}</b><p class="muted small">${r.ok ? 'Passed.' : 'Failed.'} Hidden test cases do not show their input or expected output, like on HackerRank. Test against custom input to debug.</p>
+      ${r.ok ? '' : `<details class="hrreveal"><summary>Reveal this test case</summary>${caseDetail(r)}</details>`}</div>`;
+  return head + `<div class="hrres"><div class="hrlist" role="list">${list}</div><div class="hrdetail">${detail}${debug}</div></div>`;
 }
 function consoleWrapHTML(p){
   const C = ui.cp;
-  return `<div class="console"><div class="ctabs" role="tablist">${judged(p) ? `<button type="button" role="tab" aria-selected="${C.ctab === 'case'}" data-act="c-ctab" data-v="case">Testcase</button><button type="button" role="tab" aria-selected="${C.ctab === 'result'}" data-act="c-ctab" data-v="result">Test Result</button>` : '<span class="ctitle">Check it yourself</span>'}
-</div>
+  return `<div class="console"><div class="ctabs" role="tablist">${judged(p) ? `<button type="button" role="tab" aria-selected="${C.ctab === 'case'}" data-act="c-ctab" data-v="case">${C.custom ? 'Custom Input' : 'Testcase'}</button><button type="button" role="tab" aria-selected="${C.ctab === 'result'}" data-act="c-ctab" data-v="result">Test Result</button>` : '<span class="ctitle">Check it yourself</span>'}
+    ${canCustom(p) ? `<label class="customtoggle"><input type="checkbox" id="c-custom"${C.custom ? ' checked' : ''}> Test against custom input</label>` : ''}</div>
     ${consoleHTML(p)}</div>`;
 }
 function actionsHTML(p){
@@ -1213,15 +1228,55 @@ async function judgeV(p, src, all){
   const results = vJudge(prob, u.net, ref);
   return {results, ms:Math.round(performance.now() - t0)};
 }
+// Runs one custom input through your code and the reference solution, and compares what each produced.
+const customRef = {};
+async function judgeCustom(p, src, cin){
+  if (!cin.trim()) return {verdict:'Error', error:'Type an input first.'};
+  if (!p.run.kind) {
+    const code = s => [s, '', 'def __norm(v):', '    if isinstance(v, tuple): v = list(v)', '    if isinstance(v, list): return [__norm(x) for x in v]',
+      '    if isinstance(v, dict): return {str(k): __norm(x) for k, x in v.items()}', '    return v',
+      `__args = eval(${JSON.stringify('(' + cin + ',)')})`, `repr(__norm(${p.run.fn}(*__args)))`].join('\n');
+    if (!pyRun.ready && !pyRun.main) setBusy('Loading Python in your browser (the first run downloads about 10 MB)…');
+    const mine = await execPython(code(src));
+    const input = p.run.fn + '(' + cin + ')';
+    if (mine.error) return {verdict:mine.tle ? 'Time Limit Exceeded' : /SyntaxError|IndentationError/.test(mine.error) ? 'Compile Error' : 'Runtime Error', error:mine.error, input};
+    const key = p.id + '\n' + cin;
+    if (!customRef[key]) { const ref = await execPython(code(p.sol)); customRef[key] = ref.error ? '(the reference solution could not run this input: ' + ref.error.split('\n').pop() + ')' : ref.result; }
+    const ok = mine.result === customRef[key];
+    return {verdict:ok ? 'Output matches' : 'Output differs', input, got:mine.result, exp:customRef[key], ok, stdout:mine.stdout};
+  }
+  // The harness wraps the block in @@B/@@E markers; close that first, evaluate (so prints land in the debug output),
+  // then open a fresh block holding only the value.
+  const t = p.run.tests[0], block = t[2] === 'out' ? cin : /^"/.test(t[1])
+    ? `printf("\\n@@E 0\\n"); const char *__r = (${cin}); printf("\\n@@B 0\\n%s", __r ? __r : "(null)");`
+    : `printf("\\n@@E 0\\n"); long long __v = (long long)(${cin}); printf("\\n@@B 0\\n%lld", __v);`;
+  const prob = Object.assign({}, p, {run:Object.assign({}, p.run, {tests:[[block, '', 'out', cin]]})});
+  const mine = await judgeC(prob, src, true);
+  if (mine.error && !(mine.results || []).length) return Object.assign({input:cin}, mine);
+  if (mine.verdict === 'Compile Error' || mine.verdict === 'Error') return Object.assign({input:cin}, mine);
+  const key = p.id + '\n' + cin;
+  if (!customRef[key]) { setBusy('Running the reference solution…'); const ref = await judgeC(prob, p.sol, true); customRef[key] = ref.verdict === 'Compile Error' || ref.verdict === 'Error' ? '(the reference solution could not run this input: ' + String(ref.error || '').split('\n')[0] + ')' : ref.results[0].got; }
+  const got = mine.results[0].got, ok = !mine.error && got === customRef[key];
+  return {verdict:mine.error ? mine.verdict : ok ? 'Output matches' : 'Output differs', error:mine.error, input:cin, got, exp:customRef[key], ok, stdout:mine.stdout, ms:mine.ms};
+}
 async function judgeCode(mode){
   const C = ui.cp, p = CODE_BY_ID[C.id], src = $('#code-editor').value, id = p.id, all = mode === 'submit';
   if (C.busy) return;
   setCode(id, {src:src.slice(0, CODE_MAX)}); save();
+  if (mode === 'run' && C.custom && canCustom(p)) {
+    const cin = C.cin != null ? C.cin : customDefault(p);
+    C.busy = 'Pending…'; C.ctab = 'result'; showRun();
+    let r;
+    try { r = await judgeCustom(p, src, cin); } catch (e) { r = {verdict:'Error', error:String(e && e.message || e)}; }
+    if (!ui.cp || ui.cp.id !== id) return;
+    C.busy = null; C.run = Object.assign({mode:'custom', results:[], total:0}, r); showRun(); return;
+  }
   C.busy = 'Pending…'; C.ctab = 'result'; C.rcase = 0; showRun();
   let res;
   try { res = await (p.run.kind === 'c' ? judgeC : p.run.kind === 'v' ? judgeV : judgePython)(p, src, all); }
   catch (e) { res = {verdict:'Error', error:String(e && e.message || e)}; }
   if (!ui.cp || ui.cp.id !== id) return;
+  if (res.results && res.results.some(r => !r.ok)) C.rcase = res.results.findIndex(r => !r.ok);
   const results = res.results || [], passed = results.filter(r => r.ok).length;
   const verdict = res.verdict || (passed === results.length && results.length ? 'Accepted' : 'Wrong Answer');
   C.busy = null;
@@ -2202,8 +2257,19 @@ function oaResults(){
       return `<li class="${r.ok ? 'ok' : r.has ? 'bad' : 'skip'}"><p>${esc(Q.q)}</p><p class="small">${r.has ? `Your answer: <b>${esc(r.pick)}</b> · ` : '<b>Skipped</b> · '}Correct: <b>${esc(correctText(Q))}</b></p><details><summary class="small">Why</summary><p class="small muted">${esc(Q.e)}</p></details></li>`;
     }).join('')}</ol></section>`;
 }
+// The locked Online Assessment: a sealed box, since the company stays a mystery until you finish.
+function oaLock(){
+  const checking = premium.status === 'checking';
+  return `<section class="oalock"><div class="mbox" aria-hidden="true"><span>?</span></div>
+    <p class="eyebrow">Online Assessment</p>
+    <h1>A real online assessment.<br>The company is a <em>mystery</em>.</h1>
+    <p class="muted">${checking ? 'Checking your subscription…' : 'We pick a company at random and give you its real assessment: the same timer, the same mix of hardware questions and coding problems, graded by hidden test cases. You find out which company it was only when you submit.'}</p>
+    <div class="mfacts"><span>${ICON.lock} Company hidden until the end</span><span>One timer for the whole test</span><span>Coding graded by hidden tests</span></div>
+    <div class="mrow" aria-hidden="true">${Array.from({length:6}, (_, i) => `<i style="--k:${i}">?</i>`).join('')}</div>
+    <div class="row center"><button type="button" class="btn primary big" data-act="go" data-v="premium">Unlock with Premium →</button></div></section>`;
+}
 function viewOA(){
-  if (!hasPremium()) return premiumLock('The Online Assessment');
+  if (!hasPremium()) return oaLock();
   if (ui.oaGrading) return '<section class="pagehead"><p class="eyebrow">Online assessment</p><h1>Grading…</h1></section>';
   if (state.oa && Date.now() >= state.oa.end) { setTimeout(() => oaSubmit(true), 0); return '<section class="pagehead"><p class="eyebrow">Online assessment</p><h1>Time\'s up. Grading…</h1></section>'; }
   if (oaActive()) return oaExam();
@@ -2503,6 +2569,8 @@ document.addEventListener('input', e => {
     return;
   }
   if (e.target.id === 'oa-code') { clearTimeout(ui.oaSaveT); ui.oaSaveT = setTimeout(oaSaveCode, 500); return; }
+  if (e.target.id === 'c-cin' && ui.cp) { ui.cp.cin = e.target.value; return; }
+  if (e.target.id === 'c-custom' && ui.cp) { if (ui.cp.custom !== e.target.checked) { ui.cp.custom = e.target.checked; ui.cp.ctab = 'case'; showRun(); } return; }
   if (e.target.id === 'code-editor') { syncEditor(); clearTimeout(ui.codeTimer); ui.codeTimer = setTimeout(saveEditorNow, 500); return; }
   if (e.target.closest('.cfbar')) { refreshCodeRows(); return; }
   if (e.target.closest('.fbar')) readFilters();
@@ -2532,7 +2600,10 @@ document.addEventListener('keydown', e => {
 document.addEventListener('scroll', e => { if (e.target.id === 'code-editor') syncScroll(); }, true);
 document.addEventListener('submit', e => { if (e.target.id === 'authemail') { e.preventDefault(); authEmail(); } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.auth) closeAuth(); });
-document.addEventListener('change', e => { if (e.target.id === 'import-file' && e.target.files[0]) importProgress(e.target.files[0]); });
+document.addEventListener('change', e => {
+  if (e.target.id === 'import-file' && e.target.files[0]) importProgress(e.target.files[0]);
+  if (e.target.id === 'c-custom' && ui.cp && ui.cp.custom !== e.target.checked) { ui.cp.custom = e.target.checked; ui.cp.ctab = 'case'; showRun(); }
+});
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.target.matches('input, select, textarea, button, summary, a')) return;
