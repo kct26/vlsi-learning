@@ -654,12 +654,12 @@ pre.code { border-radius: 10px; border-color: transparent; }
 .htopic:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
 .htopic b, .htopic small { padding: 0 18px; } .htopic b { font-size: 1.02rem; margin-top: 8px; } .htopic small { color: var(--muted); font-size: 0.8rem; }
 .hart { display: grid; place-items: center; height: 170px; }
-.htopic.t0 .hart { background: #E8DAFF; } .htopic.t1 .hart { background: #FFD6E8; } .htopic.t2 .hart { background: #E4E0D7; }
-.htopic.t3 .hart { background: #FFD6E8; } .htopic.t4 .hart { background: #E4E0D7; } .htopic.t5 .hart { background: #E8DAFF; }
+.htopic.t0 .hart { background: #DDF1E3; } .htopic.t1 .hart { background: #DCE8F5; } .htopic.t2 .hart { background: #ECE5D4; }
+.htopic.t3 .hart { background: #D5EDE9; } .htopic.t4 .hart { background: #F5EACB; } .htopic.t5 .hart { background: #E2E5E9; }
 .art { width: 78%; height: auto; fill: none; stroke: #161616; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .art text { stroke: none; fill: #161616; font: 600 12px var(--font-mono); }
 .art .soft { stroke: var(--lav); }
-.art-gpu rect { fill: rgba(238, 83, 150, 0.35); }
+.art-gpu rect { fill: rgba(0, 117, 62, 0.22); }
 .htry { padding: 0; gap: 0; overflow: hidden; }
 .htrytabs { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--line); }
 .htrytabs button { border: 0; background: none; padding: 14px; font-size: 0.86rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
@@ -683,7 +683,7 @@ pre.code { border-radius: 10px; border-color: transparent; }
 .hstats b { font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -0.04em; }
 .hstats span { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .hcta { position: relative; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 20px; align-items: center; border-radius: 20px; padding: 44px; overflow: hidden;
-  background: radial-gradient(90% 120% at 100% 100%, rgba(165, 110, 255, 0.22), transparent 60%), radial-gradient(60% 80% at 0% 0%, rgba(238, 83, 150, 0.10), transparent 60%), var(--surface); border: 1px solid var(--accent-line); }
+  background: radial-gradient(90% 120% at 100% 100%, rgba(0, 117, 62, 0.14), transparent 60%), radial-gradient(60% 80% at 0% 0%, rgba(37, 99, 235, 0.06), transparent 60%), var(--surface); border: 1px solid var(--accent-line); }
 .hcta > div:first-child { display: flex; flex-direction: column; gap: 16px; }
 .hcta h2 { font-size: clamp(2rem, 4.5vw, 3.2rem); line-height: 1.02; letter-spacing: -0.04em; }
 .hcta h2 em { color: var(--em-color); font-family: var(--font-serif); font-style: italic; font-weight: 400; }
@@ -885,7 +885,7 @@ code, pre, .code-editor, .editor, .hcode, .mono { font-variant-ligatures: none; 
 :root[data-theme="dark"] .topbar { background: color-mix(in srgb, var(--bg) 82%, transparent); }
 :root[data-theme="dark"] .hcos button { color: #6F766B; } :root[data-theme="dark"] .hcos button:hover { color: var(--ink); }
 :root[data-theme="dark"] .htopic.t0 .hart { background: #18202B; } :root[data-theme="dark"] .htopic.t1 .hart { background: #15241B; } :root[data-theme="dark"] .htopic.t2 .hart { background: #2A2416; }
-:root[data-theme="dark"] .htopic.t3 .hart { background: #211D2B; } :root[data-theme="dark"] .htopic.t4 .hart { background: #16242A; } :root[data-theme="dark"] .htopic.t5 .hart { background: #2A1B1A; }
+:root[data-theme="dark"] .htopic.t3 .hart { background: #142624; } :root[data-theme="dark"] .htopic.t4 .hart { background: #2A2614; } :root[data-theme="dark"] .htopic.t5 .hart { background: #1E2126; }
 :root[data-theme="dark"] .art { stroke: #CFD6CB; } :root[data-theme="dark"] .art text { fill: #CFD6CB; } :root[data-theme="dark"] .art-gpu rect { fill: rgba(95, 211, 141, 0.12); }
 :root[data-theme="dark"] .hcta { background: radial-gradient(90% 120% at 100% 100%, rgba(95, 211, 141, 0.14), transparent 60%), linear-gradient(180deg, #121A14, #0F120F); }
 :root[data-theme="dark"] .hcard { box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); }

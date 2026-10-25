@@ -438,7 +438,7 @@ function toast(text){
 // ---------- UI state ----------
 const TABS = ['home', 'theory', 'coding', 'oa', 'quest', 'companies', 'roles', 'profile', 'privacy', 'admin', 'premium'];
 const blankFilters = () => ({q:'', ch:'all', d:'all', status:'all', type:'all', list:'all', co:'all'});
-const ui = {tab:'home', co:null, coq:'', auth:null, home:{word:0, tab:1, tryi:0, tryv:{v:0.9, f:2, b:5, T:1, l:0.6, x:200}, timers:[]}, view:'tab', session:null, unit:null, pv:null, back:null, cardPick:{}, cardPerm:{}, f:blankFilters(), confirmReset:false, timer:null, cf:null, cp:null, cback:null, codeTimer:null};
+const ui = {tab:'home', co:null, coq:'', auth:null, home:{word:0, tab:0, tryi:0, tryv:{v:0.9, f:2, b:5, T:1, l:0.6, x:200}, timers:[]}, view:'tab', session:null, unit:null, pv:null, back:null, cardPick:{}, cardPerm:{}, f:blankFilters(), confirmReset:false, timer:null, cf:null, cp:null, cback:null, codeTimer:null};
 function setHash(h){ try { history.replaceState(null, '', '#' + h); } catch (e) { /* ignore */ } }
 function goTab(t){
   saveEditorNow();
