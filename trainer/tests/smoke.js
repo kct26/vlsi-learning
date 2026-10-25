@@ -57,14 +57,12 @@ async function phase1(){
   const visible = () => $('.topbar').innerText + ' ' + $('#main').innerText;
   // Home page
   ok($('.hhero h1') && /from the ground up/.test($('.hhero h1').textContent), 'home page opens first');
-  ok($$('.hptabs button').length === 5 && $$('.htopic').length === 6 && $$('.faqlist button').length >= 5, 'home: platform tabs, topic cards and FAQ');
+  ok($$('.hptabs button').length === 5 && $$('.htopic').length === 6 && !$('.hfaq'), 'home: platform tabs, topic cards, no FAQ');
   click('[data-act="home-tab"][data-v="2"]');
   ok(/reverse\.c/.test($('.hpcard .hbar').textContent), 'home platform tab switches its preview');
   click('[data-act="try-tab"][data-v="2"]');
   const rng = $('#trywid input[data-try="l"]'); rng.value = '1.8'; rng.dispatchEvent(new Event('input', {bubbles:true}));
   ok(/violated/.test($('#trywid .tryout').textContent) && $('#trywid input[data-try="l"]') === rng, 'try-it widget updates without replacing the slider');
-  click('[data-act="faq"][data-v="4"]');
-  ok(/WebAssembly/.test($('.faqans').textContent), 'FAQ answer switches');
   ok(!/NaN|undefined/.test($('#main').textContent), 'home has no NaN or undefined');
   tab('quest');
   ok($$('.rmnode').length === 36 && $$('.rmlines path').length >= 40, 'roadmap map: 36 topics with prerequisite lines');

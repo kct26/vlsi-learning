@@ -682,12 +682,6 @@ pre.code { border-radius: 10px; border-color: transparent; }
 .hstats div { display: flex; flex-direction: column; gap: 4px; }
 .hstats b { font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -0.04em; }
 .hstats span { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-.faqgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 20px; align-items: start; }
-.faqlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.faqlist button { display: flex; gap: 14px; width: 100%; text-align: left; border: 0; border-top: 1px solid var(--line); background: none; padding: 16px 4px; font-size: 0.98rem; font-weight: 500; cursor: pointer; color: var(--muted); }
-.faqlist button .mono { color: var(--line); font-size: 0.85rem; }
-.faqlist button[aria-selected="true"] { color: var(--ink); } .faqlist button[aria-selected="true"] .mono { color: var(--accent); }
-.faqans { padding: 26px; } .faqans h3 { font-size: 1.15rem; } .faqans p { color: var(--muted); }
 .hcta { position: relative; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 20px; align-items: center; border-radius: 20px; padding: 44px; overflow: hidden;
   background: radial-gradient(90% 120% at 100% 100%, rgba(165, 110, 255, 0.22), transparent 60%), radial-gradient(60% 80% at 0% 0%, rgba(238, 83, 150, 0.10), transparent 60%), var(--surface); border: 1px solid var(--accent-line); }
 .hcta > div:first-child { display: flex; flex-direction: column; gap: 16px; }
@@ -706,7 +700,7 @@ pre.code { border-radius: 10px; border-color: transparent; }
 .hcopy2 { grid-column: 1 / -1; }
 @media (max-width: 900px) {
   .hhero { grid-template-columns: 1fr; padding-top: 36px; gap: 28px; }
-  .hplat, .faqgrid, .htrybody, .hcta { grid-template-columns: 1fr; }
+  .hplat, .htrybody, .hcta { grid-template-columns: 1fr; }
   .hptabs { flex-direction: row; overflow-x: auto; } .hptabs button { white-space: nowrap; }
   .htopics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hstats { grid-template-columns: repeat(2, 1fr); }
@@ -995,7 +989,7 @@ h1, h2, h3, .hh2 { letter-spacing: -0.02em; }
 /* Square corners on boxes (cards, panels, tables, inputs, code); pills, badges, buttons and rings stay round */
 .card, .panel, .tablewrap, .subs, .widget, .hcard, .hcta, .htopic, .authr, .oaeditor, pre.code, code, .editor, .opt, .opt .key,
 .qgrid .nodebtn, .cocard, .rmnode, .rmboard, .rmtools, .rmside, .oabar, .oanums button, .oareview li, .recent li a,
-.hptabs button, .faqans, .tryout, .bit, .bigsearch, .fbar input, .fbar select, #authemail input, .authbtn, .authsubmit,
+.hptabs button, .tryout, .bit, .bigsearch, .fbar input, .fbar select, #authemail input, .authbtn, .authsubmit,
 .seg, .seg button, .timer, .ustats div, .qnav button, .iconbtn, .slist, .casechip, .kv > code, .autherr, .authinfo,
 .coav, .coav.lg, .pfav, .pfquick > div, .pfd, .oapool > div, .oapool .coav, .dau div, .dau i, .hpi, .rmtools .iconbtn { border-radius: 0 !important; }
 

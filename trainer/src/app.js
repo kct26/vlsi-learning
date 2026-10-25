@@ -438,7 +438,7 @@ function toast(text){
 // ---------- UI state ----------
 const TABS = ['home', 'theory', 'coding', 'oa', 'quest', 'companies', 'roles', 'profile', 'privacy', 'admin', 'premium'];
 const blankFilters = () => ({q:'', ch:'all', d:'all', status:'all', type:'all', list:'all', co:'all'});
-const ui = {tab:'home', co:null, coq:'', auth:null, home:{word:0, tab:1, tryi:0, faq:0, tryv:{v:0.9, f:2, b:5, T:1, l:0.6, x:200}, timers:[]}, view:'tab', session:null, unit:null, pv:null, back:null, cardPick:{}, cardPerm:{}, f:blankFilters(), confirmReset:false, timer:null, cf:null, cp:null, cback:null, codeTimer:null};
+const ui = {tab:'home', co:null, coq:'', auth:null, home:{word:0, tab:1, tryi:0, tryv:{v:0.9, f:2, b:5, T:1, l:0.6, x:200}, timers:[]}, view:'tab', session:null, unit:null, pv:null, back:null, cardPick:{}, cardPerm:{}, f:blankFilters(), confirmReset:false, timer:null, cf:null, cp:null, cback:null, codeTimer:null};
 function setHash(h){ try { history.replaceState(null, '', '#' + h); } catch (e) { /* ignore */ } }
 function goTab(t){
   saveEditorNow();
@@ -1405,14 +1405,6 @@ const HOME_TOPICS = [
   {name:'Digital logic', ch:9, art:'gates'}, {name:'Timing and clocks', ch:11, art:'clock'}, {name:'CMOS and transistors', ch:5, art:'mos'},
   {name:'Memory and architecture', ch:20, art:'pipe'}, {name:'GPUs and CUDA', ch:21, art:'gpu'}, {name:'Computer arithmetic', ch:22, art:'adder'},
 ];
-const HOME_FAQ = [
-  ['Is it free?', 'Yes. The book, every quest, all 682 theory problems and 64 coding problems, and the in-browser judge are free. There is nothing to buy.'],
-  ['Who is it for?', 'Students preparing for hardware internships and new-grad roles: ASIC design, verification, physical design, architecture, power, and the online assessments that screen for them.'],
-  ['I am new to hardware. Where do I start?', 'Start Quest 1. The quests follow the book from charge and current up to GPUs, each with short lessons, interactive widgets and a checkpoint.'],
-  ['What topics does it cover?', 'Circuits, semiconductors and MOSFETs, CMOS gates, combinational and sequential logic, timing, power, PVT, wires and signal integrity, manufacturing and test, memory, Verilog and verification, computer architecture, GPUs, computer arithmetic, and programming with Linux and scripting.'],
-  ['Which languages run in the browser?', 'Python (Pyodide), C and C++ (Clang compiled to WebAssembly) and Verilog (synthesized by Yosys and simulated gate by gate). Run tries the examples; Submit runs every hidden test.'],
-  ['Do I need an account?', 'Yes, a free one (Google or email). This page is open to everyone; practicing needs an account, so your progress, streak and code follow you to every device.'],
-];
 function homeVis(kind){
   if (kind === 'wave') return `<svg viewBox="0 0 300 150" class="wavesvg" aria-hidden="true"><g class="wl"><text x="0" y="22">clk</text><text x="0" y="62">en</text><text x="0" y="102">q</text></g>
     <path class="wclk" d="M36 30 ${Array.from({length:8}, (_, i) => `h16 v-16 h16 v16`).join(' ')}"/><path class="wsig" d="M36 70 h24 v-16 h228"/>
@@ -1470,8 +1462,6 @@ function viewHome(){
     <section class="hsec wrap wide"><h2 class="hh2 left">Try the problems</h2><div class="card htry"><div class="htrytabs" role="tablist">${TRY.map((t, i) => `<button type="button" role="tab" aria-selected="${H.tryi === i}" data-act="try-tab" data-v="${i}"><span class="mono">0${i + 1}</span> ${esc(t.name)}</button>`).join('')}</div>
       <div class="htrybody"><div><h3>${esc(TRY[H.tryi].name)}</h3><p class="mono teq">${esc(TRY[H.tryi].eq)}</p></div><div id="trywid">${tryHTML(H.tryi)}</div></div></div></section>
     <section class="hsec wrap wide hstats">${[[BANK.length, 'theory problems'], [CODING.length, 'coding problems'], [judged, 'judged in your browser'], [UNITS.length, 'interactive quests']].map(([n, l]) => `<div><b>${n.toLocaleString()}</b><span>${l}</span></div>`).join('')}</section>
-    <section class="hsec wrap wide hfaq"><h2 class="hh2 left">Questions, answered</h2><div class="faqgrid"><ol class="faqlist">${HOME_FAQ.map((f, i) => `<li><button type="button" aria-selected="${H.faq === i}" data-act="faq" data-v="${i}"><span class="mono">0${i + 1}</span>${esc(f[0])}</button></li>`).join('')}</ol>
-      <div class="card faqans"><h3>${esc(HOME_FAQ[H.faq][0])}</h3><p>${esc(HOME_FAQ[H.faq][1])}</p></div></div></section>
     <section class="hsec wrap wide"><div class="hcta"><div><h2>Stop reading.<br><em>Start building.</em></h2><p>Don't just read hardware theory. Solve it, simulate it and judge it yourself, one problem at a time.</p>
       <div class="row">${acct.ready && !acct.user ? '<button type="button" class="btn primary big" data-act="signin">Create free account</button>' : '<button type="button" class="btn primary big" data-act="go" data-v="quest">Start learning</button>'}<button type="button" class="btn big ghost" data-act="go" data-v="theory">Browse problems</button></div>
       <div class="langs"><span>${BANK.length + CODING.length} problems</span><i>·</i><span>Verilog and C judge</span><i>·</i><span>233-page book</span></div></div>
@@ -2260,7 +2250,6 @@ function act(a){
     case 'co-d': ui.co.d = a.dataset.v; render(); break;
     case 'home-tab': ui.home.tab = +a.dataset.v; render(); break;
     case 'try-tab': ui.home.tryi = +a.dataset.v; render(); break;
-    case 'faq': ui.home.faq = +a.dataset.v; render(); break;
     case 'try-bit': ui.home.tryv.b ^= 1 << +a.dataset.v; $('#trywid').innerHTML = tryHTML(1); break;
     case 'try-byte': ui.home.tryv.x ^= 1 << +a.dataset.v; $('#trywid').innerHTML = tryHTML(3); break;
     case 'auth-close': closeAuth(); break;
