@@ -1184,6 +1184,26 @@ textarea.cin:focus { outline: 2px solid var(--accent-line); border-color: var(--
 /* inline icons inside sentences stay text-sized */
 .oastmt p svg, .cbody > p svg, .hrlocked p svg { width: 13px; height: 13px; vertical-align: -2px; }
 
+/* ---------- Results you can read without scrolling ---------- */
+.console { transition: height .2s ease; }
+.console.tall { height: 60%; }
+.ctabs .cmaxbtn { margin-left: auto; width: 30px; height: 30px; min-height: 30px; font-size: 1rem; }
+.ctabs .customtoggle + .cmaxbtn { margin-left: 8px; }
+.console .cbody { gap: 8px; padding: 10px 14px; }
+.console .kv { gap: 3px; }
+.console .kv > span { font-size: 0.74rem; }
+.console .kv pre.code { padding: 7px 11px; margin: 0; }
+.console .vhead { padding: 6px 10px; } .console .vhead h3 { font-size: 1.05rem; }
+.outpair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+@media (max-width: 700px) { .outpair { grid-template-columns: 1fr; } }
+/* Expand: the console takes the editor's place (the Run and Submit buttons stay). */
+.cpv.cmax .ceditor .editor, .oaide.cmax .editor { display: none; }
+.cpv.cmax .ceditor .console, .oaide.cmax .console { height: auto; flex: 1; }
+/* Full screen, like LeetCode: the problem and editor fill the window. */
+body.cfull { overflow: hidden; }
+body.cfull .cpv-wrap { position: fixed; inset: 0; z-index: 60; background: var(--bg); padding: 10px 12px; }
+body.cfull .cpv { height: calc(100vh - 66px); min-height: 0; }
+
 </style>
 </head>
 <body>
@@ -5081,6 +5101,7 @@ function render(){
   }
   renderHeader();
   document.body.classList.toggle('noprem', !hasPremium());
+  document.body.classList.toggle('cfull', !!ui.cfull && ui.view === 'code');
   if (needsVerify() && !(ui.view === 'tab' && ui.tab === 'privacy')) { homeStop(); oaStop(); const mv = $('#main'); mv.className = 'wrap main'; mv.innerHTML = viewVerify(); return; }
   const m = $('#main'), home = ui.view === 'tab' && ui.tab === 'home';
   m.className = home ? 'main home' : 'wrap main' + ((ui.view === 'tab' && ['theory', 'coding', 'companies', 'profile', 'quest', 'admin', 'oa'].includes(ui.tab)) || ui.view === 'code' || ui.view === 'company' || ui.view === 'position' ? ' wide' : '');
@@ -5553,8 +5574,8 @@ const sampleCount = p => p.run.kind === 'v' ? 1 : exampleCount(p);
 const outBox = (label, text, err) => `<div class="kv"><span>${label}</span><pre class="code${err ? ' err' : ''}">${esc(text === '' || text == null ? '(empty)' : text)}</pre></div>`;
 function caseDetail(p, r, k, hr){
   const input = !hr && !p.run.kind && p.run.tests[k] ? caseInputHTML(p, p.run.tests[k]) : outBox(hr ? 'Input (stdin)' : 'Input', r.label);
-  return `${hr ? outBox('Compiler message', r.ok ? 'Success' : 'Wrong Answer', !r.ok) : ''}${r.at ? outBox('When', r.at) : ''}${input}
-    ${r.exp !== '' || r.got !== '' ? outBox(hr ? 'Your Output (stdout)' : 'Output', r.got, !r.ok) + outBox(hr ? 'Expected Output' : 'Expected', r.exp) : ''}`;
+  const outs = r.exp !== '' || r.got !== '' ? `<div class="outpair">${outBox(hr ? 'Your Output (stdout)' : 'Output', r.got, !r.ok)}${outBox(hr ? 'Expected Output' : 'Expected', r.exp)}</div>` : '';
+  return `${hr ? outBox('Compiler message', r.ok ? 'Success' : 'Wrong Answer', !r.ok) : ''}${outs}${r.at ? outBox('When', r.at) : ''}${input}`;
 }
 function resultHTML(p, C, pre){
   C = C || ui.cp; pre = pre || 'c';
@@ -5564,7 +5585,7 @@ function resultHTML(p, C, pre){
   const head = `<div class="vhead hrhead v-${verdictClass(R.verdict)}"><h3 class="v-${verdictClass(R.verdict)}">${esc(R.verdict)}</h3>${R.total ? `<span class="muted">${R.passed} / ${R.total} test cases passed</span>` : ''}${R.ms != null ? `<span class="muted">Runtime ${R.ms} ms</span>` : ''}</div>`;
   const debug = R.stdout ? outBox(hr ? 'Debug output' : 'Stdout', R.stdout) : '';
   if (R.error) return head + outBox(hr ? 'Compilation message' : 'Error', R.error, true) + debug;
-  if (R.mode === 'custom') return head + `<div class="tcase">${outBox(hr ? 'Input (stdin)' : 'Input', R.input)}${outBox(hr ? 'Your Output (stdout)' : 'Output', R.got, !R.ok)}${outBox('Expected (reference solution)', R.exp)}${debug}</div>`;
+  if (R.mode === 'custom') return head + `<div class="tcase"><div class="outpair">${outBox(hr ? 'Your Output (stdout)' : 'Output', R.got, !R.ok)}${outBox('Expected (reference solution)', R.exp)}</div>${outBox(hr ? 'Input (stdin)' : 'Input', R.input)}${debug}</div>`;
   const nS = sampleCount(p), i = Math.min(C.rcase || 0, R.results.length - 1), r = R.results[i];
   const detail = i < nS ? caseDetail(p, r, i, hr) : `<div class="hrlocked">${ICON.lock}<b>Hidden test case ${hr ? i : i - nS + 1}</b><p class="muted small">${r.ok ? 'Passed.' : 'Failed.'} Hidden test cases do not show their input or expected output. Try a custom case to debug.</p>
       ${r.ok ? '' : `<details class="hrreveal"><summary>Reveal this test case</summary>${caseDetail(p, r, i, hr)}</details>`}</div>`;
@@ -5580,7 +5601,9 @@ function consoleWrapHTML(p, C, pre){
   const tabs = pre === 'oa'
     ? `<button type="button" role="tab" aria-selected="${C.ctab !== 'case'}" data-act="oa-ctab" data-v="result">Test Results</button>${canCustom(p) ? `<button type="button" role="tab" aria-selected="${C.ctab === 'case'}" data-act="oa-ctab" data-v="case">Custom Input${C.custom ? ' ✓' : ''}</button>` : ''}`
     : `<button type="button" role="tab" aria-selected="${C.ctab === 'case'}" data-act="c-ctab" data-v="case">Testcase</button><button type="button" role="tab" aria-selected="${C.ctab === 'result'}" data-act="c-ctab" data-v="result">Test Result</button>`;
-  return `<div class="console${pre === 'oa' ? ' hr' : ''}"><div class="ctabs" role="tablist">${judged(p) ? tabs : '<span class="ctitle">Check it yourself</span>'}</div>
+  const tall = C.ctab === 'result' && (C.run || C.busy) ? ' tall' : '';
+  const maxBtn = judged(p) ? `<button type="button" class="iconbtn cmaxbtn" data-act="${pre}-cmax" aria-pressed="${!!C.cmax}" title="${C.cmax ? 'Show the editor again' : 'Expand the console'}" aria-label="${C.cmax ? 'Show the editor again' : 'Expand the console'}">${C.cmax ? '⤡' : '⤢'}</button>` : '';
+  return `<div class="console${pre === 'oa' ? ' hr' : ''}${tall}"><div class="ctabs" role="tablist">${judged(p) ? tabs : '<span class="ctitle">Check it yourself</span>'}${maxBtn}</div>
     ${consoleHTML(p, C, pre)}</div>`;
 }
 function actionsHTML(p){
@@ -5634,8 +5657,9 @@ function viewCode(){
   return `<div class="cpv-wrap"><div class="pvbar"><button type="button" class="btn ghost small" data-act="c-back">← ${back}</button>
     <div class="row"><span class="muted mono">${pos + 1} / ${C.list.length}</span>
     <button type="button" class="iconbtn" data-act="c-prev" aria-label="Previous problem"${pos <= 0 ? ' disabled' : ''}>‹</button>
-    <button type="button" class="iconbtn" data-act="c-next" aria-label="Next problem"${pos >= C.list.length - 1 ? ' disabled' : ''}>›</button></div></div>
-    <div class="cpv">${codeLeftHTML()}
+    <button type="button" class="iconbtn" data-act="c-next" aria-label="Next problem"${pos >= C.list.length - 1 ? ' disabled' : ''}>›</button>
+    <button type="button" class="btn small ghost" data-act="c-full" aria-pressed="${!!ui.cfull}">${ui.cfull ? '⤡ Exit full screen' : '⛶ Full screen'}</button></div></div>
+    <div class="cpv${C.cmax ? ' cmax' : ''}">${codeLeftHTML()}
     <section class="ceditor panel"><div class="ehead"><span class="etitle">&lt;/&gt; Code</span>${langPickHTML(p, userLang(p.id), 'c')}<span class="spacer"></span>
       <button type="button" class="btn small ghost" data-act="c-reset">Reset</button>${actionsHTML(p)}</div>
       <div class="editor" data-lang="${userLang(p.id)}"><pre class="gutter" aria-hidden="true">${gutter(src)}</pre><div class="ed-area"><pre class="hl" aria-hidden="true">${highlight(src, userLang(p.id))}\n</pre>
@@ -6819,7 +6843,7 @@ function oaItemHTML(O, it, k){
   return `<div class="oacode"><section class="panel oastmt"><div class="pscroll"><p class="eyebrow">Question ${k + 1} of ${n} · Coding</p><h2>${esc(p.title)}</h2>
       <div class="body">${p.p.map(t => `<p>${inlineCode(t)}</p>`).join('')}</div>${samplesHTML(p)}
       ${p.run ? `<p class="muted small">Hidden test cases ${ICON.lock} also check corner cases. They are graded when you submit the test.</p>` : ''}</div></section>
-    <section class="panel ceditor oaide"><div class="ehead">${langPickHTML(p, lang, 'oa')}<span class="spacer"></span><button type="button" class="btn small ghost" data-act="oa-reset">Reset</button>
+    <section class="panel ceditor oaide${R.cmax ? ' cmax' : ''}"><div class="ehead">${langPickHTML(p, lang, 'oa')}<span class="spacer"></span><button type="button" class="btn small ghost" data-act="oa-reset">Reset</button>
       ${p.run ? `<span class="eacts"><button type="button" class="btn small" data-act="oa-run"${R.busy ? ' disabled' : ''}>Run Code</button><button type="button" class="btn small go" data-act="oa-runall"${R.busy ? ' disabled' : ''}>Submit code</button></span>` : ''}</div>
       <div class="editor" data-lang="${lang}"><pre class="gutter" aria-hidden="true">${gutter(src)}</pre><div class="ed-area"><pre class="hl" aria-hidden="true">${highlight(src, lang)}\n</pre>
         <textarea id="oa-code" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your code (Tab inserts spaces)">${esc(src)}</textarea></div></div>
@@ -7130,6 +7154,9 @@ function act(a){
     case 'oa-rcase': { const R = oaCurRun(); if (R) { R.rcase = +a.dataset.v; oaShowRun(); } break; }
     case 'oa-reset': { const O = state.oa, it = O && O.items[O.i]; if (it && it.t === 'c') { O.src[it.id] = CODE_BY_ID[it.id].starter; save(); render(); } break; }
     case 'c-custom-on': ui.cp.custom = true; ui.cp.ctab = 'case'; showRun(); break;
+    case 'c-cmax': ui.cp.cmax = !ui.cp.cmax; { const v = $('.cpv'); if (v) v.classList.toggle('cmax', ui.cp.cmax); } showRun(); break;
+    case 'oa-cmax': { const R = oaCurRun(); if (R) { R.cmax = !R.cmax; const e = $('.oaide'); if (e) e.classList.toggle('cmax', R.cmax); oaShowRun(); } break; }
+    case 'c-full': saveEditorNow(); ui.cfull = !ui.cfull; render(); break;
     case 'oa-submit': oaSaveCode(); ui.oaConfirm = true; render(); break;
     case 'oa-submit-no': ui.oaConfirm = false; render(); break;
     case 'oa-submit-yes': oaSaveCode(); oaSubmit(false); break;
@@ -7269,7 +7296,7 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('scroll', e => { if (e.target.id === 'code-editor') syncScroll(); else if (e.target.id === 'oa-code') syncScrollOf(e.target); }, true);
 document.addEventListener('submit', e => { if (e.target.id === 'authemail') { e.preventDefault(); authEmail(); } });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.auth) closeAuth(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.auth) closeAuth(); else if (e.key === 'Escape' && ui.cfull && ui.view === 'code' && e.target.id !== 'code-editor') { saveEditorNow(); ui.cfull = false; render(); } });
 document.addEventListener('change', e => {
   if (e.target.id === 'import-file' && e.target.files[0]) importProgress(e.target.files[0]);
   if (e.target.id === 'oa-custom') { const R = oaCurRun(); if (R) { R.custom = e.target.checked; oaShowRun(); } }

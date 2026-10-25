@@ -426,6 +426,15 @@ async function phase6(){
   ok($$('#run-out .casechip').length === 3 && $('#run-out .casechip.fail') && /Case 1/.test($('#run-out .casechips').textContent), 'Run shows a result tab per example case, LeetCode style');
   ok(/n =/.test($('#run-out').textContent) && /Expected/.test($('#run-out').textContent) && /Output/.test($('#run-out').textContent), 'a case shows its input, your output and the expected output');
   ok(/checking/.test($('#run-out .tcase').textContent) && /Stdout/.test($('#run-out').textContent), 'printed output is shown as stdout');
+  ok($('.console.tall') && $('#run-out .outpair') && $('#run-out .tcase').firstElementChild.classList.contains('outpair'), 'after Run the console grows and Output / Expected come first');
+  click('[data-act="c-cmax"]');
+  ok($('.cpv.cmax') && getComputedStyle($('.ceditor .editor')).display === 'none' && $('[data-act="c-run"]'), 'expand hides the editor so the results fill the panel');
+  click('[data-act="c-cmax"]');
+  ok(!$('.cpv.cmax') && getComputedStyle($('.ceditor .editor')).display !== 'none', 'expand toggles back');
+  click('[data-act="c-full"]');
+  ok(document.body.classList.contains('cfull') && getComputedStyle($('.cpv-wrap')).position === 'fixed', 'full screen fills the window');
+  click('[data-act="c-full"]');
+  ok(!document.body.classList.contains('cfull'), 'full screen toggles off');
   const custom = on => { click('[data-act="c-ctab"][data-v="case"]'); click(on ? '[data-act="c-custom-on"]' : '[data-act="c-case"][data-v="0"]'); };
   custom(true);
   ok($('#c-cin') && /Custom/.test($('#run-out .casechip.on').textContent), 'the + tab opens a custom input box');
@@ -455,7 +464,7 @@ async function phase6(){
   ok(await judge('c-submit', 60) === 'Accepted' && st().code['c-01'].solved > 0, 'C: a correct answer is Accepted');
   custom(true);
   const ccin = $('#c-cin'); ccin.value = 'popcount(255u)'; ccin.dispatchEvent(new Event('input', {bubbles:true}));
-  ok(await judge('c-run', 120) === 'Output matches' && /\b8\b/.test($('#run-out .tcase').textContent), 'C: custom input compiles and compares with the reference (' + verdict() + ')');
+  ok(await judge('c-run', 120) === 'Output matches' && $('#run-out .outpair pre').textContent.trim() === '8', 'C: custom input compiles and compares with the reference (' + verdict() + ')');
   custom(false);
   const lsel = $('#c-lang'); lsel.value = 'cpp'; lsel.dispatchEvent(new Event('change', {bubbles:true}));
   ok(st().code['c-01'].lang === 'cpp' && /C\+\+17/.test($('#c-lang').selectedOptions[0].textContent), 'a C problem can switch to C++');

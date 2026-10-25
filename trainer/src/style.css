@@ -1168,3 +1168,23 @@ textarea.cin:focus { outline: 2px solid var(--accent-line); border-color: var(--
 }
 /* inline icons inside sentences stay text-sized */
 .oastmt p svg, .cbody > p svg, .hrlocked p svg { width: 13px; height: 13px; vertical-align: -2px; }
+
+/* ---------- Results you can read without scrolling ---------- */
+.console { transition: height .2s ease; }
+.console.tall { height: 60%; }
+.ctabs .cmaxbtn { margin-left: auto; width: 30px; height: 30px; min-height: 30px; font-size: 1rem; }
+.ctabs .customtoggle + .cmaxbtn { margin-left: 8px; }
+.console .cbody { gap: 8px; padding: 10px 14px; }
+.console .kv { gap: 3px; }
+.console .kv > span { font-size: 0.74rem; }
+.console .kv pre.code { padding: 7px 11px; margin: 0; }
+.console .vhead { padding: 6px 10px; } .console .vhead h3 { font-size: 1.05rem; }
+.outpair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+@media (max-width: 700px) { .outpair { grid-template-columns: 1fr; } }
+/* Expand: the console takes the editor's place (the Run and Submit buttons stay). */
+.cpv.cmax .ceditor .editor, .oaide.cmax .editor { display: none; }
+.cpv.cmax .ceditor .console, .oaide.cmax .console { height: auto; flex: 1; }
+/* Full screen, like LeetCode: the problem and editor fill the window. */
+body.cfull { overflow: hidden; }
+body.cfull .cpv-wrap { position: fixed; inset: 0; z-index: 60; background: var(--bg); padding: 10px 12px; }
+body.cfull .cpv { height: calc(100vh - 66px); min-height: 0; }
