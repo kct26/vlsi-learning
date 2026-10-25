@@ -1199,10 +1199,112 @@ textarea.cin:focus { outline: 2px solid var(--accent-line); border-color: var(--
 /* Expand: the console takes the editor's place (the Run and Submit buttons stay). */
 .cpv.cmax .ceditor .editor, .oaide.cmax .editor { display: none; }
 .cpv.cmax .ceditor .console, .oaide.cmax .console { height: auto; flex: 1; }
-/* Full screen, like LeetCode: the problem and editor fill the window. */
-body.cfull { overflow: hidden; }
-body.cfull .cpv-wrap { position: fixed; inset: 0; z-index: 60; background: var(--bg); padding: 10px 12px; }
-body.cfull .cpv { height: calc(100vh - 66px); min-height: 0; }
+/* Full screen hides the site's top bar too, so the workspace gets the whole window. */
+body.cfull .topbar { display: none; }
+
+/* ---------- Coding workspace: fills the window like LeetCode, with draggable splits ---------- */
+.cpv, .oacode { grid-template-columns: minmax(0, var(--lsplit, 45%)) 10px minmax(0, 1fr); gap: 0; }
+.console { height: var(--csplit, 42%); }
+.console.tall { height: var(--csplit-tall, 60%); }
+.gsplit { flex: none; position: relative; touch-action: none; user-select: none; }
+.gsplit.v { cursor: col-resize; }
+.gsplit.h { height: 8px; cursor: row-resize; background: var(--surface-2); border-top: 1px solid var(--line); }
+.gsplit::after { content: ""; position: absolute; border-radius: 2px; background: var(--line); transition: background .15s; }
+.gsplit.v::after { left: 4px; top: 50%; width: 2px; height: 36px; margin-top: -18px; }
+.gsplit.h::after { top: 2px; left: 50%; width: 36px; height: 2px; margin-left: -18px; }
+.gsplit:hover::after, .gsplit.on::after { background: var(--accent); }
+.gsplit.v:hover, .gsplit.v.on { background: linear-gradient(90deg, transparent 4px, var(--accent-soft) 4px, var(--accent-soft) 6px, transparent 6px); }
+body.dragging, body.dragging * { cursor: inherit; user-select: none !important; }
+body.dragging .ed-area textarea { pointer-events: none; }
+.cpv.cmax .gsplit.h, .oaide.cmax .gsplit.h { display: none; }
+@media (min-width: 901px) {
+  body.ide { overflow: hidden; }
+  .main.ide { max-width: none; height: calc(100vh - var(--topbar-h, 52px)); padding: 8px 12px 10px; gap: 8px; overflow: hidden; box-sizing: border-box; }
+  body.cfull .main.ide { height: 100vh; }
+  .main.ide .cpv-wrap { flex: 1; min-height: 0; gap: 6px; }
+  .main.ide .cpv-wrap > .pvbar { flex: none; }
+  .main.ide .cpv { flex: 1; height: auto; min-height: 0; }
+  .main.ide .oabar { position: static; flex: none; padding: 8px 14px; }
+  .main.ide .oaexam { flex: 1; min-height: 0; align-items: stretch; }
+  .main.ide .oarail { position: static; max-height: none; }
+  .main.ide .oamain { min-height: 0; display: flex; }
+  .main.ide .oaq.oacodeq { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 8px; gap: 8px; }
+  .main.ide .oacode { flex: 1; height: auto; min-height: 0; }
+  .main.ide .oacodeq .oanavrow { flex: none; margin-top: 0; padding-top: 8px; }
+}
+@media (max-width: 900px) {
+  .cpv, .oacode { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .gsplit.v { display: none; }
+}
+
+/* ---------- Learn: the book as lessons, LeetCode Explore style ---------- */
+.lhero { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; padding: 26px 28px; }
+.lhero > div:first-child { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 10px; }
+.lhero h1 em { color: var(--em-color); font-family: var(--font-serif); font-style: italic; font-weight: 400; }
+.lstats { display: flex; gap: 18px; flex-wrap: wrap; font-size: 0.9rem; color: var(--muted); } .lstats b { color: var(--ink); }
+.lpart { display: flex; flex-direction: column; gap: 10px; }
+.lparth { font-size: 1.05rem; display: flex; gap: 10px; align-items: baseline; margin: 6px 0 0; } .lparth .mono { font-size: 0.75rem; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; }
+.lgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.lcard { display: flex; gap: 14px; align-items: flex-start; text-align: left; background: var(--surface); border: 1px solid var(--line); padding: 16px; cursor: pointer; color: inherit; font: inherit; box-shadow: var(--shadow-sm); transition: border-color .15s, transform .15s, box-shadow .15s; }
+.lcard:hover { border-color: var(--hover-line); transform: translateY(-1px); box-shadow: var(--shadow); }
+.lcard.complete { border-color: var(--accent-line); }
+.lnum { flex: none; width: 40px; height: 40px; display: grid; place-items: center; background: var(--ink); color: var(--surface); font: 700 1rem var(--font-mono); }
+.lcard.complete .lnum { background: var(--accent); color: var(--accent-ink); }
+.lbody { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; } .lbody b { line-height: 1.3; } .lbody small { color: var(--muted); }
+.lx { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 16px; align-items: start; }
+.lside { position: sticky; top: calc(var(--topbar-h, 52px) + 14px); max-height: calc(100vh - var(--topbar-h, 52px) - 28px); }
+.lside-h { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-bottom: 1px solid var(--line); align-items: flex-start; }
+.lside-h b { line-height: 1.3; } .lside-h .cobar { width: 100%; margin: 4px 0 0; }
+.litems { overflow: auto; flex: 1; min-height: 0; padding: 6px 0; display: flex; flex-direction: column; }
+.litem { display: flex; gap: 10px; align-items: flex-start; text-align: left; border: 0; background: none; padding: 8px 16px; font: inherit; font-size: 0.88rem; color: var(--muted); cursor: pointer; line-height: 1.35; }
+.litem:hover { background: var(--surface-2); color: var(--ink); }
+.litem.on { background: var(--accent-soft); color: var(--ink); box-shadow: inset 3px 0 0 var(--accent); font-weight: 600; }
+.lchk { flex: none; width: 18px; height: 18px; display: grid; place-items: center; border: 1.5px solid var(--line); border-radius: 50%; font-style: normal; font-size: 0.7rem; margin-top: 1px; }
+.litem.done .lchk { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.litem.done { color: var(--ink); }
+.litem.prac { margin-top: 6px; border-top: 1px solid var(--line); padding-top: 12px; }
+.litem em { margin-left: auto; font-style: normal; font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); }
+.lside-f { display: flex; justify-content: space-between; padding: 8px 10px; border-top: 1px solid var(--line); }
+.lmain { padding: 26px 34px 30px; gap: 16px; min-width: 0; }
+.crumbs { font-size: 0.82rem; color: var(--muted); } .crumbs .linkbtn { font-size: inherit; }
+.ltitle { font-size: clamp(1.5rem, 2.6vw, 2rem); letter-spacing: -0.02em; }
+.lart { display: flex; flex-direction: column; gap: 14px; max-width: 76ch; font-size: 1rem; line-height: 1.7; }
+.lart p { margin: 0; }
+.lart h3 { font-size: 1.15rem; margin: 10px 0 0; } .lart h4 { font-size: 1rem; margin: 6px 0 0; }
+.lart ul, .lart ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
+.lart li > p { margin: 6px 0 0; }
+.lart .runin { margin-right: 4px; }
+.lart pre.code { white-space: pre; overflow-x: auto; font-size: 0.84rem; line-height: 1.55; }
+.lart .mathd { overflow-x: auto; text-align: center; padding: 4px 0; font-size: 1.08em; }
+.lart .math { white-space: nowrap; }
+.lart math { font-size: 1.08em; }
+.lart .fn { color: var(--muted); font-size: 0.9em; }
+.bfig { margin: 6px 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.bfig img { max-width: 100%; height: auto; background: #FFFFFF; padding: 10px; border: 1px solid var(--line); }
+.bfig figcaption { font-size: 0.86rem; color: var(--muted); text-align: center; max-width: 64ch; }
+.btable table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+.btable th, .btable td { border-bottom: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+.btable th { font-weight: 600; background: var(--surface-2); }
+.bbox { border: 1px solid var(--line); border-left: 4px solid var(--accent); background: var(--surface-2); padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.bbox-h { font: 600 0.74rem var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin: 0; }
+.b-trap { border-left-color: var(--bad); } .b-trap .bbox-h { color: var(--bad); }
+.b-onoa { border-left-color: #B45309; } .b-onoa .bbox-h { color: #B45309; }
+.b-remember { border-left-color: #A16207; } .b-remember .bbox-h { color: #A16207; }
+.b-everyday { border-left-color: #0E7490; } .b-everyday .bbox-h { color: #0E7490; }
+.b-worked { border-left-color: var(--ink); } .b-worked .bbox-h { color: var(--ink); }
+.bcenter { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.bdraw { font-style: italic; }
+.lnav { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; padding-top: 16px; border-top: 1px solid var(--line); }
+.lnav .btn.on { color: var(--accent); }
+.lprac { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; } .lprac > div:first-child { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 10px; }
+:root[data-theme="dark"] .b-onoa { border-left-color: #F59E0B; } :root[data-theme="dark"] .b-onoa .bbox-h { color: #F59E0B; }
+:root[data-theme="dark"] .b-remember .bbox-h { color: #FACC15; } :root[data-theme="dark"] .b-everyday .bbox-h { color: #22D3EE; }
+@media (max-width: 900px) {
+  .lx { grid-template-columns: 1fr; }
+  .lside { position: static; max-height: 340px; }
+  .lmain { padding: 18px 16px 22px; }
+}
+@media (min-width: 700px) { .lhero { flex-direction: row; flex-wrap: nowrap; } }
 
 </style>
 </head>
@@ -1213,6 +1315,7 @@ body.cfull .cpv { height: calc(100vh - 66px); min-height: 0; }
       <svg class="logo" viewBox="0 0 30 30" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="7" width="16" height="16" rx="1.5"/><path d="M11 7V3M15 7V3M19 7V3M11 27v-4M15 27v-4M19 27v-4M7 11H3M7 15H3M7 19H3M27 11h-4M27 15h-4M27 19h-4"/></g><rect x="11.5" y="11.5" width="7" height="7" style="fill:var(--accent)"/></svg>
       <span class="bname">HardCode</span></a>
     <nav class="navlinks" aria-label="Sections">
+      <button type="button" data-tab="learn">Learn</button>
       <button type="button" data-tab="theory">Theory</button>
       <button type="button" data-tab="coding">Coding</button>
       <button type="button" data-tab="quest">Roadmap</button>
@@ -4774,7 +4877,7 @@ function ring(frac, size, stroke, label){
 
 // ---------- state and saving ----------
 const LS_KEY = 'ground-up-trainer-v1';
-const emptyState = () => ({v:2, updatedAt:0, q:{}, weeks:{}, hist:[], learn:{cards:{}, units:{}, mux:{}}, code:{}, codeWeek:null, log:[], oa:null, oaHist:[]});
+const emptyState = () => ({v:2, updatedAt:0, q:{}, weeks:{}, hist:[], learn:{cards:{}, units:{}, mux:{}}, code:{}, codeWeek:null, log:[], oa:null, oaHist:[], read:{}});
 const LOG_MAX = 5000;   // submissions kept for the profile's heatmap, streaks and recent list
 // Rebuilds a submission log from older saves that predate it: one entry per answered problem and per code submission.
 function backfillLog(e){
@@ -4807,6 +4910,7 @@ function normalize(s){
     if (Array.isArray(x.subs)) e.code[id].subs = x.subs.filter(u => u && VERDICTS.includes(u.v)).slice(-20).map(u => ({at:num(u.at), v:u.v, p:num(u.p), t:num(u.t)}));
   });
   if (s.codeWeek && s.codeWeek.wk) e.codeWeek = s.codeWeek;
+  if (s.read && typeof s.read === 'object') Object.keys(s.read).forEach(k => { if (/^\d{1,2}-\d{1,2}$/.test(k) && num(s.read[k])) e.read[k] = num(s.read[k]); });
   if (Array.isArray(s.oaHist)) e.oaHist = s.oaHist.filter(h => h && typeof h === 'object' && CO_BY_ID[h.co]).slice(0, 30)
     .map(h => ({at:num(h.at), co:h.co, right:num(h.right), wrong:num(h.wrong), n:num(h.n), codeDone:num(h.codeDone), codeN:num(h.codeN), score:num(h.score), total:num(h.total), pct:Math.min(100, num(h.pct)), used:num(h.used), neg:!!h.neg}));
   if (s.oa && typeof s.oa === 'object' && CO_BY_ID[s.oa.co] && Array.isArray(s.oa.items)) {
@@ -4903,6 +5007,7 @@ function mergeStates(a, b){
   m.oaHist.concat(o.oaHist).forEach(h => { hk[h.at] = h; });
   m.oaHist = Object.values(hk).sort((x, y) => y.at - x.at).slice(0, 30);
   if (o.oa && (!m.oa || o.oa.start > m.oa.start)) m.oa = o.oa;
+  m.read = Object.assign({}, o.read || {}, m.read || {});
   m.updatedAt = Math.max(m.updatedAt, o.updatedAt);
   return m;
 }
@@ -5027,14 +5132,25 @@ function toast(text){
 }
 
 // ---------- UI state ----------
-const TABS = ['home', 'theory', 'coding', 'oa', 'quest', 'companies', 'roles', 'profile', 'privacy', 'admin', 'premium'];
+const TABS = ['home', 'learn', 'theory', 'coding', 'oa', 'quest', 'companies', 'roles', 'profile', 'privacy', 'admin', 'premium'];
 const blankFilters = () => ({q:'', ch:'all', d:'all', status:'all', type:'all', list:'all', co:'all'});
 const ui = {tab:'home', co:null, coq:'', auth:null, home:{word:0, tab:0, tryi:0, tryv:{v:0.9, f:2, b:5, T:1, l:0.6, x:200}, timers:[]}, view:'tab', session:null, unit:null, pv:null, back:null, cardPick:{}, cardPerm:{}, f:blankFilters(), confirmReset:false, timer:null, cf:null, cp:null, cback:null, codeTimer:null};
 function setHash(h){ try { history.replaceState(null, '', '#' + h); } catch (e) { /* ignore */ } }
+// Account pages (profile, privacy, Premium, admin) remember where you came from, for their Back button.
+const SETTINGS_TABS = ['profile', 'privacy', 'premium', 'admin'];
+const TAB_LABEL = {home:'Home', learn:'Learn', theory:'Theory', coding:'Coding', quest:'Roadmap', oa:'Online Assessment', companies:'Companies', roles:'Roles'};
 function goTab(t){
   saveEditorNow();
-  ui.tab = t; ui.view = 'tab'; stopTimer(); setHash(t);
+  if (SETTINGS_TABS.includes(t) && !(SETTINGS_TABS.includes(ui.tab) && ui.view === 'tab')) ui.settingsFrom = {tab:ui.tab, view:ui.view};
+  ui.tab = t; ui.view = 'tab'; stopTimer();
+  try { if (location.hash !== '#' + t) history.pushState(null, '', '#' + t); } catch (e) { setHash(t); }   // so the browser's Back works too
   render(); window.scrollTo(0, 0);
+}
+function settingsBack(){
+  const f = ui.settingsFrom || {tab:'home', view:'tab'};
+  ui.settingsFrom = null;
+  if (f.view && f.view !== 'tab' && ((f.view === 'code' && ui.cp) || (f.view === 'problem' && ui.pv) || (f.view === 'company' && ui.co) || (f.view === 'position' && ui.pos) || (f.view === 'unit' && ui.unit) || (f.view === 'lesson' && ui.lesson))) { ui.tab = f.tab; ui.view = f.view; render(); window.scrollTo(0, 0); return; }
+  goTab(SETTINGS_TABS.includes(f.tab) ? 'home' : f.tab);
 }
 
 // ---------- shared pieces ----------
@@ -5104,7 +5220,11 @@ function render(){
   document.body.classList.toggle('cfull', !!ui.cfull && ui.view === 'code');
   if (needsVerify() && !(ui.view === 'tab' && ui.tab === 'privacy')) { homeStop(); oaStop(); const mv = $('#main'); mv.className = 'wrap main'; mv.innerHTML = viewVerify(); return; }
   const m = $('#main'), home = ui.view === 'tab' && ui.tab === 'home';
-  m.className = home ? 'main home' : 'wrap main' + ((ui.view === 'tab' && ['theory', 'coding', 'companies', 'profile', 'quest', 'admin', 'oa'].includes(ui.tab)) || ui.view === 'code' || ui.view === 'company' || ui.view === 'position' ? ' wide' : '');
+  m.className = home ? 'main home' : 'wrap main' + ((ui.view === 'tab' && ['theory', 'coding', 'companies', 'profile', 'quest', 'admin', 'oa'].includes(ui.tab)) || ui.view === 'code' || ui.view === 'company' || ui.view === 'position' || ui.view === 'lesson' || (ui.view === 'tab' && ui.tab === 'learn') ? ' wide' : '');
+  const ide = ideMode();
+  if (ide) m.className = 'main ide';
+  document.body.classList.toggle('ide', ide);
+  if (ide) { const tb = $('.topbar'); document.documentElement.style.setProperty('--topbar-h', (tb && !document.body.classList.contains('cfull') ? tb.offsetHeight : 0) + 'px'); }
   if (!home) homeStop();
   oaStop();
   if (ui.view === 'quiz') { m.innerHTML = viewQuiz(); updateTimer(); }
@@ -5114,6 +5234,8 @@ function render(){
   else if (ui.view === 'code') m.innerHTML = viewCode();
   else if (ui.view === 'company') m.innerHTML = viewCompany();
   else if (ui.view === 'position') m.innerHTML = viewPosition();
+  else if (ui.view === 'lesson') { m.innerHTML = viewLesson(); renderMath(m); }
+  else if (ui.view === 'tab' && ui.tab === 'learn') m.innerHTML = viewLearn();
   else if (home) { m.innerHTML = viewHome(); homeStart(); }
   else if (ui.tab === 'coding') m.innerHTML = viewCoding();
   else if (ui.tab === 'quest') { m.innerHTML = viewQuest(); if (ui.rm.fit) { ui.rm.fit = false; rmZoom('fit'); } }
@@ -5125,6 +5247,10 @@ function render(){
   else if (ui.tab === 'oa') { m.innerHTML = viewOA(); if (oaActive()) oaTickStart(); }
   else if (ui.tab === 'companies') m.innerHTML = viewCompanies();
   else m.innerHTML = viewRoles();
+  if (ui.view === 'tab' && SETTINGS_TABS.includes(ui.tab) && !home) {
+    const f = ui.settingsFrom, label = f && f.view === 'tab' ? TAB_LABEL[f.tab] || 'Home' : f ? 'previous page' : 'Home';
+    m.insertAdjacentHTML('afterbegin', `<div class="pvbar setback"><button type="button" class="btn ghost small" data-act="settings-back">← Back to ${esc(label)}</button></div>`);
+  }
 }
 
 // ---------- Quest map ----------
@@ -5278,7 +5404,7 @@ function openProblem(id, list, back){
   ui.view = 'problem'; setHash('p' + BY_ID[id].n); render(); window.scrollTo(0, 0);
 }
 function moveProblem(id){ openProblem(id, ui.pv.list); }
-const backLabel = () => !ui.back ? 'Theory' : ui.back.view === 'unit' ? 'Back to quest' : ui.back.view === 'company' ? 'Back to ' + CO_BY_ID[ui.back.co].name : ui.back.view === 'position' ? 'Back to position' : ui.back.tab === 'profile' ? 'Back to profile' : ui.back.tab === 'roles' ? 'Back to roles' : 'Theory';
+const backLabel = () => !ui.back ? 'Theory' : ui.back.view === 'unit' ? 'Back to quest' : ui.back.view === 'company' ? 'Back to ' + CO_BY_ID[ui.back.co].name : ui.back.view === 'position' ? 'Back to position' : ui.back.view === 'lesson' ? 'Back to the lesson' : ui.back.tab === 'profile' ? 'Back to profile' : ui.back.tab === 'roles' ? 'Back to roles' : 'Theory';
 function viewProblem(){
   const P = ui.pv, Q = BY_ID[P.id], pos = P.list.indexOf(P.id), s = state.q[Q.id], st = statusOf(Q.id);
   const locked = P.result === 'ok' || P.reveal;
@@ -5650,21 +5776,37 @@ function toolNote(lang){
     perl:'Run it with perl on any Linux or macOS machine.', cuda:'Compile it with nvcc on a machine with an NVIDIA GPU (Google Colab works).', matlab:'Run it in MATLAB or GNU Octave.'}[lang] || '') + ' Mark it solved when your version works.';
 }
 const JUDGE_NAME = {python:'Python (Pyodide)', c:'C (Clang, WebAssembly)', cpp:'C++17 (Clang, WebAssembly)', verilog:'Verilog (Yosys + gate simulator)'};
+// The coding workspace fills the window like LeetCode: drag the handles to resize the problem, the code and the
+// console. The split is remembered in this browser.
+const SPLIT_KEY = 'hardcode-split';
+function splitPrefs(){ try { const v = JSON.parse(localStorage.getItem(SPLIT_KEY) || '{}'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } }
+function splitStyle(){
+  const v = splitPrefs(), ok = x => typeof x === 'number' && x >= 15 && x <= 85;
+  return (ok(v.l) ? `--lsplit:${v.l}%;` : '') + (ok(v.c) ? `--csplit:${v.c}%;--csplit-tall:${v.c}%;` : '');
+}
+const vSplit = '<div class="gsplit v" data-split="v" role="separator" aria-orientation="vertical" aria-label="Drag to resize the problem and the code" title="Drag to resize"></div>';
+const hSplit = '<div class="gsplit h" data-split="h" role="separator" aria-orientation="horizontal" aria-label="Drag to resize the code and the console" title="Drag to resize"></div>';
+// The workspace layout is on for coding problems and for coding questions in the Online Assessment.
+function ideMode(){
+  if (ui.view === 'code') return true;
+  const O = state.oa;
+  return ui.view === 'tab' && ui.tab === 'oa' && hasPremium() && oaActive() && O.i >= 0 && O.items[O.i] && O.items[O.i].t === 'c' && !(O.end <= Date.now());
+}
 function viewCode(){
   const C = ui.cp, p = CODE_BY_ID[C.id], pos = C.list.indexOf(C.id), s = state.code[p.id] || {}, st = codeStatus(p.id);
   const src = s.src != null ? s.src : p.starter;
-  const back = ui.cback && ui.cback.tab === 'profile' ? 'Back to profile' : ui.cback && ui.cback.view === 'company' ? 'Back to ' + CO_BY_ID[ui.cback.co].name : ui.cback && ui.cback.view === 'position' ? 'Back to position' : 'Coding problems';
+  const back = ui.cback && ui.cback.tab === 'profile' ? 'Back to profile' : ui.cback && ui.cback.view === 'company' ? 'Back to ' + CO_BY_ID[ui.cback.co].name : ui.cback && ui.cback.view === 'position' ? 'Back to position' : ui.cback && ui.cback.view === 'lesson' ? 'Back to the lesson' : 'Coding problems';
   return `<div class="cpv-wrap"><div class="pvbar"><button type="button" class="btn ghost small" data-act="c-back">← ${back}</button>
     <div class="row"><span class="muted mono">${pos + 1} / ${C.list.length}</span>
     <button type="button" class="iconbtn" data-act="c-prev" aria-label="Previous problem"${pos <= 0 ? ' disabled' : ''}>‹</button>
     <button type="button" class="iconbtn" data-act="c-next" aria-label="Next problem"${pos >= C.list.length - 1 ? ' disabled' : ''}>›</button>
     <button type="button" class="btn small ghost" data-act="c-full" aria-pressed="${!!ui.cfull}">${ui.cfull ? '⤡ Exit full screen' : '⛶ Full screen'}</button></div></div>
-    <div class="cpv${C.cmax ? ' cmax' : ''}">${codeLeftHTML()}
+    <div class="cpv${C.cmax ? ' cmax' : ''}" style="${splitStyle()}">${codeLeftHTML()}${vSplit}
     <section class="ceditor panel"><div class="ehead"><span class="etitle">&lt;/&gt; Code</span>${langPickHTML(p, userLang(p.id), 'c')}<span class="spacer"></span>
       <button type="button" class="btn small ghost" data-act="c-reset">Reset</button>${actionsHTML(p)}</div>
       <div class="editor" data-lang="${userLang(p.id)}"><pre class="gutter" aria-hidden="true">${gutter(src)}</pre><div class="ed-area"><pre class="hl" aria-hidden="true">${highlight(src, userLang(p.id))}\n</pre>
         <textarea id="code-editor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your code (Tab inserts spaces; Esc leaves the editor)">${esc(src)}</textarea></div></div>
-      ${consoleWrapHTML(p)}</section></div></div>`;
+      ${hSplit}${consoleWrapHTML(p)}</section></div></div>`;
 }
 
 // ---------- the editor: line numbers and light syntax colouring under a plain textarea ----------
@@ -6187,6 +6329,99 @@ function viewRoles(){
       <div><dt>Hiring</dt><dd><div class="row">${hiring(r).map(c => `<button type="button" class="cologo" data-act="co-open" data-v="${c.id}" title="${esc(c.name)}" aria-label="${esc(c.name)}">${coAvatar(c, 'sm')}</button>`).join('') || '<span class="muted">Most hardware companies</span>'}</div></dd></div>
       <div><dt>Also do</dt><dd>${esc(r.add)}</dd></div></dl></article>`).join('') + '</div></section>';
   return html;
+}
+
+// ---------- Learn: the book as lessons, LeetCode Explore style ----------
+// Each chapter of Hardware from the Ground Up is a card of lessons (its sections), ending with that chapter's
+// problems. Reading a lesson and solving a problem both count toward the chapter.
+const CH_CODE = {11:['Physical design'], 19:['RTL design', 'Verification'], 21:['GPU and CUDA'], 23:['C and C++', 'Python and MATLAB', 'Linux and scripting']};
+const chapterCode = ch => CODING.filter(p => (CH_CODE[ch] || []).includes(p.area)).map(p => p.id);
+const book = () => window.BOOK_LESSONS || null;
+const bookCh = ch => (book() || []).find(c => c.n === ch);
+function ensureBook(){
+  if (book() || ui.bookLoading) return;
+  ui.bookLoading = true;
+  loadScript('book/lessons.js').then(() => { ui.bookLoading = false; render(); }, () => { ui.bookLoading = false; ui.bookErr = true; render(); });
+}
+function markRead(id, on){ if (on) state.read[id] = state.read[id] || Date.now(); else delete state.read[id]; save(); }
+function chapterProgress(ch){
+  const c = bookCh(ch), lessons = c ? c.sections.length : 0, read = c ? c.sections.filter(x => state.read[x.id]).length : 0;
+  const t = CH_IDS[ch] || [], k = chapterCode(ch), solved = solvedIn(t) + codeSolvedIn(k.map(id => CODE_BY_ID[id]));
+  return {lessons, read, probs:t.length + k.length, solved, done:read + solved, total:lessons + t.length + k.length};
+}
+function openChapter(ch){
+  const c = bookCh(ch); if (!c) return;
+  const first = c.sections.find(x => !state.read[x.id]);
+  openLesson(ch, first ? first.id.split('-')[1] : 'p');
+}
+function openLesson(ch, sec){
+  saveEditorNow();
+  ui.tab = 'learn'; ui.lesson = {ch, sec:String(sec)}; ui.view = 'lesson';
+  try { history.pushState(null, '', `#learn-${ch}-${sec}`); } catch (e) { setHash(`learn-${ch}-${sec}`); }
+  render(); window.scrollTo(0, 0);
+}
+// The page before or after this one: lessons in order, each chapter ending with its Practice page.
+function lessonStep(dir){
+  const B = book(), L = ui.lesson; if (!B || !L) return null;
+  const seq = [];
+  B.forEach(c => { c.sections.forEach(x => seq.push({ch:c.n, sec:x.id.split('-')[1]})); seq.push({ch:c.n, sec:'p'}); });
+  const i = seq.findIndex(x => x.ch === L.ch && x.sec === L.sec);
+  return i < 0 ? null : seq[i + dir] || null;
+}
+function viewLearn(){
+  const B = book();
+  if (!B) { ensureBook(); return `<section class="pagehead"><p class="eyebrow">Learn</p><h1>${ui.bookErr ? 'The book could not be loaded' : 'Loading the book…'}</h1>${ui.bookErr ? '<p class="muted">Check your connection and reload the page.</p>' : ''}</section>`; }
+  const all = B.map(c => chapterProgress(c.n)), lessons = all.reduce((n, x) => n + x.lessons, 0), read = all.reduce((n, x) => n + x.read, 0);
+  const probs = all.reduce((n, x) => n + x.probs, 0), solved = all.reduce((n, x) => n + x.solved, 0), done = read + solved, total = lessons + probs;
+  const next = B.find(c => { const P = chapterProgress(c.n); return P.read < P.lessons; });
+  const card = c => { const P = chapterProgress(c.n); return `<button type="button" class="lcard${P.done && P.done === P.total ? ' complete' : ''}" data-act="learn-open" data-v="${c.n}"><span class="lnum">${c.n}</span>
+      <span class="lbody"><b>${esc(c.title)}</b><small>${P.lessons} lessons · ${P.probs} problems</small><span class="cobar"><i style="width:${pct(P.done, P.total)}%"></i></span>
+      <small class="mono">${P.done}/${P.total} done${P.done && P.done === P.total ? ' ✓' : ''}</small></span></button>`; };
+  return `<section class="card lhero"><div><p class="eyebrow">Learn</p><h1>Hardware from the <em>Ground Up</em></h1>
+      <p class="muted">The whole book, chapter by chapter, as short lessons. Read a topic, then practice the problems on it right after. Lessons you finish and problems you solve both count.</p>
+      <div class="lstats"><span><b>${read}</b>/${lessons} lessons read</span><span><b>${solved}</b>/${probs} problems solved</span></div>
+      ${next ? `<div class="row"><button type="button" class="btn primary" data-act="learn-open" data-v="${next.n}">${read ? 'Continue' : 'Start'} with Chapter ${next.n} →</button></div>` : ''}</div>
+      <div class="herostat">${ring(total ? done / total : 0, 96, 8, `${done} of ${total} done`)}<div><b>${pct(done, total).replace(/\.0$/, '')}%</b><span>complete</span></div></div></section>
+    ${PARTS.map(part => `<section class="lpart"><h2 class="lparth"><span class="mono">Part ${part.n}</span> ${esc(part.name)}</h2><div class="lgrid">${part.units.map(n => bookCh(n)).filter(Boolean).map(card).join('')}</div></section>`).join('')}`;
+}
+function viewLesson(){
+  const B = book(), L = ui.lesson;
+  if (!B) { ensureBook(); return '<section class="pagehead"><p class="eyebrow">Learn</p><h1>Loading the book…</h1></section>'; }
+  const c = bookCh(L.ch); if (!c) { ui.view = 'tab'; return viewLearn(); }
+  const P = chapterProgress(c.n), prac = L.sec === 'p', sec = prac ? null : c.sections.find(x => x.id === `${c.n}-${L.sec}`) || c.sections[0];
+  const items = c.sections.map((x, i) => `<button type="button" class="litem${!prac && sec.id === x.id ? ' on' : ''}${state.read[x.id] ? ' done' : ''}" data-act="learn-go" data-v="${x.id}"><i class="lchk" aria-label="${state.read[x.id] ? 'read' : 'not read'}">${state.read[x.id] ? '✓' : ''}</i><span>${x.id.endsWith('-0') ? '' : x.id.split('-')[1] + '. '}${esc(x.title)}</span></button>`).join('')
+    + `<button type="button" class="litem prac${prac ? ' on' : ''}${P.probs && P.solved === P.probs ? ' done' : ''}" data-act="learn-go" data-v="${c.n}-p"><i class="lchk">${P.probs && P.solved === P.probs ? '✓' : '✎'}</i><span>Practice problems</span><em>${P.solved}/${P.probs}</em></button>`;
+  const prevCh = bookCh(c.n - 1), nextCh = bookCh(c.n + 1);
+  const side = `<aside class="lside panel"><div class="lside-h"><button type="button" class="linkbtn small" data-act="learn-home">← All chapters</button>
+      <p class="eyebrow">Chapter ${c.n}</p><b>${esc(c.title)}</b><span class="cobar"><i style="width:${pct(P.done, P.total)}%"></i></span><small class="muted">${P.read}/${P.lessons} lessons · ${P.solved}/${P.probs} problems</small></div>
+    <nav class="litems" aria-label="Lessons">${items}</nav>
+    <div class="lside-f">${prevCh ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${prevCh.n}">‹ Ch ${prevCh.n}</button>` : '<span></span>'}${nextCh ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${nextCh.n}">Ch ${nextCh.n} ›</button>` : ''}</div></aside>`;
+  const step = lessonStep(1), back = lessonStep(-1);
+  let main;
+  if (prac) {
+    const k = chapterCode(c.n);
+    main = `<nav class="crumbs"><button type="button" class="linkbtn" data-act="learn-home">Learn</button> › Chapter ${c.n} · ${esc(c.title)}</nav>
+      <div class="lprac"><div><h1>Practice: ${esc(c.title)}</h1><p class="muted">${P.read === P.lessons ? 'You have read every lesson in this chapter.' : `You have read ${P.read} of ${P.lessons} lessons.`} These are the problems on this chapter's topics. Each one you solve counts toward the chapter.</p>
+        <div class="row"><button type="button" class="btn primary" data-act="learn-practice">${P.solved ? 'Continue practicing' : 'Start practicing'} →</button></div></div>
+        <div class="herostat">${ring(P.probs ? P.solved / P.probs : 0, 76, 7, `${P.solved} of ${P.probs} solved`)}<div><b>${P.solved}<span class="muted">/${P.probs}</span></b><span>solved</span></div></div></div>
+      <h3 class="subh">Theory (${CH_IDS[c.n].length})</h3>${tableHTML(CH_IDS[c.n], 'full', 'lprows', 'learn')}
+      ${k.length ? `<h3 class="subh">Coding (${k.length})</h3>${codeTableHTML(k, 'learn')}` : ''}`;
+  } else {
+    main = `<nav class="crumbs"><button type="button" class="linkbtn" data-act="learn-home">Learn</button> › Chapter ${c.n} · ${esc(c.title)}</nav>
+      <h1 class="ltitle">${esc(sec.title)}</h1><article class="lart">${sec.html}</article>
+      <div class="lnav"><button type="button" class="btn ghost" data-act="learn-prev"${back ? '' : ' disabled'}>← Previous</button>
+        <button type="button" class="btn small ghost${state.read[sec.id] ? ' on' : ''}" data-act="learn-read">${state.read[sec.id] ? '✓ Read' : 'Mark as read'}</button>
+        <button type="button" class="btn primary" data-act="learn-next"${step ? '' : ' disabled'}>${step && step.sec === 'p' ? 'Practice this chapter →' : 'Next →'}</button></div>`;
+  }
+  return `<div class="lx">${side}<section class="lmain card">${main}</section></div>`;
+}
+// Math in the lessons is TeX; KaTeX (loaded the first time a lesson opens) turns it into MathML.
+const KATEX = 'https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js';
+const KATEX_MACROS = {'\\VDD':'V_{DD}', '\\Vt':'V_{t}', '\\Vtn':'V_{tn}', '\\Vtp':'V_{tp}', '\\nt':'\\overline{#1}', '\\code':'\\texttt{#1}', '\\term':'\\textbf{#1}'};
+function renderMath(root){
+  const els = root.querySelectorAll('.math[data-tex]:not(.done), .mathd[data-tex]:not(.done)'); if (!els.length) return;
+  const go = () => els.forEach(el => { try { window.katex.render(el.dataset.tex, el, {displayMode:el.classList.contains('mathd'), output:'mathml', throwOnError:false, macros:Object.assign({}, KATEX_MACROS)}); el.classList.add('done'); } catch (e) { /* leave the TeX as text */ } });
+  if (window.katex) go(); else loadScript(KATEX).then(go, () => {});
 }
 
 // ---------- Home ----------
@@ -6840,14 +7075,14 @@ function oaItemHTML(O, it, k){
       ${it.id in O.ans ? '<button type="button" class="linkbtn small" data-act="oa-clear">Clear answer</button>' : ''}${nav}`;
   }
   const p = CODE_BY_ID[it.id], src = O.src[it.id] != null ? O.src[it.id] : p.starter, lang = langOf(p, (O.lang || {})[p.id]), R = oaRunState(p.id);
-  return `<div class="oacode"><section class="panel oastmt"><div class="pscroll"><p class="eyebrow">Question ${k + 1} of ${n} · Coding</p><h2>${esc(p.title)}</h2>
+  return `<div class="oacode" style="${splitStyle()}"><section class="panel oastmt"><div class="pscroll"><p class="eyebrow">Question ${k + 1} of ${n} · Coding</p><h2>${esc(p.title)}</h2>
       <div class="body">${p.p.map(t => `<p>${inlineCode(t)}</p>`).join('')}</div>${samplesHTML(p)}
-      ${p.run ? `<p class="muted small">Hidden test cases ${ICON.lock} also check corner cases. They are graded when you submit the test.</p>` : ''}</div></section>
+      ${p.run ? `<p class="muted small">Hidden test cases ${ICON.lock} also check corner cases. They are graded when you submit the test.</p>` : ''}</div></section>${vSplit}
     <section class="panel ceditor oaide${R.cmax ? ' cmax' : ''}"><div class="ehead">${langPickHTML(p, lang, 'oa')}<span class="spacer"></span><button type="button" class="btn small ghost" data-act="oa-reset">Reset</button>
       ${p.run ? `<span class="eacts"><button type="button" class="btn small" data-act="oa-run"${R.busy ? ' disabled' : ''}>Run Code</button><button type="button" class="btn small go" data-act="oa-runall"${R.busy ? ' disabled' : ''}>Submit code</button></span>` : ''}</div>
       <div class="editor" data-lang="${lang}"><pre class="gutter" aria-hidden="true">${gutter(src)}</pre><div class="ed-area"><pre class="hl" aria-hidden="true">${highlight(src, lang)}\n</pre>
         <textarea id="oa-code" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your code (Tab inserts spaces)">${esc(src)}</textarea></div></div>
-      ${p.run ? consoleWrapHTML(p, R, 'oa') : '<div class="console"><div class="cbody"><p class="muted small">Graded by hand: compare with the solution after you submit.</p></div></div>'}</section></div>${nav}`;
+      ${hSplit}${p.run ? consoleWrapHTML(p, R, 'oa') : '<div class="console"><div class="cbody"><p class="muted small">Graded by hand: compare with the solution after you submit.</p></div></div>'}</section></div>${nav}`;
 }
 // Run Code (sample cases), Submit code (every test, hidden ones locked) and custom input inside the assessment.
 const oaRunState = id => (ui.oaRun || (ui.oaRun = {}))[id] || (ui.oaRun[id] = {busy:null, run:null, rcase:0, ctab:'result', custom:false, cin:null});
@@ -7079,6 +7314,7 @@ document.addEventListener('click', e => {
     const cfrom = (co.closest('[data-from]') || {dataset:{}}).dataset.from;
     if (cfrom === 'profile') openCode(co.dataset.copen, CODING.map(p => p.id), {view:'tab', tab:'profile'});
     else if (cfrom === 'company') openCode(co.dataset.copen, coCoding(ui.co.id), {view:'company', co:ui.co.id});
+    else if (cfrom === 'learn' && ui.lesson) openCode(co.dataset.copen, chapterCode(ui.lesson.ch), {view:'lesson'});
     else if (cfrom === 'position' && POS_BY_ID[ui.pos.id]) openCode(co.dataset.copen, posSet(POS_BY_ID[ui.pos.id]).code, {view:'position', pos:ui.pos.id});
     else openCode(co.dataset.copen, codeFiltered().map(p => p.id), {view:'tab', tab:'coding'});
     return;
@@ -7090,6 +7326,7 @@ document.addEventListener('click', e => {
     if (from === 'profile') openProblem(id, null, {view:'tab', tab:'profile'});
     else if (ui.view === 'unit') openProblem(id, CH_IDS[ui.unit.id], {view:'unit'});
     else if (from === 'company') openProblem(id, ui.co.tab === 'rep' ? coReported(ui.co.id) : coTheory(ui.co.id), {view:'company', co:ui.co.id});
+    else if (from === 'learn' && ui.lesson) openProblem(id, CH_IDS[ui.lesson.ch], {view:'lesson'});
     else if (from === 'position' && POS_BY_ID[ui.pos.id]) openProblem(id, posSet(POS_BY_ID[ui.pos.id]).theory, {view:'position', pos:ui.pos.id});
     else openProblem(id, filtered().map(Q => Q.id), {view:'tab', tab:'theory'});
   }
@@ -7099,6 +7336,14 @@ function act(a){
   switch (a.dataset.act) {
     case 'open-unit': openUnit(+a.dataset.u); break;
     case 'go': goTab(a.dataset.v); break;
+    case 'settings-back': settingsBack(); break;
+    case 'learn-home': goTab('learn'); break;
+    case 'learn-open': openChapter(+a.dataset.v); break;
+    case 'learn-go': { const [ch, sec] = a.dataset.v.split('-'); openLesson(+ch, sec); break; }
+    case 'learn-next': { const L = ui.lesson; if (L && L.sec !== 'p') markRead(`${L.ch}-${L.sec}`, true); const nx = lessonStep(1); if (nx) openLesson(nx.ch, nx.sec); break; }
+    case 'learn-prev': { const pv = lessonStep(-1); if (pv) openLesson(pv.ch, pv.sec); break; }
+    case 'learn-read': { const L = ui.lesson; if (L) { markRead(`${L.ch}-${L.sec}`, !state.read[`${L.ch}-${L.sec}`]); render(); } break; }
+    case 'learn-practice': { const ch = ui.lesson.ch, ids = CH_IDS[ch], next = ids.find(id => statusOf(id) !== 'solved') || ids[0]; openProblem(next, ids, {view:'lesson'}); break; }
     case 'rm-sel': ui.rm.sel = a.dataset.v; rmRefreshSel(); break;
     case 'rm-zoom': rmZoom(a.dataset.v); break;
     case 'theme': setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'); break;
@@ -7188,7 +7433,7 @@ function act(a){
       if (pool.length) openCode(pool[Math.floor(Math.random() * pool.length)].id, list.map(p => p.id), {view:'tab', tab:'coding'});
       break;
     }
-    case 'c-back': saveEditorNow(); if (ui.cback && ui.cback.view === 'position') returnFrom(ui.cback); else if (ui.cback && ui.cback.view === 'company') { ui.view = 'company'; setHash('company-' + ui.co.id); render(); } else goTab(ui.cback && ui.cback.tab ? ui.cback.tab : 'coding'); break;
+    case 'c-back': saveEditorNow(); if (ui.cback && (ui.cback.view === 'position' || ui.cback.view === 'lesson')) returnFrom(ui.cback); else if (ui.cback && ui.cback.view === 'company') { ui.view = 'company'; setHash('company-' + ui.co.id); render(); } else goTab(ui.cback && ui.cback.tab ? ui.cback.tab : 'coding'); break;
     case 'c-prev': case 'c-next': {
       const C = ui.cp, i = C.list.indexOf(C.id) + (a.dataset.act === 'c-next' ? 1 : -1);
       if (i >= 0 && i < C.list.length) openCode(C.list[i], C.list);
@@ -7249,6 +7494,7 @@ function act(a){
 }
 function returnFrom(from){
   if (from && from.view === 'company') { ui.view = 'company'; setHash('company-' + from.co); render(); return; }
+  if (from && from.view === 'lesson' && ui.lesson) { ui.view = 'lesson'; setHash(`learn-${ui.lesson.ch}-${ui.lesson.sec}`); render(); return; }
   if (from && from.view === 'position') { ui.pos = {id:from.pos, d:(ui.pos && ui.pos.id === from.pos && ui.pos.d) || 'all'}; ui.view = 'position'; setHash('position-' + from.pos); render(); return; }
   if (from && from.view === 'unit' && ui.unit) { ui.view = 'unit'; render(); return; }
   goTab(from && from.tab ? from.tab : 'quest');
@@ -7293,6 +7539,25 @@ document.addEventListener('keydown', e => {
   e.preventDefault();
   e.target.setRangeText('  ', e.target.selectionStart, e.target.selectionEnd, 'end');
   e.target.dispatchEvent(new Event('input', {bubbles:true}));
+});
+// Drag a split handle: the left/right split is a share of the workspace width, the code/console split a share of the
+// editor column's height.
+document.addEventListener('pointerdown', e => {
+  const g = e.target.closest && e.target.closest('.gsplit'); if (!g) return;
+  e.preventDefault();
+  const vert = g.dataset.split === 'v', box = vert ? g.closest('.cpv, .oacode') : g.closest('.ceditor'); if (!box) return;
+  const prefs = splitPrefs(); document.body.classList.add('dragging'); g.classList.add('on');
+  const move = ev => {
+    const r = box.getBoundingClientRect();
+    if (vert) { const v = Math.round(Math.min(75, Math.max(25, (ev.clientX - r.left) / r.width * 100))); prefs.l = v; document.querySelectorAll('.cpv, .oacode').forEach(b => b.style.setProperty('--lsplit', v + '%')); }
+    else { const v = Math.round(Math.min(80, Math.max(15, (r.bottom - ev.clientY) / r.height * 100))); prefs.c = v; document.querySelectorAll('.cpv, .oacode').forEach(b => { b.style.setProperty('--csplit', v + '%'); b.style.setProperty('--csplit-tall', v + '%'); }); }
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
+    document.body.classList.remove('dragging'); g.classList.remove('on');
+    try { localStorage.setItem(SPLIT_KEY, JSON.stringify(prefs)); } catch (err) { /* private mode: keep it for this visit only */ }
+  };
+  window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
 });
 document.addEventListener('scroll', e => { if (e.target.id === 'code-editor') syncScroll(); else if (e.target.id === 'oa-code') syncScrollOf(e.target); }, true);
 document.addEventListener('submit', e => { if (e.target.id === 'authemail') { e.preventDefault(); authEmail(); } });
@@ -7339,19 +7604,21 @@ setTheme(savedTheme);
 // ---------- boot ----------
 const local = lsLoad();
 if (local) state = normalize(local);
-(function readHash(){
+function readHash(){
   const h = location.hash.replace('#', ''), m = /^p(\d+)$/.exec(h);
   const cm = /^code(\d+)$/.exec(h);
   if (TABS.includes(h)) ui.tab = h;
   if (cm && CODING[+cm[1] - 1]) { ui.tab = 'coding'; ui.cback = {view:'tab', tab:'coding'}; ui.cp = blankCodePage(CODING[+cm[1] - 1].id, CODING.map(p => p.id)); ui.view = 'code'; }
-  else if (h === 'learn') ui.tab = 'quest';
+  else if (/^learn-\d+-(\d+|p)$/.test(h)) { const [, ch, sec] = /^learn-(\d+)-(\d+|p)$/.exec(h); ui.tab = 'learn'; ui.lesson = {ch:+ch, sec}; ui.view = 'lesson'; }
   else if (h === 'practice' || h === 'weekly') ui.tab = 'profile';
   else if (h === 'bank' || h === 'problems') ui.tab = 'theory';
   else if (h === 'jobs') ui.tab = 'roles';
   else if (/^position-/.test(h)) { ui.tab = 'companies'; ui.pos = {id:h.slice(9), d:'all'}; ui.view = 'position'; }
   else if (/^company-/.test(h) && CO_BY_ID[h.slice(8)]) { ui.tab = 'companies'; ui.co = {id:h.slice(8), tab:'theory', d:'all'}; ui.view = 'company'; }
   if (m && BANK[+m[1] - 1]) { ui.tab = 'theory'; ui.back = {view:'tab', tab:'theory'}; ui.pv = {id:BANK[+m[1] - 1].id, list:BANK.map(Q => Q.id), pick:undefined, result:null, reveal:false, perm:shuffle([0, 1, 2, 3])}; ui.view = 'problem'; }
-})();
+}
+readHash();
+window.addEventListener('popstate', () => { saveEditorNow(); stopTimer(); ui.view = 'tab'; readHash(); render(); window.scrollTo(0, 0); });
 render();
 setSync(store.status);
 initStore();

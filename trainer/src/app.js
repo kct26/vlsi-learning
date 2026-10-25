@@ -185,7 +185,7 @@ function ring(frac, size, stroke, label){
 
 // ---------- state and saving ----------
 const LS_KEY = 'ground-up-trainer-v1';
-const emptyState = () => ({v:2, updatedAt:0, q:{}, weeks:{}, hist:[], learn:{cards:{}, units:{}, mux:{}}, code:{}, codeWeek:null, log:[], oa:null, oaHist:[]});
+const emptyState = () => ({v:2, updatedAt:0, q:{}, weeks:{}, hist:[], learn:{cards:{}, units:{}, mux:{}}, code:{}, codeWeek:null, log:[], oa:null, oaHist:[], read:{}});
 const LOG_MAX = 5000;   // submissions kept for the profile's heatmap, streaks and recent list
 // Rebuilds a submission log from older saves that predate it: one entry per answered problem and per code submission.
 function backfillLog(e){
@@ -218,6 +218,7 @@ function normalize(s){
     if (Array.isArray(x.subs)) e.code[id].subs = x.subs.filter(u => u && VERDICTS.includes(u.v)).slice(-20).map(u => ({at:num(u.at), v:u.v, p:num(u.p), t:num(u.t)}));
   });
   if (s.codeWeek && s.codeWeek.wk) e.codeWeek = s.codeWeek;
+  if (s.read && typeof s.read === 'object') Object.keys(s.read).forEach(k => { if (/^\d{1,2}-\d{1,2}$/.test(k) && num(s.read[k])) e.read[k] = num(s.read[k]); });
   if (Array.isArray(s.oaHist)) e.oaHist = s.oaHist.filter(h => h && typeof h === 'object' && CO_BY_ID[h.co]).slice(0, 30)
     .map(h => ({at:num(h.at), co:h.co, right:num(h.right), wrong:num(h.wrong), n:num(h.n), codeDone:num(h.codeDone), codeN:num(h.codeN), score:num(h.score), total:num(h.total), pct:Math.min(100, num(h.pct)), used:num(h.used), neg:!!h.neg}));
   if (s.oa && typeof s.oa === 'object' && CO_BY_ID[s.oa.co] && Array.isArray(s.oa.items)) {
@@ -314,6 +315,7 @@ function mergeStates(a, b){
   m.oaHist.concat(o.oaHist).forEach(h => { hk[h.at] = h; });
   m.oaHist = Object.values(hk).sort((x, y) => y.at - x.at).slice(0, 30);
   if (o.oa && (!m.oa || o.oa.start > m.oa.start)) m.oa = o.oa;
+  m.read = Object.assign({}, o.read || {}, m.read || {});
   m.updatedAt = Math.max(m.updatedAt, o.updatedAt);
   return m;
 }
@@ -438,14 +440,25 @@ function toast(text){
 }
 
 // ---------- UI state ----------
-const TABS = ['home', 'theory', 'coding', 'oa', 'quest', 'companies', 'roles', 'profile', 'privacy', 'admin', 'premium'];
+const TABS = ['home', 'learn', 'theory', 'coding', 'oa', 'quest', 'companies', 'roles', 'profile', 'privacy', 'admin', 'premium'];
 const blankFilters = () => ({q:'', ch:'all', d:'all', status:'all', type:'all', list:'all', co:'all'});
 const ui = {tab:'home', co:null, coq:'', auth:null, home:{word:0, tab:0, tryi:0, tryv:{v:0.9, f:2, b:5, T:1, l:0.6, x:200}, timers:[]}, view:'tab', session:null, unit:null, pv:null, back:null, cardPick:{}, cardPerm:{}, f:blankFilters(), confirmReset:false, timer:null, cf:null, cp:null, cback:null, codeTimer:null};
 function setHash(h){ try { history.replaceState(null, '', '#' + h); } catch (e) { /* ignore */ } }
+// Account pages (profile, privacy, Premium, admin) remember where you came from, for their Back button.
+const SETTINGS_TABS = ['profile', 'privacy', 'premium', 'admin'];
+const TAB_LABEL = {home:'Home', learn:'Learn', theory:'Theory', coding:'Coding', quest:'Roadmap', oa:'Online Assessment', companies:'Companies', roles:'Roles'};
 function goTab(t){
   saveEditorNow();
-  ui.tab = t; ui.view = 'tab'; stopTimer(); setHash(t);
+  if (SETTINGS_TABS.includes(t) && !(SETTINGS_TABS.includes(ui.tab) && ui.view === 'tab')) ui.settingsFrom = {tab:ui.tab, view:ui.view};
+  ui.tab = t; ui.view = 'tab'; stopTimer();
+  try { if (location.hash !== '#' + t) history.pushState(null, '', '#' + t); } catch (e) { setHash(t); }   // so the browser's Back works too
   render(); window.scrollTo(0, 0);
+}
+function settingsBack(){
+  const f = ui.settingsFrom || {tab:'home', view:'tab'};
+  ui.settingsFrom = null;
+  if (f.view && f.view !== 'tab' && ((f.view === 'code' && ui.cp) || (f.view === 'problem' && ui.pv) || (f.view === 'company' && ui.co) || (f.view === 'position' && ui.pos) || (f.view === 'unit' && ui.unit) || (f.view === 'lesson' && ui.lesson))) { ui.tab = f.tab; ui.view = f.view; render(); window.scrollTo(0, 0); return; }
+  goTab(SETTINGS_TABS.includes(f.tab) ? 'home' : f.tab);
 }
 
 // ---------- shared pieces ----------
@@ -515,7 +528,7 @@ function render(){
   document.body.classList.toggle('cfull', !!ui.cfull && ui.view === 'code');
   if (needsVerify() && !(ui.view === 'tab' && ui.tab === 'privacy')) { homeStop(); oaStop(); const mv = $('#main'); mv.className = 'wrap main'; mv.innerHTML = viewVerify(); return; }
   const m = $('#main'), home = ui.view === 'tab' && ui.tab === 'home';
-  m.className = home ? 'main home' : 'wrap main' + ((ui.view === 'tab' && ['theory', 'coding', 'companies', 'profile', 'quest', 'admin', 'oa'].includes(ui.tab)) || ui.view === 'code' || ui.view === 'company' || ui.view === 'position' ? ' wide' : '');
+  m.className = home ? 'main home' : 'wrap main' + ((ui.view === 'tab' && ['theory', 'coding', 'companies', 'profile', 'quest', 'admin', 'oa'].includes(ui.tab)) || ui.view === 'code' || ui.view === 'company' || ui.view === 'position' || ui.view === 'lesson' || (ui.view === 'tab' && ui.tab === 'learn') ? ' wide' : '');
   const ide = ideMode();
   if (ide) m.className = 'main ide';
   document.body.classList.toggle('ide', ide);
@@ -529,6 +542,8 @@ function render(){
   else if (ui.view === 'code') m.innerHTML = viewCode();
   else if (ui.view === 'company') m.innerHTML = viewCompany();
   else if (ui.view === 'position') m.innerHTML = viewPosition();
+  else if (ui.view === 'lesson') { m.innerHTML = viewLesson(); renderMath(m); }
+  else if (ui.view === 'tab' && ui.tab === 'learn') m.innerHTML = viewLearn();
   else if (home) { m.innerHTML = viewHome(); homeStart(); }
   else if (ui.tab === 'coding') m.innerHTML = viewCoding();
   else if (ui.tab === 'quest') { m.innerHTML = viewQuest(); if (ui.rm.fit) { ui.rm.fit = false; rmZoom('fit'); } }
@@ -540,6 +555,10 @@ function render(){
   else if (ui.tab === 'oa') { m.innerHTML = viewOA(); if (oaActive()) oaTickStart(); }
   else if (ui.tab === 'companies') m.innerHTML = viewCompanies();
   else m.innerHTML = viewRoles();
+  if (ui.view === 'tab' && SETTINGS_TABS.includes(ui.tab) && !home) {
+    const f = ui.settingsFrom, label = f && f.view === 'tab' ? TAB_LABEL[f.tab] || 'Home' : f ? 'previous page' : 'Home';
+    m.insertAdjacentHTML('afterbegin', `<div class="pvbar setback"><button type="button" class="btn ghost small" data-act="settings-back">← Back to ${esc(label)}</button></div>`);
+  }
 }
 
 // ---------- Quest map ----------
@@ -693,7 +712,7 @@ function openProblem(id, list, back){
   ui.view = 'problem'; setHash('p' + BY_ID[id].n); render(); window.scrollTo(0, 0);
 }
 function moveProblem(id){ openProblem(id, ui.pv.list); }
-const backLabel = () => !ui.back ? 'Theory' : ui.back.view === 'unit' ? 'Back to quest' : ui.back.view === 'company' ? 'Back to ' + CO_BY_ID[ui.back.co].name : ui.back.view === 'position' ? 'Back to position' : ui.back.tab === 'profile' ? 'Back to profile' : ui.back.tab === 'roles' ? 'Back to roles' : 'Theory';
+const backLabel = () => !ui.back ? 'Theory' : ui.back.view === 'unit' ? 'Back to quest' : ui.back.view === 'company' ? 'Back to ' + CO_BY_ID[ui.back.co].name : ui.back.view === 'position' ? 'Back to position' : ui.back.view === 'lesson' ? 'Back to the lesson' : ui.back.tab === 'profile' ? 'Back to profile' : ui.back.tab === 'roles' ? 'Back to roles' : 'Theory';
 function viewProblem(){
   const P = ui.pv, Q = BY_ID[P.id], pos = P.list.indexOf(P.id), s = state.q[Q.id], st = statusOf(Q.id);
   const locked = P.result === 'ok' || P.reveal;
@@ -1084,7 +1103,7 @@ function ideMode(){
 function viewCode(){
   const C = ui.cp, p = CODE_BY_ID[C.id], pos = C.list.indexOf(C.id), s = state.code[p.id] || {}, st = codeStatus(p.id);
   const src = s.src != null ? s.src : p.starter;
-  const back = ui.cback && ui.cback.tab === 'profile' ? 'Back to profile' : ui.cback && ui.cback.view === 'company' ? 'Back to ' + CO_BY_ID[ui.cback.co].name : ui.cback && ui.cback.view === 'position' ? 'Back to position' : 'Coding problems';
+  const back = ui.cback && ui.cback.tab === 'profile' ? 'Back to profile' : ui.cback && ui.cback.view === 'company' ? 'Back to ' + CO_BY_ID[ui.cback.co].name : ui.cback && ui.cback.view === 'position' ? 'Back to position' : ui.cback && ui.cback.view === 'lesson' ? 'Back to the lesson' : 'Coding problems';
   return `<div class="cpv-wrap"><div class="pvbar"><button type="button" class="btn ghost small" data-act="c-back">← ${back}</button>
     <div class="row"><span class="muted mono">${pos + 1} / ${C.list.length}</span>
     <button type="button" class="iconbtn" data-act="c-prev" aria-label="Previous problem"${pos <= 0 ? ' disabled' : ''}>‹</button>
@@ -1618,6 +1637,99 @@ function viewRoles(){
       <div><dt>Hiring</dt><dd><div class="row">${hiring(r).map(c => `<button type="button" class="cologo" data-act="co-open" data-v="${c.id}" title="${esc(c.name)}" aria-label="${esc(c.name)}">${coAvatar(c, 'sm')}</button>`).join('') || '<span class="muted">Most hardware companies</span>'}</div></dd></div>
       <div><dt>Also do</dt><dd>${esc(r.add)}</dd></div></dl></article>`).join('') + '</div></section>';
   return html;
+}
+
+// ---------- Learn: the book as lessons, LeetCode Explore style ----------
+// Each chapter of Hardware from the Ground Up is a card of lessons (its sections), ending with that chapter's
+// problems. Reading a lesson and solving a problem both count toward the chapter.
+const CH_CODE = {11:['Physical design'], 19:['RTL design', 'Verification'], 21:['GPU and CUDA'], 23:['C and C++', 'Python and MATLAB', 'Linux and scripting']};
+const chapterCode = ch => CODING.filter(p => (CH_CODE[ch] || []).includes(p.area)).map(p => p.id);
+const book = () => window.BOOK_LESSONS || null;
+const bookCh = ch => (book() || []).find(c => c.n === ch);
+function ensureBook(){
+  if (book() || ui.bookLoading) return;
+  ui.bookLoading = true;
+  loadScript('book/lessons.js').then(() => { ui.bookLoading = false; render(); }, () => { ui.bookLoading = false; ui.bookErr = true; render(); });
+}
+function markRead(id, on){ if (on) state.read[id] = state.read[id] || Date.now(); else delete state.read[id]; save(); }
+function chapterProgress(ch){
+  const c = bookCh(ch), lessons = c ? c.sections.length : 0, read = c ? c.sections.filter(x => state.read[x.id]).length : 0;
+  const t = CH_IDS[ch] || [], k = chapterCode(ch), solved = solvedIn(t) + codeSolvedIn(k.map(id => CODE_BY_ID[id]));
+  return {lessons, read, probs:t.length + k.length, solved, done:read + solved, total:lessons + t.length + k.length};
+}
+function openChapter(ch){
+  const c = bookCh(ch); if (!c) return;
+  const first = c.sections.find(x => !state.read[x.id]);
+  openLesson(ch, first ? first.id.split('-')[1] : 'p');
+}
+function openLesson(ch, sec){
+  saveEditorNow();
+  ui.tab = 'learn'; ui.lesson = {ch, sec:String(sec)}; ui.view = 'lesson';
+  try { history.pushState(null, '', `#learn-${ch}-${sec}`); } catch (e) { setHash(`learn-${ch}-${sec}`); }
+  render(); window.scrollTo(0, 0);
+}
+// The page before or after this one: lessons in order, each chapter ending with its Practice page.
+function lessonStep(dir){
+  const B = book(), L = ui.lesson; if (!B || !L) return null;
+  const seq = [];
+  B.forEach(c => { c.sections.forEach(x => seq.push({ch:c.n, sec:x.id.split('-')[1]})); seq.push({ch:c.n, sec:'p'}); });
+  const i = seq.findIndex(x => x.ch === L.ch && x.sec === L.sec);
+  return i < 0 ? null : seq[i + dir] || null;
+}
+function viewLearn(){
+  const B = book();
+  if (!B) { ensureBook(); return `<section class="pagehead"><p class="eyebrow">Learn</p><h1>${ui.bookErr ? 'The book could not be loaded' : 'Loading the book…'}</h1>${ui.bookErr ? '<p class="muted">Check your connection and reload the page.</p>' : ''}</section>`; }
+  const all = B.map(c => chapterProgress(c.n)), lessons = all.reduce((n, x) => n + x.lessons, 0), read = all.reduce((n, x) => n + x.read, 0);
+  const probs = all.reduce((n, x) => n + x.probs, 0), solved = all.reduce((n, x) => n + x.solved, 0), done = read + solved, total = lessons + probs;
+  const next = B.find(c => { const P = chapterProgress(c.n); return P.read < P.lessons; });
+  const card = c => { const P = chapterProgress(c.n); return `<button type="button" class="lcard${P.done && P.done === P.total ? ' complete' : ''}" data-act="learn-open" data-v="${c.n}"><span class="lnum">${c.n}</span>
+      <span class="lbody"><b>${esc(c.title)}</b><small>${P.lessons} lessons · ${P.probs} problems</small><span class="cobar"><i style="width:${pct(P.done, P.total)}%"></i></span>
+      <small class="mono">${P.done}/${P.total} done${P.done && P.done === P.total ? ' ✓' : ''}</small></span></button>`; };
+  return `<section class="card lhero"><div><p class="eyebrow">Learn</p><h1>Hardware from the <em>Ground Up</em></h1>
+      <p class="muted">The whole book, chapter by chapter, as short lessons. Read a topic, then practice the problems on it right after. Lessons you finish and problems you solve both count.</p>
+      <div class="lstats"><span><b>${read}</b>/${lessons} lessons read</span><span><b>${solved}</b>/${probs} problems solved</span></div>
+      ${next ? `<div class="row"><button type="button" class="btn primary" data-act="learn-open" data-v="${next.n}">${read ? 'Continue' : 'Start'} with Chapter ${next.n} →</button></div>` : ''}</div>
+      <div class="herostat">${ring(total ? done / total : 0, 96, 8, `${done} of ${total} done`)}<div><b>${pct(done, total).replace(/\.0$/, '')}%</b><span>complete</span></div></div></section>
+    ${PARTS.map(part => `<section class="lpart"><h2 class="lparth"><span class="mono">Part ${part.n}</span> ${esc(part.name)}</h2><div class="lgrid">${part.units.map(n => bookCh(n)).filter(Boolean).map(card).join('')}</div></section>`).join('')}`;
+}
+function viewLesson(){
+  const B = book(), L = ui.lesson;
+  if (!B) { ensureBook(); return '<section class="pagehead"><p class="eyebrow">Learn</p><h1>Loading the book…</h1></section>'; }
+  const c = bookCh(L.ch); if (!c) { ui.view = 'tab'; return viewLearn(); }
+  const P = chapterProgress(c.n), prac = L.sec === 'p', sec = prac ? null : c.sections.find(x => x.id === `${c.n}-${L.sec}`) || c.sections[0];
+  const items = c.sections.map((x, i) => `<button type="button" class="litem${!prac && sec.id === x.id ? ' on' : ''}${state.read[x.id] ? ' done' : ''}" data-act="learn-go" data-v="${x.id}"><i class="lchk" aria-label="${state.read[x.id] ? 'read' : 'not read'}">${state.read[x.id] ? '✓' : ''}</i><span>${x.id.endsWith('-0') ? '' : x.id.split('-')[1] + '. '}${esc(x.title)}</span></button>`).join('')
+    + `<button type="button" class="litem prac${prac ? ' on' : ''}${P.probs && P.solved === P.probs ? ' done' : ''}" data-act="learn-go" data-v="${c.n}-p"><i class="lchk">${P.probs && P.solved === P.probs ? '✓' : '✎'}</i><span>Practice problems</span><em>${P.solved}/${P.probs}</em></button>`;
+  const prevCh = bookCh(c.n - 1), nextCh = bookCh(c.n + 1);
+  const side = `<aside class="lside panel"><div class="lside-h"><button type="button" class="linkbtn small" data-act="learn-home">← All chapters</button>
+      <p class="eyebrow">Chapter ${c.n}</p><b>${esc(c.title)}</b><span class="cobar"><i style="width:${pct(P.done, P.total)}%"></i></span><small class="muted">${P.read}/${P.lessons} lessons · ${P.solved}/${P.probs} problems</small></div>
+    <nav class="litems" aria-label="Lessons">${items}</nav>
+    <div class="lside-f">${prevCh ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${prevCh.n}">‹ Ch ${prevCh.n}</button>` : '<span></span>'}${nextCh ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${nextCh.n}">Ch ${nextCh.n} ›</button>` : ''}</div></aside>`;
+  const step = lessonStep(1), back = lessonStep(-1);
+  let main;
+  if (prac) {
+    const k = chapterCode(c.n);
+    main = `<nav class="crumbs"><button type="button" class="linkbtn" data-act="learn-home">Learn</button> › Chapter ${c.n} · ${esc(c.title)}</nav>
+      <div class="lprac"><div><h1>Practice: ${esc(c.title)}</h1><p class="muted">${P.read === P.lessons ? 'You have read every lesson in this chapter.' : `You have read ${P.read} of ${P.lessons} lessons.`} These are the problems on this chapter's topics. Each one you solve counts toward the chapter.</p>
+        <div class="row"><button type="button" class="btn primary" data-act="learn-practice">${P.solved ? 'Continue practicing' : 'Start practicing'} →</button></div></div>
+        <div class="herostat">${ring(P.probs ? P.solved / P.probs : 0, 76, 7, `${P.solved} of ${P.probs} solved`)}<div><b>${P.solved}<span class="muted">/${P.probs}</span></b><span>solved</span></div></div></div>
+      <h3 class="subh">Theory (${CH_IDS[c.n].length})</h3>${tableHTML(CH_IDS[c.n], 'full', 'lprows', 'learn')}
+      ${k.length ? `<h3 class="subh">Coding (${k.length})</h3>${codeTableHTML(k, 'learn')}` : ''}`;
+  } else {
+    main = `<nav class="crumbs"><button type="button" class="linkbtn" data-act="learn-home">Learn</button> › Chapter ${c.n} · ${esc(c.title)}</nav>
+      <h1 class="ltitle">${esc(sec.title)}</h1><article class="lart">${sec.html}</article>
+      <div class="lnav"><button type="button" class="btn ghost" data-act="learn-prev"${back ? '' : ' disabled'}>← Previous</button>
+        <button type="button" class="btn small ghost${state.read[sec.id] ? ' on' : ''}" data-act="learn-read">${state.read[sec.id] ? '✓ Read' : 'Mark as read'}</button>
+        <button type="button" class="btn primary" data-act="learn-next"${step ? '' : ' disabled'}>${step && step.sec === 'p' ? 'Practice this chapter →' : 'Next →'}</button></div>`;
+  }
+  return `<div class="lx">${side}<section class="lmain card">${main}</section></div>`;
+}
+// Math in the lessons is TeX; KaTeX (loaded the first time a lesson opens) turns it into MathML.
+const KATEX = 'https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js';
+const KATEX_MACROS = {'\\VDD':'V_{DD}', '\\Vt':'V_{t}', '\\Vtn':'V_{tn}', '\\Vtp':'V_{tp}', '\\nt':'\\overline{#1}', '\\code':'\\texttt{#1}', '\\term':'\\textbf{#1}'};
+function renderMath(root){
+  const els = root.querySelectorAll('.math[data-tex]:not(.done), .mathd[data-tex]:not(.done)'); if (!els.length) return;
+  const go = () => els.forEach(el => { try { window.katex.render(el.dataset.tex, el, {displayMode:el.classList.contains('mathd'), output:'mathml', throwOnError:false, macros:Object.assign({}, KATEX_MACROS)}); el.classList.add('done'); } catch (e) { /* leave the TeX as text */ } });
+  if (window.katex) go(); else loadScript(KATEX).then(go, () => {});
 }
 
 // ---------- Home ----------
@@ -2510,6 +2622,7 @@ document.addEventListener('click', e => {
     const cfrom = (co.closest('[data-from]') || {dataset:{}}).dataset.from;
     if (cfrom === 'profile') openCode(co.dataset.copen, CODING.map(p => p.id), {view:'tab', tab:'profile'});
     else if (cfrom === 'company') openCode(co.dataset.copen, coCoding(ui.co.id), {view:'company', co:ui.co.id});
+    else if (cfrom === 'learn' && ui.lesson) openCode(co.dataset.copen, chapterCode(ui.lesson.ch), {view:'lesson'});
     else if (cfrom === 'position' && POS_BY_ID[ui.pos.id]) openCode(co.dataset.copen, posSet(POS_BY_ID[ui.pos.id]).code, {view:'position', pos:ui.pos.id});
     else openCode(co.dataset.copen, codeFiltered().map(p => p.id), {view:'tab', tab:'coding'});
     return;
@@ -2521,6 +2634,7 @@ document.addEventListener('click', e => {
     if (from === 'profile') openProblem(id, null, {view:'tab', tab:'profile'});
     else if (ui.view === 'unit') openProblem(id, CH_IDS[ui.unit.id], {view:'unit'});
     else if (from === 'company') openProblem(id, ui.co.tab === 'rep' ? coReported(ui.co.id) : coTheory(ui.co.id), {view:'company', co:ui.co.id});
+    else if (from === 'learn' && ui.lesson) openProblem(id, CH_IDS[ui.lesson.ch], {view:'lesson'});
     else if (from === 'position' && POS_BY_ID[ui.pos.id]) openProblem(id, posSet(POS_BY_ID[ui.pos.id]).theory, {view:'position', pos:ui.pos.id});
     else openProblem(id, filtered().map(Q => Q.id), {view:'tab', tab:'theory'});
   }
@@ -2530,6 +2644,14 @@ function act(a){
   switch (a.dataset.act) {
     case 'open-unit': openUnit(+a.dataset.u); break;
     case 'go': goTab(a.dataset.v); break;
+    case 'settings-back': settingsBack(); break;
+    case 'learn-home': goTab('learn'); break;
+    case 'learn-open': openChapter(+a.dataset.v); break;
+    case 'learn-go': { const [ch, sec] = a.dataset.v.split('-'); openLesson(+ch, sec); break; }
+    case 'learn-next': { const L = ui.lesson; if (L && L.sec !== 'p') markRead(`${L.ch}-${L.sec}`, true); const nx = lessonStep(1); if (nx) openLesson(nx.ch, nx.sec); break; }
+    case 'learn-prev': { const pv = lessonStep(-1); if (pv) openLesson(pv.ch, pv.sec); break; }
+    case 'learn-read': { const L = ui.lesson; if (L) { markRead(`${L.ch}-${L.sec}`, !state.read[`${L.ch}-${L.sec}`]); render(); } break; }
+    case 'learn-practice': { const ch = ui.lesson.ch, ids = CH_IDS[ch], next = ids.find(id => statusOf(id) !== 'solved') || ids[0]; openProblem(next, ids, {view:'lesson'}); break; }
     case 'rm-sel': ui.rm.sel = a.dataset.v; rmRefreshSel(); break;
     case 'rm-zoom': rmZoom(a.dataset.v); break;
     case 'theme': setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'); break;
@@ -2619,7 +2741,7 @@ function act(a){
       if (pool.length) openCode(pool[Math.floor(Math.random() * pool.length)].id, list.map(p => p.id), {view:'tab', tab:'coding'});
       break;
     }
-    case 'c-back': saveEditorNow(); if (ui.cback && ui.cback.view === 'position') returnFrom(ui.cback); else if (ui.cback && ui.cback.view === 'company') { ui.view = 'company'; setHash('company-' + ui.co.id); render(); } else goTab(ui.cback && ui.cback.tab ? ui.cback.tab : 'coding'); break;
+    case 'c-back': saveEditorNow(); if (ui.cback && (ui.cback.view === 'position' || ui.cback.view === 'lesson')) returnFrom(ui.cback); else if (ui.cback && ui.cback.view === 'company') { ui.view = 'company'; setHash('company-' + ui.co.id); render(); } else goTab(ui.cback && ui.cback.tab ? ui.cback.tab : 'coding'); break;
     case 'c-prev': case 'c-next': {
       const C = ui.cp, i = C.list.indexOf(C.id) + (a.dataset.act === 'c-next' ? 1 : -1);
       if (i >= 0 && i < C.list.length) openCode(C.list[i], C.list);
@@ -2680,6 +2802,7 @@ function act(a){
 }
 function returnFrom(from){
   if (from && from.view === 'company') { ui.view = 'company'; setHash('company-' + from.co); render(); return; }
+  if (from && from.view === 'lesson' && ui.lesson) { ui.view = 'lesson'; setHash(`learn-${ui.lesson.ch}-${ui.lesson.sec}`); render(); return; }
   if (from && from.view === 'position') { ui.pos = {id:from.pos, d:(ui.pos && ui.pos.id === from.pos && ui.pos.d) || 'all'}; ui.view = 'position'; setHash('position-' + from.pos); render(); return; }
   if (from && from.view === 'unit' && ui.unit) { ui.view = 'unit'; render(); return; }
   goTab(from && from.tab ? from.tab : 'quest');
@@ -2789,19 +2912,21 @@ setTheme(savedTheme);
 // ---------- boot ----------
 const local = lsLoad();
 if (local) state = normalize(local);
-(function readHash(){
+function readHash(){
   const h = location.hash.replace('#', ''), m = /^p(\d+)$/.exec(h);
   const cm = /^code(\d+)$/.exec(h);
   if (TABS.includes(h)) ui.tab = h;
   if (cm && CODING[+cm[1] - 1]) { ui.tab = 'coding'; ui.cback = {view:'tab', tab:'coding'}; ui.cp = blankCodePage(CODING[+cm[1] - 1].id, CODING.map(p => p.id)); ui.view = 'code'; }
-  else if (h === 'learn') ui.tab = 'quest';
+  else if (/^learn-\d+-(\d+|p)$/.test(h)) { const [, ch, sec] = /^learn-(\d+)-(\d+|p)$/.exec(h); ui.tab = 'learn'; ui.lesson = {ch:+ch, sec}; ui.view = 'lesson'; }
   else if (h === 'practice' || h === 'weekly') ui.tab = 'profile';
   else if (h === 'bank' || h === 'problems') ui.tab = 'theory';
   else if (h === 'jobs') ui.tab = 'roles';
   else if (/^position-/.test(h)) { ui.tab = 'companies'; ui.pos = {id:h.slice(9), d:'all'}; ui.view = 'position'; }
   else if (/^company-/.test(h) && CO_BY_ID[h.slice(8)]) { ui.tab = 'companies'; ui.co = {id:h.slice(8), tab:'theory', d:'all'}; ui.view = 'company'; }
   if (m && BANK[+m[1] - 1]) { ui.tab = 'theory'; ui.back = {view:'tab', tab:'theory'}; ui.pv = {id:BANK[+m[1] - 1].id, list:BANK.map(Q => Q.id), pick:undefined, result:null, reveal:false, perm:shuffle([0, 1, 2, 3])}; ui.view = 'problem'; }
-})();
+}
+readHash();
+window.addEventListener('popstate', () => { saveEditorNow(); stopTimer(); ui.view = 'tab'; readHash(); render(); window.scrollTo(0, 0); });
 render();
 setSync(store.status);
 initStore();

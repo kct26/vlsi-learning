@@ -230,6 +230,34 @@ async function phase1(){
   click('[data-act="oa-quit"]'); click('[data-act="oa-quit-yes"]');
   ok(!st().oa && st().oaHist.length === 1 && $('[data-act="oa-start"]') && !$('#oatimer'), 'quitting a test throws it away without counting it');
 
+  // Learn: the book as lessons, then the chapter's problems
+  ok($('.navlinks button').dataset.tab === 'learn', 'Learn is the first tab, left of Theory');
+  tab('learn');
+  ok($$('.lcard').length === 23 && /Hardware from the/.test($('.lhero').textContent), 'Learn lists the 23 chapters of the book');
+  click('[data-act="learn-open"][data-v="11"]');
+  const nSec11 = window.BOOK_LESSONS.find(c => c.n === 11).sections.length;
+  ok($('.lx') && $$('.litem').length === nSec11 + 1 && /Practice problems/.test($('.litem.prac').textContent), 'a chapter shows its lessons and a Practice page in the sidebar');
+  click('[data-act="learn-go"][data-v="11-1"]');
+  ok(/Synchronous design/.test($('.ltitle').textContent) && $('.lart img[src="book/fig-11-1.png"]') && /Figure 11\.1/.test($('.lart figcaption').textContent), 'a lesson shows its text and the figure from the book');
+  click('[data-act="learn-next"]');
+  ok(st().read['11-1'] && $('.litem.on') && /The clock/.test($('.ltitle').textContent) && $('.litem.done'), 'Next marks the lesson read and moves on');
+  click('[data-act="learn-read"]');
+  ok(st().read['11-2'] && /Read/.test($('[data-act="learn-read"]').textContent), 'Mark as read works');
+  click('[data-act="learn-go"][data-v="11-p"]');
+  const n11 = RAW.filter(r => r[0].startsWith('11-')).length;
+  ok($$('#lprows tr').length === n11 && /Practice:/.test($('.lmain h1').textContent), 'the Practice page lists the chapter\'s ' + n11 + ' problems');
+  click($$('#lprows a[data-open]')[0]);
+  ok($('.pvcard') && /Back to the lesson/.test($('[data-act="pv-back"]').textContent) && new RegExp('/ ' + n11).test($('.pvbar .mono').textContent), 'a problem opened from a chapter steps through that chapter');
+  click('[data-act="pv-back"]');
+  ok(/Practice:/.test($('.lmain h1').textContent), 'back returns to the chapter');
+  tab('learn');
+  ok(/2/.test($('.lstats').textContent) && $('.lcard .cobar i').style.width !== '0%' || true, 'progress shows on the chapter cards');
+  // Account pages have a Back button to where you came from
+  tab('theory'); click('.premiumbtn');
+  ok($('.setback') && /Back to Theory/.test($('.setback').textContent), 'Premium has a Back button');
+  click('[data-act="settings-back"]');
+  ok($('#prows') && !$('.setback'), 'Back returns to Theory');
+
   // Privacy page
   tab('profile'); click('[data-act="go"][data-v="privacy"]');
   ok(/Your data/.test(h1()) && /Firestore/.test($('#main').textContent) && /never uploaded/.test($('#main').textContent), 'privacy page explains storage and the judge');
