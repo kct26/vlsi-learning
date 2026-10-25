@@ -11,7 +11,8 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if (request.auth != null && request.auth.uid == uid) || isAdmin();
       allow delete: if request.auth != null && request.auth.uid == uid;
-      allow create, update: if request.auth != null && request.auth.uid == uid
+      // writes need a verified email (Google accounts always are; email sign-ups must click the link first)
+      allow create, update: if request.auth != null && request.auth.uid == uid && request.auth.token.email_verified == true
         && request.resource.data.keys().hasOnly(['state', 'updatedAt', 'name', 'email', 'provider', 'created', 'lastLogin'])
         && request.resource.data.state is string
         && request.resource.data.state.size() < 900000

@@ -4763,6 +4763,7 @@ async function onAuth(user){
   if (!user && ui.view === 'tab' && ui.tab === 'home') render();
   if (user && ui.tab === 'admin' && !ui.adm) setTimeout(loadAdmin, 0);
   if (!user) { if (premium.loaded || premium.status !== 'none') { clearPremium(); premium.status = 'none'; premium.mine = null; } store.mode = 'local'; setSync('Saved in this browser'); renderAccount(); if (ui.tab === 'profile' && ui.view === 'tab') render(); return; }
+  if (needsVerify()) { store.mode = 'local'; setSync('Verify your email to save to your account'); renderAccount(); render(); return; }
   setSync('Syncing…');
   try {
     const ref = firebase.firestore().collection('users').doc(user.uid);
@@ -4931,6 +4932,7 @@ function render(){
   }
   renderHeader();
   document.body.classList.toggle('noprem', !hasPremium());
+  if (needsVerify() && !(ui.view === 'tab' && ui.tab === 'privacy')) { homeStop(); oaStop(); const mv = $('#main'); mv.className = 'wrap main'; mv.innerHTML = viewVerify(); return; }
   const m = $('#main'), home = ui.view === 'tab' && ui.tab === 'home';
   m.className = home ? 'main home' : 'wrap main' + ((ui.view === 'tab' && ['theory', 'coding', 'companies', 'profile', 'quest', 'admin', 'oa'].includes(ui.tab)) || ui.view === 'code' || ui.view === 'company' ? ' wide' : '');
   if (!home) homeStop();
@@ -5956,9 +5958,41 @@ async function authRun(fn){
   catch (e) { const c = (e && e.code) || ''; if (ui.auth) { ui.auth.err = c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request' ? '' : authErr(e); } }
   if (ui.auth) { ui.auth.busy = false; renderAuth(); }
 }
+// ---- Abuse protection for email accounts (Firebase also rate-limits on its side) ----
+// Repeated failed sign-ins lock the form with growing waits; new accounts need a real, non-disposable address and
+// a reasonable password, and must verify their email before anything is saved (the database rules check this too).
+const DISPOSABLE = ['mailinator.com', 'guerrillamail.com', 'guerrillamail.info', 'sharklasers.com', 'grr.la', '10minutemail.com', 'tempmail.com', 'temp-mail.org', 'tempmail.dev',
+  'yopmail.com', 'trashmail.com', 'getnada.com', 'dispostable.com', 'maildrop.cc', 'mintemail.com', 'throwawaymail.com', 'fakeinbox.com', 'mohmal.com', 'emailondeck.com', 'tempail.com', 'moakt.com', 'mail.tm', 'burnermail.io'];
+const FAIL_KEY = 'hardcode-auth-fail';
+function failState(){ try { return JSON.parse(localStorage.getItem(FAIL_KEY)) || {n:0, until:0}; } catch (e) { return {n:0, until:0}; } }
+function setFail(x){ try { localStorage.setItem(FAIL_KEY, JSON.stringify(x)); } catch (e) { /* storage unavailable */ } }
+function noteFailure(){ const f = failState(); f.n++; if (f.n >= 5) f.until = Date.now() + Math.min(15 * 60000, 30000 * 2 ** (f.n - 5)); setFail(f); }
 function authEmail(){
-  const email = $('#au-email').value.trim(), pw = $('#au-pw').value, create = ui.auth.mode === 'create';
-  authRun(() => create ? firebase.auth().createUserWithEmailAndPassword(email, pw) : firebase.auth().signInWithEmailAndPassword(email, pw));
+  const email = $('#au-email').value.trim(), pw = $('#au-pw').value, create = ui.auth.mode === 'create', f = failState();
+  const wait = f.until - Date.now();
+  if (wait > 0) { ui.auth.err = `Too many attempts. Try again in ${Math.ceil(wait / 1000)} seconds.`; renderAuth(); return; }
+  if (create) {
+    const dom = email.split('@')[1] || '';
+    if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email)) { ui.auth.err = 'Enter a valid email address.'; renderAuth(); return; }
+    if (DISPOSABLE.some(d => dom.toLowerCase() === d || dom.toLowerCase().endsWith('.' + d))) { ui.auth.err = 'Please use a permanent email address, not a disposable one.'; renderAuth(); return; }
+    if (pw.length < 8 || !/[A-Za-z]/.test(pw) || !/\d/.test(pw)) { ui.auth.err = 'Use at least 8 characters, with both letters and numbers.'; renderAuth(); return; }
+  }
+  authRun(async () => {
+    try {
+      const cred = create ? await firebase.auth().createUserWithEmailAndPassword(email, pw) : await firebase.auth().signInWithEmailAndPassword(email, pw);
+      setFail({n:0, until:0});
+      if (create && cred && cred.user && cred.user.sendEmailVerification) await cred.user.sendEmailVerification();
+    } catch (e) { if (e && /invalid-credential|wrong-password|user-not-found|too-many-requests/.test(e.code || '')) noteFailure(); throw e; }
+  });
+}
+// Email accounts that have not verified their address yet: signed in, but nothing is saved and only Home is open.
+const needsVerify = () => !!(acct.user && !acct.user.emailVerified && (acct.user.providerData || []).some(p => p && p.providerId === 'password'));
+function viewVerify(){
+  const u = acct.user;
+  return `<section class="pagehead"><p class="eyebrow">One more step</p><h1>Verify your <em>email</em></h1>
+    <p class="muted">We sent a link to <b>${esc(u.email || '')}</b>. Open it, then come back and press the button below. Until then nothing is saved to your account, which keeps fake and throwaway accounts out.</p>
+    ${ui.verifyMsg ? `<p class="authinfo">${esc(ui.verifyMsg)}</p>` : ''}
+    <div class="row"><button type="button" class="btn primary" data-act="verify-check">I've verified my email</button><button type="button" class="btn" data-act="verify-resend">Send the link again</button><button type="button" class="btn ghost" data-act="signout">Use another account</button></div></section>`;
 }
 function authForgot(){
   const email = $('#au-email').value.trim();
@@ -6765,6 +6799,19 @@ function act(a){
     case 'reset-no': ui.confirmReset = false; render(); break;
     case 'reset-yes': state = emptyState(); ui.confirmReset = false; save(); toast('Progress erased'); render(); break;
     case 'signin': openAuth(); break;
+    case 'verify-resend': {
+      const now = Date.now();
+      if (ui.verifySent && now - ui.verifySent < 60000) { ui.verifyMsg = 'Please wait a minute before sending another link.'; render(); break; }
+      ui.verifySent = now;
+      acct.user.sendEmailVerification().then(() => { ui.verifyMsg = 'Sent. Check your inbox and spam folder.'; render(); }, e => { ui.verifyMsg = authErr(e); render(); });
+      break;
+    }
+    case 'verify-check':
+      acct.user.reload().then(() => acct.user.getIdToken(true)).then(() => {
+        const u = firebase.auth().currentUser;
+        if (u && u.emailVerified) { ui.verifyMsg = ''; onAuth(u); } else { ui.verifyMsg = 'Not verified yet. Open the link in the email first.'; render(); }
+      }, e => { ui.verifyMsg = authErr(e); render(); });
+      break;
     case 'signout': firebase.auth().signOut(); break;
     case 'to-progress': goTab('profile'); break;
     case 'export': exportProgress(); break;

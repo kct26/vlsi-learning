@@ -500,6 +500,29 @@ async function phase5(){
   ok(!$$('#prows .c-co').some(c => c.offsetParent) && !(window.__fb.premium_content && false), 'no Premium: no company column in Theory');
   click('.premiumbtn');
   ok(/Subscriptions open soon|Subscribe/.test($('#main').textContent), 'Premium page offers to subscribe');
+  // Email sign-up abuse protection: disposable addresses, weak passwords, repeated failures, unverified accounts.
+  await firebase.auth().signOut(); await wait(200);
+  const fill = (e, p) => { $('#au-email').value = e; $('#au-pw').value = p; $('#authemail').dispatchEvent(new Event('submit', {bubbles:true, cancelable:true})); };
+  click('#acct .acctbtn'); click('[data-act="auth-mode"]');
+  fill('bot@mailinator.com', 'abcd1234'); await wait(50);
+  ok(/disposable/.test($('.autherr').textContent), 'disposable email addresses are refused');
+  fill('real@school.edu', 'short'); await wait(50);
+  ok(/8 characters/.test($('.autherr').textContent), 'weak passwords are refused');
+  click('[data-act="auth-mode"]');
+  for (let i = 0; i < 5; i++) { fill('real@school.edu', 'wrong-pass-1'); await wait(60); }
+  fill('real@school.edu', 'wrong-pass-1'); await wait(60);
+  ok(/Too many attempts/.test($('.autherr').textContent), 'repeated failed sign-ins lock the form');
+  localStorage.removeItem('hardcode-auth-fail');
+  click('[data-act="auth-mode"]'); fill('new.person@school.edu', 'goodpass123'); await wait(400);
+  ok(window.__verifySent === 1 && /Verify your/.test(h1()), 'new email account gets a verification email and the verify page');
+  tab('theory'); await wait(100);
+  ok(/Verify your/.test(h1()) && !$('#prows') && !window.__fb.users.u9, 'unverified: no access and nothing saved to the account');
+  click('[data-act="verify-resend"]'); await wait(100); click('[data-act="verify-resend"]');
+  ok(/wait a minute/.test($('#main').textContent), 'resending the link is rate-limited');
+  firebase.auth().currentUser.emailVerified = true;
+  click('[data-act="verify-check"]'); await wait(500);
+  tab('theory'); await wait(100);
+  ok($('#prows') && window.__fb.users.u9, 'after verifying: access opens and progress saves');
 }
 setTimeout(async () => {
   try { await [null, phase1, phase2, phase3b, phase4, phase5, phase6][PHASE](); } catch (e) { errors.push('THROW ' + e.message + ' ' + (e.stack || '').split('\n')[1]); }
