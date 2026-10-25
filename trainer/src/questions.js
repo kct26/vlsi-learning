@@ -2,7 +2,7 @@
 // Entry: [id, difficulty, question, answer, explanation, tags?]
 //   difficulty: E (easy), M (medium), H (hard)
 //   answer: [correct, distractor, distractor, distractor] for multiple choice, or true/false
-//   tags: o = from your OA, v = variant of an OA question, r = reported online,
+//   tags: o = from a real OA, v = variant of an OA question, r = reported online,
 //         b = beyond the book (the explanation teaches it), a = computer arithmetic
 // The id prefix is the chapter of "Hardware from the Ground Up" that teaches the topic.
 const RAW = [

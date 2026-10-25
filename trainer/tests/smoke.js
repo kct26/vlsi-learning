@@ -126,7 +126,7 @@ async function phase1(){
   click('[data-act="f-reset"]');
   click('[data-act="f-ch"][data-v="17"]');
   ok($$('#prows tr').length === RAW.filter(r => r[0].startsWith('17-')).length, 'topic chip filters to chapter 17');
-  ok($$('.studycard .slist').length === 13 && !/Your OA|By skill/i.test($('.studycard').textContent), 'sidebar lists the 13 VLSI areas (no OA or skill lists)');
+  ok($$('.studycard .slist').length === 13 && !/Real OA|Your OA|By skill/i.test($('.studycard').textContent), 'sidebar lists the 13 VLSI areas (no OA or skill lists)');
   click('[data-act="f-list"][data-v="va-sta"]');
   ok($$('#prows tr').length === RAW.filter(r => /^(11|13)-/.test(r[0])).length, 'VLSI area "Static timing analysis" shows chapters 11 and 13');
   ok($('#f-list').value === 'va-sta', 'area dropdown follows the sidebar');
@@ -251,7 +251,7 @@ async function phase1(){
   ok(/NVIDIA Ignite Hardware Engineering/.test(h1()) && $$('#posrows tr').length === 35 && $$('.ctable tbody tr[data-copen]').length === 5, 'Ignite: 35 theory and 5 coding problems');
   ok($('[data-act="go"][data-v="oa"]'), 'Ignite links to the timed OA');
   const ig = $$('#posrows tr').map(r => r.dataset.open);
-  ok(RAW.filter(r => (r[5] || '').includes('o')).every(r => ig.includes(r[0])), 'Ignite includes every question from your OA');
+  ok(RAW.filter(r => (r[5] || '').includes('o')).every(r => ig.includes(r[0])), 'Ignite includes every question from the real OA');
   click('[data-act="pos-start"]');
   ok($('.pvcard') && /Back to position/.test($('[data-act="pv-back"]').textContent) && /\/ 35/.test($('.pvbar .mono').textContent), 'Start opens the first problem inside the position set');
   click('[data-act="pv-back"]');

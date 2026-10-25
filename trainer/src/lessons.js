@@ -32,7 +32,7 @@ const UNITS = [
 {id:4, title:"Semiconductors", goal:"Understand doping, mobility and what temperature does to silicon.", cards:[
   {t:"Doping", b:["Pure silicon's electrons are locked in bonds, so it conducts poorly. Doping frees carriers.","Phosphorus, with 5 valence electrons, makes n-type silicon with free electrons. Boron, with 3, makes p-type silicon with holes."], q:"04-01"},
   {t:"Mobility", b:["Mobility is how fast carriers drift in an electric field. Electrons are about 2–3× more mobile than holes, which is why PMOS transistors are weaker than NMOS ones."], q:"04-03"},
-  {t:"What heat does (your OA)", b:["A hotter lattice vibrates more, so carriers scatter more. Mobility falls, and the resistance of metal wires rises.","Heat also frees extra carriers, so leakage climbs steeply. Slide the temperature up and watch each effect."], w:"temp", q:"04-04"},
+  {t:"What heat does (real OA)", b:["A hotter lattice vibrates more, so carriers scatter more. Mobility falls, and the resistance of metal wires rises.","Heat also frees extra carriers, so leakage climbs steeply. Slide the temperature up and watch each effect."], w:"temp", q:"04-04"},
   {t:"The PN junction", b:["Where p-type meets n-type silicon, a depletion region forms: that is a diode.","In forward bias, above about 0.7 V, it conducts. In reverse bias it blocks, apart from a tiny leakage."], q:"04-09"}
 ]},
 {id:5, title:"The MOSFET", goal:"Predict exactly what voltage a transistor passes, including weak levels.", cards:[
@@ -54,19 +54,19 @@ const UNITS = [
 ]},
 {id:8, title:"CMOS gates", goal:"Build gates from transistors and explain the swapped inverter.", cards:[
   {t:"The CMOS inverter", b:["The PMOS pulls the output up to VDD, the NMOS pulls it down to ground, and exactly one is on at a time.","That gives full output swing and no static current. Flip the input and see which transistor conducts."], w:"inverter", q:"08-14"},
-  {t:"The swapped inverter (your OA)", b:["Put the NMOS on top and the PMOS on the bottom and the circuit stops inverting.","Input 1 gives VDD − Vtn, and input 0 gives |Vtp|. It becomes a weak, non-inverting buffer. Compare the two modes."], w:"inverter:swapped", q:"08-02"},
+  {t:"The swapped inverter (real OA)", b:["Put the NMOS on top and the PMOS on the bottom and the circuit stops inverting.","Input 1 gives VDD − Vtn, and input 0 gives |Vtp|. It becomes a weak, non-inverting buffer. Compare the two modes."], w:"inverter:swapped", q:"08-02"},
   {t:"Series means AND", b:["In the pull-down network, NMOS in series means AND and NMOS in parallel means OR. The pull-up network is the dual.","A NAND gate has PMOS in parallel and NMOS in series."], q:"08-05"},
   {t:"Why NAND beats NOR", b:["A NOR gate stacks slow PMOS transistors in series, so it is slow or must be very wide.","Every static CMOS stage inverts, so AND is a NAND followed by an inverter."], q:"08-08"}
 ]},
 {id:9, title:"Combinational logic", goal:"Build any gate out of 2:1 muxes and reason about adders and delays.", cards:[
   {t:"The multiplexer", b:["A 2:1 mux outputs I1 when S = 1 and I0 when S = 0: Y = S ? I1 : I0. Muxes steer data everywhere in hardware."], q:"09-03"},
-  {t:"Any gate from a mux (your OA)", b:["Put one variable on the select. Feed I0 with what the gate gives when that variable is 0, and I1 with what it gives when it is 1.","For OR: S = B, I0 = A, I1 = 1. Solve every target in the builder."], w:"mux", q:"09-01"},
+  {t:"Any gate from a mux (real OA)", b:["Put one variable on the select. Feed I0 with what the gate gives when that variable is 0, and I1 with what it gives when it is 1.","For OR: S = B, I0 = A, I1 = 1. Solve every target in the builder."], w:"mux", q:"09-01"},
   {t:"Adders", b:["A full adder's sum is A ⊕ B ⊕ Cin, and its carry is the majority of the three inputs.","Ripple-carry delay grows with the number of bits; lookahead adders are faster."], q:"09-09"},
   {t:"Delay and glitches", b:["A block's propagation delay is set by its slowest path, and its contamination delay by its fastest.","When paths have unequal delays, the output can glitch briefly before it settles."], q:"09-17"}
 ]},
 {id:10, title:"Latches and flip-flops", goal:"Know exactly when a latch and a flip-flop change, and why flip-flops win.", cards:[
   {t:"Memory from feedback", b:["Two inverters connected in a loop hold one bit indefinitely. Latches and flip-flops add a controlled way to write that bit."], q:"10-07"},
-  {t:"Latch vs flip-flop (your OA)", b:["A latch is transparent while it is enabled. A flip-flop samples its input only at the clock edge.","The flip-flop wins on safety: no race-through, glitches ignored, simple timing. The latch wins on size and allows time borrowing. Click the D cells and watch the two outputs."], w:"latchff", q:"10-01"},
+  {t:"Latch vs flip-flop (real OA)", b:["A latch is transparent while it is enabled. A flip-flop samples its input only at the clock edge.","The flip-flop wins on safety: no race-through, glitches ignored, simple timing. The latch wins on size and allows time borrowing. Click the D cells and watch the two outputs."], w:"latchff", q:"10-01"},
   {t:"Flip-flops from muxes", b:["A mux with its output fed back to one input is a latch.","Two of these latches, enabled in opposite clock phases, make a master–slave flip-flop."], q:"10-05"},
   {t:"Metastability", b:["If D changes inside the setup/hold window, a flip-flop can hang between 0 and 1 for an unpredictable time.","It can't be eliminated, only made rare, using two-flop synchronizers."], q:"10-11"}
 ]},
@@ -88,12 +88,12 @@ const UNITS = [
 ]},
 {id:14, title:"Power", goal:"Answer every power-scaling question in seconds.", cards:[
   {t:"Where power goes", b:["Dynamic power is αCV²f, spent every time something switches. Short-circuit power is spent during each transition. Leakage flows all the time."], q:"14-05"},
-  {t:"Scaling questions (your OA)", b:["Multiply the factors together and square the voltage factor: doubling both f and V gives 2 × 2² = 8×.","Try the classic variants in the calculator, such as V up 10% with f up 20%."], w:"power", q:"14-01"},
+  {t:"Scaling questions (real OA)", b:["Multiply the factors together and square the voltage factor: doubling both f and V gives 2 × 2² = 8×.","Try the classic variants in the calculator, such as V up 10% with f up 20%."], w:"power", q:"14-01"},
   {t:"Power vs energy", b:["Energy per operation is αCV², with no frequency in it. Running faster at the same voltage uses more power but the same energy."], q:"14-06"},
   {t:"Saving power", b:["Clock gating stops switching, which cuts dynamic power. Power gating cuts off the supply, which stops leakage. DVFS lowers voltage and frequency together, which cuts both."], q:"14-07"}
 ]},
 {id:15, title:"Process, voltage and temperature", goal:"Explain temperature effects, temperature inversion and sign-off corners.", cards:[
-  {t:"Mobility and wires vs heat (your OA)", b:["Heat lowers carrier mobility and raises wire resistance, and both slow the chip down.","Heat also lowers Vt. At low supply voltages that effect can win. Slide VDD down to 0.6 V and then heat the chip."], w:"temp", q:"15-01"},
+  {t:"Mobility and wires vs heat (real OA)", b:["Heat lowers carrier mobility and raises wire resistance, and both slow the chip down.","Heat also lowers Vt. At low supply voltages that effect can win. Slide VDD down to 0.6 V and then heat the chip."], w:"temp", q:"15-01"},
   {t:"Temperature inversion", b:["At low VDD, the drop in Vt outweighs the loss of mobility, so a hot chip can be faster. Wires, however, are always slower when hot."], q:"15-04"},
   {t:"Sign-off corners", b:["Setup is checked at the slow corner with low voltage. Hold is checked at the fast corner with high voltage. Leakage is worst at the fast corner, high voltage and high temperature."], q:"15-07"}
 ]},
@@ -104,7 +104,7 @@ const UNITS = [
 ]},
 {id:17, title:"Manufacturing and reliability", goal:"Explain the antenna rule, electromigration, latch-up and yield.", cards:[
   {t:"How chips are made", b:["Chips are printed one layer at a time with light, then etched with plasma, doped, and polished flat. Dummy fill keeps the metal density even so polishing works."], q:"17-10"},
-  {t:"The antenna rule (your OA)", b:["Plasma etching charges long wires. If a wire touches only a gate, that charge must go through the thin gate oxide.","The risk is the ratio of metal area to gate area, so a smaller gate is worse. Try shrinking the gate, then add a diode."], w:"antenna", q:"17-01"},
+  {t:"The antenna rule (real OA)", b:["Plasma etching charges long wires. If a wire touches only a gate, that charge must go through the thin gate oxide.","The risk is the ratio of metal area to gate area, so a smaller gate is worse. Try shrinking the gate, then add a diode."], w:"antenna", q:"17-01"},
   {t:"Reliability", b:["Electromigration is driven by current and heat. Latch-up comes from a parasitic thyristor. ESD is static discharge. Aging, such as NBTI, raises Vt over the years."], q:"17-07"}
 ]},
 {id:18, title:"Memory circuits", goal:"Explain SRAM and DRAM reads and writes, and what ECC buys you.", cards:[

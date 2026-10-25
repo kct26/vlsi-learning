@@ -632,7 +632,7 @@ async def counts_up(dut):
 }`,
  why:["Cache sizes, FIFO depths and alignments are powers of two because masking replaces division: `addr & (size - 1)` is the offset when size is a power of two."]},
 {id:'c-03', d:'E', lang:'c', area:'C and C++', title:'Reverse a linked list',
- p:["Given `struct node { int val; struct node *next; };`, write `struct node *reverse(struct node *head)` that reverses the list in place and returns the new head. (A linked-list problem was the coding question on your OA.)"],
+ p:["Given `struct node { int val; struct node *next; };`, write `struct node *reverse(struct node *head)` that reverses the list in place and returns the new head. (A linked-list problem was the coding question on a real NVIDIA OA.)"],
  starter:`#include <stddef.h>
 
 struct node { int val; struct node *next; };

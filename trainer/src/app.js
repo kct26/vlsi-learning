@@ -18,7 +18,7 @@ BANK.forEach(q => (CH_IDS[q.ch] = CH_IDS[q.ch] || []).push(q.id));
 const MOCK_N = 15, MOCK_MIN = 50, UNIT_N = 5, UNIT_PASS = 4;
 const MUX_NAMES = {OR:'OR', AND:'AND', NOTA:'NOT A', NAND:'NAND', NOR:'NOR', XOR:'XOR'};
 
-// Study lists: your OA, its topics, sources, and the skills NVIDIA's posting names.
+// Study lists: the real OA, its topics, sources, and the skills NVIDIA's posting names.
 const hasTag = (Q, t) => Q.tags.includes(t);
 const oaish = Q => hasTag(Q, 'o') || hasTag(Q, 'v');
 const OA_TOPICS = [
@@ -66,8 +66,8 @@ const SKILLS = [
   {key:'sk-prog', name:'Programming, Linux and scripting', ch:[23]}
 ];
 const LISTS = {
-  'oa': {name:'Your OA questions', test:Q => hasTag(Q, 'o')},
-  'oav': {name:'Your OA + variants', test:oaish},
+  'oa': {name:'Real OA questions', test:Q => hasTag(Q, 'o')},
+  'oav': {name:'Real OA + variants', test:oaish},
   'rep': {name:'Reported online', test:Q => hasTag(Q, 'r')},
   'beyond': {name:'Beyond the book', test:Q => hasTag(Q, 'b')}
 };
@@ -460,7 +460,7 @@ function statusCell(id){
 }
 function tagChips(Q){
   let h = '';
-  if (hasTag(Q, 'o')) h += '<span class="tag t-oa">Your OA</span>';
+  if (hasTag(Q, 'o')) h += '<span class="tag t-oa">Real OA</span>';
   else if (hasTag(Q, 'v')) h += '<span class="tag t-var">OA variant</span>';
   if (hasTag(Q, 'r')) h += '<span class="tag t-rep">Reported</span>';
   if (hasTag(Q, 'b')) h += '<span class="tag t-bey">Beyond the book</span>';
@@ -1434,7 +1434,7 @@ function viewPosition(){
   const dOk = id => d === 'all' || (BY_ID[id] || CODE_BY_ID[id]).d === d;
   return `<div class="pvbar"><button type="button" class="btn ghost small" data-act="co-back">← Positions</button></div>
     <section class="card cohead">${coAvatar(c, 'lg')}<div class="cohtext"><p class="posmeta"><span class="lvl${p.level === 'Program' ? ' prog' : ''}">${esc(p.level)}</span><span>${esc(R.label)}</span></p><h1>${esc(posName(p))}</h1>
-      <p class="muted">${G.total} questions: ${S.theory.length} theory and ${S.code.length} coding${R.tags ? ', led by the questions from your own assessment and the ones candidates reported' : ', the ones reported for ' + esc(c.name) + ' first'}.</p>
+      <p class="muted">${G.total} questions: ${S.theory.length} theory and ${S.code.length} coding${R.tags ? ', led by the questions from a real Ignite assessment and the ones candidates reported' : ', the ones reported for ' + esc(c.name) + ' first'}.</p>
       <div class="row"><button type="button" class="btn primary" data-act="pos-start">${G.solved ? (G.solved === G.total ? 'Review' : 'Continue') : 'Start'} →</button>${OA_BY_CO[p.co] && OA_BY_CO[p.co].ready && p.level === 'Program' ? '<button type="button" class="btn" data-act="go" data-v="oa">Take the timed OA</button>' : ''}<button type="button" class="btn ghost" data-act="co-open" data-v="${c.id}">All ${esc(c.name)} problems</button></div></div>
       <div class="herostat">${ring(G.total ? G.solved / G.total : 0, 76, 7, `${G.solved} of ${G.total} solved`)}<div><b>${G.solved}<span class="muted">/${G.total}</span></b><span>solved</span></div></div></section>
     <div class="cotabs"><div class="chiprow">${[['all', 'All'], ['E', 'Easy'], ['M', 'Medium'], ['H', 'Hard']].map(([v, l]) => `<button type="button" class="tchip${d === v ? ' on' : ''}" data-act="pos-d" data-v="${v}">${l}</button>`).join('')}</div></div>
@@ -1462,7 +1462,7 @@ function viewCompanies(){
     <p class="muted">Every theory and coding problem is tagged with the companies whose hardware roles test it. Pick a company to work through its list.</p>${seg}
     <input type="search" id="co-q" class="bigsearch" placeholder="Search companies" value="${esc(ui.coq || '')}" aria-label="Search companies"></section>
     <div class="cogrid" id="cogrid">${coCardsHTML(list)}</div>
-    <p class="muted small conote">Tags from a company's core topics come from public job postings and widely reported interview topics; they say "this is tested for these roles", not "this exact question was asked". Problems marked <span class="cotag rep">reported</span> were actually seen: your own OA, its variants, and candidate reports.</p>`;
+    <p class="muted small conote">Tags from a company's core topics come from public job postings and widely reported interview topics; they say "this is tested for these roles", not "this exact question was asked". Problems marked <span class="cotag rep">reported</span> were actually seen: a real OA, its variants, and candidate reports.</p>`;
 }
 function coCardsHTML(list){
   return list.length ? list.map(c => {
@@ -1498,12 +1498,12 @@ function viewCompany(){
 function codeTableHTML(ids, from){
   return `<div class="tablewrap"><table class="ptable ctable"><thead><tr><th class="c-st">Status</th><th class="c-ti">Problem</th><th class="c-tp">Area</th><th class="c-ty">Language</th><th class="c-co">Companies</th><th class="c-df">Difficulty</th></tr></thead><tbody>${codeRowsHTML(ids.map(id => CODE_BY_ID[id]), from)}</tbody></table></div>`;
 }
-// Your OA and what other candidates reported, shown on NVIDIA's page.
+// The real OA's topics and what other candidates reported, shown on NVIDIA's page.
 function nvidiaReportHTML(){
   const listCell = key => { const ids = listIds(key); return `<button type="button" class="linkbtn" data-act="f-list-go" data-v="${key}">${ids.length} problems</button><span class="muted"> · ${solvedIn(ids)} solved</span>`; };
   const oaRows = OA_TOPICS.map(t => { const ids = listIds(t.key), exact = ids.filter(id => hasTag(BY_ID[id], 'o')).length; return `<tr><td>${esc(t.name)}</td><td>${t.book}</td><td class="mono">${exact}</td><td class="mono">${ids.length - exact}</td><td>${listCell(t.key)}</td></tr>`; }).join('');
   const repRows = REPORTED.map(r => `<tr><td>${esc(r.name)}</td><td>Ch ${r.ch}</td><td>${listCell(r.key)}</td></tr>`).join('');
-  return `<section class="card"><h2>Your OA topics</h2><p class="muted">Every question from your Ignite OA is in the bank word for word, plus variants that test the same idea.</p>
+  return `<section class="card"><h2>Real OA topics</h2><p class="muted">Every question from a real Ignite OA is in the bank word for word, plus variants that test the same idea.</p>
     <div class="tablewrap"><table class="rtable"><thead><tr><th>OA topic</th><th>Book</th><th>Exact</th><th>Variants</th><th>Practice</th></tr></thead><tbody>${oaRows}</tbody></table></div></section>
     <section class="card"><h2>Topics other candidates reported</h2><p class="muted">From the book's "Seen on the assessment" boxes.</p>
     <div class="tablewrap"><table class="rtable"><thead><tr><th>Reported topic</th><th>Book</th><th>Practice</th></tr></thead><tbody>${repRows}</tbody></table></div></section>
@@ -2479,7 +2479,7 @@ function act(a){
     case 'pf-recent': ui.prof.recent = a.dataset.v; render(); break;
     case 'mock': startSession('mock', shuffle(BANK.map(q => q.id)).slice(0, MOCK_N), {title:'Timed mock assessment', from:{view:'tab', tab:'theory'}}); break;
     case 'review-attempted': startSession('practice', shuffle(BANK.filter(Q => statusOf(Q.id) === 'attempted').map(Q => Q.id)).slice(0, 25), {title:'Attempted, not solved', from:{view:'tab', tab:'theory'}}); break;
-    case 'review-oa': startSession('practice', shuffle(listIds('oav')).slice(0, 20), {title:'Your OA + variants', from:{view:'tab', tab:'theory'}}); break;
+    case 'review-oa': startSession('practice', shuffle(listIds('oav')).slice(0, 20), {title:'Real OA + variants', from:{view:'tab', tab:'theory'}}); break;
     case 'f-ch': ui.f.ch = a.dataset.v; $('#main').innerHTML = viewProblems(); break;
     case 'f-list': ui.f = Object.assign(blankFilters(), {list:a.dataset.v}); $('#main').innerHTML = viewProblems(); break;
     case 'f-list-go': ui.f = Object.assign(blankFilters(), {list:a.dataset.v}); goTab('theory'); break;

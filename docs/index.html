@@ -1153,7 +1153,7 @@ textarea.cin:focus { outline: 2px solid var(--accent-line); border-color: var(--
 // Entry: [id, difficulty, question, answer, explanation, tags?]
 //   difficulty: E (easy), M (medium), H (hard)
 //   answer: [correct, distractor, distractor, distractor] for multiple choice, or true/false
-//   tags: o = from your OA, v = variant of an OA question, r = reported online,
+//   tags: o = from a real OA, v = variant of an OA question, r = reported online,
 //         b = beyond the book (the explanation teaches it), a = computer arithmetic
 // The id prefix is the chapter of "Hardware from the Ground Up" that teaches the topic.
 const RAW = [
@@ -1898,7 +1898,7 @@ const UNITS = [
 {id:4, title:"Semiconductors", goal:"Understand doping, mobility and what temperature does to silicon.", cards:[
   {t:"Doping", b:["Pure silicon's electrons are locked in bonds, so it conducts poorly. Doping frees carriers.","Phosphorus, with 5 valence electrons, makes n-type silicon with free electrons. Boron, with 3, makes p-type silicon with holes."], q:"04-01"},
   {t:"Mobility", b:["Mobility is how fast carriers drift in an electric field. Electrons are about 2–3× more mobile than holes, which is why PMOS transistors are weaker than NMOS ones."], q:"04-03"},
-  {t:"What heat does (your OA)", b:["A hotter lattice vibrates more, so carriers scatter more. Mobility falls, and the resistance of metal wires rises.","Heat also frees extra carriers, so leakage climbs steeply. Slide the temperature up and watch each effect."], w:"temp", q:"04-04"},
+  {t:"What heat does (real OA)", b:["A hotter lattice vibrates more, so carriers scatter more. Mobility falls, and the resistance of metal wires rises.","Heat also frees extra carriers, so leakage climbs steeply. Slide the temperature up and watch each effect."], w:"temp", q:"04-04"},
   {t:"The PN junction", b:["Where p-type meets n-type silicon, a depletion region forms: that is a diode.","In forward bias, above about 0.7 V, it conducts. In reverse bias it blocks, apart from a tiny leakage."], q:"04-09"}
 ]},
 {id:5, title:"The MOSFET", goal:"Predict exactly what voltage a transistor passes, including weak levels.", cards:[
@@ -1920,19 +1920,19 @@ const UNITS = [
 ]},
 {id:8, title:"CMOS gates", goal:"Build gates from transistors and explain the swapped inverter.", cards:[
   {t:"The CMOS inverter", b:["The PMOS pulls the output up to VDD, the NMOS pulls it down to ground, and exactly one is on at a time.","That gives full output swing and no static current. Flip the input and see which transistor conducts."], w:"inverter", q:"08-14"},
-  {t:"The swapped inverter (your OA)", b:["Put the NMOS on top and the PMOS on the bottom and the circuit stops inverting.","Input 1 gives VDD − Vtn, and input 0 gives |Vtp|. It becomes a weak, non-inverting buffer. Compare the two modes."], w:"inverter:swapped", q:"08-02"},
+  {t:"The swapped inverter (real OA)", b:["Put the NMOS on top and the PMOS on the bottom and the circuit stops inverting.","Input 1 gives VDD − Vtn, and input 0 gives |Vtp|. It becomes a weak, non-inverting buffer. Compare the two modes."], w:"inverter:swapped", q:"08-02"},
   {t:"Series means AND", b:["In the pull-down network, NMOS in series means AND and NMOS in parallel means OR. The pull-up network is the dual.","A NAND gate has PMOS in parallel and NMOS in series."], q:"08-05"},
   {t:"Why NAND beats NOR", b:["A NOR gate stacks slow PMOS transistors in series, so it is slow or must be very wide.","Every static CMOS stage inverts, so AND is a NAND followed by an inverter."], q:"08-08"}
 ]},
 {id:9, title:"Combinational logic", goal:"Build any gate out of 2:1 muxes and reason about adders and delays.", cards:[
   {t:"The multiplexer", b:["A 2:1 mux outputs I1 when S = 1 and I0 when S = 0: Y = S ? I1 : I0. Muxes steer data everywhere in hardware."], q:"09-03"},
-  {t:"Any gate from a mux (your OA)", b:["Put one variable on the select. Feed I0 with what the gate gives when that variable is 0, and I1 with what it gives when it is 1.","For OR: S = B, I0 = A, I1 = 1. Solve every target in the builder."], w:"mux", q:"09-01"},
+  {t:"Any gate from a mux (real OA)", b:["Put one variable on the select. Feed I0 with what the gate gives when that variable is 0, and I1 with what it gives when it is 1.","For OR: S = B, I0 = A, I1 = 1. Solve every target in the builder."], w:"mux", q:"09-01"},
   {t:"Adders", b:["A full adder's sum is A ⊕ B ⊕ Cin, and its carry is the majority of the three inputs.","Ripple-carry delay grows with the number of bits; lookahead adders are faster."], q:"09-09"},
   {t:"Delay and glitches", b:["A block's propagation delay is set by its slowest path, and its contamination delay by its fastest.","When paths have unequal delays, the output can glitch briefly before it settles."], q:"09-17"}
 ]},
 {id:10, title:"Latches and flip-flops", goal:"Know exactly when a latch and a flip-flop change, and why flip-flops win.", cards:[
   {t:"Memory from feedback", b:["Two inverters connected in a loop hold one bit indefinitely. Latches and flip-flops add a controlled way to write that bit."], q:"10-07"},
-  {t:"Latch vs flip-flop (your OA)", b:["A latch is transparent while it is enabled. A flip-flop samples its input only at the clock edge.","The flip-flop wins on safety: no race-through, glitches ignored, simple timing. The latch wins on size and allows time borrowing. Click the D cells and watch the two outputs."], w:"latchff", q:"10-01"},
+  {t:"Latch vs flip-flop (real OA)", b:["A latch is transparent while it is enabled. A flip-flop samples its input only at the clock edge.","The flip-flop wins on safety: no race-through, glitches ignored, simple timing. The latch wins on size and allows time borrowing. Click the D cells and watch the two outputs."], w:"latchff", q:"10-01"},
   {t:"Flip-flops from muxes", b:["A mux with its output fed back to one input is a latch.","Two of these latches, enabled in opposite clock phases, make a master–slave flip-flop."], q:"10-05"},
   {t:"Metastability", b:["If D changes inside the setup/hold window, a flip-flop can hang between 0 and 1 for an unpredictable time.","It can't be eliminated, only made rare, using two-flop synchronizers."], q:"10-11"}
 ]},
@@ -1954,12 +1954,12 @@ const UNITS = [
 ]},
 {id:14, title:"Power", goal:"Answer every power-scaling question in seconds.", cards:[
   {t:"Where power goes", b:["Dynamic power is αCV²f, spent every time something switches. Short-circuit power is spent during each transition. Leakage flows all the time."], q:"14-05"},
-  {t:"Scaling questions (your OA)", b:["Multiply the factors together and square the voltage factor: doubling both f and V gives 2 × 2² = 8×.","Try the classic variants in the calculator, such as V up 10% with f up 20%."], w:"power", q:"14-01"},
+  {t:"Scaling questions (real OA)", b:["Multiply the factors together and square the voltage factor: doubling both f and V gives 2 × 2² = 8×.","Try the classic variants in the calculator, such as V up 10% with f up 20%."], w:"power", q:"14-01"},
   {t:"Power vs energy", b:["Energy per operation is αCV², with no frequency in it. Running faster at the same voltage uses more power but the same energy."], q:"14-06"},
   {t:"Saving power", b:["Clock gating stops switching, which cuts dynamic power. Power gating cuts off the supply, which stops leakage. DVFS lowers voltage and frequency together, which cuts both."], q:"14-07"}
 ]},
 {id:15, title:"Process, voltage and temperature", goal:"Explain temperature effects, temperature inversion and sign-off corners.", cards:[
-  {t:"Mobility and wires vs heat (your OA)", b:["Heat lowers carrier mobility and raises wire resistance, and both slow the chip down.","Heat also lowers Vt. At low supply voltages that effect can win. Slide VDD down to 0.6 V and then heat the chip."], w:"temp", q:"15-01"},
+  {t:"Mobility and wires vs heat (real OA)", b:["Heat lowers carrier mobility and raises wire resistance, and both slow the chip down.","Heat also lowers Vt. At low supply voltages that effect can win. Slide VDD down to 0.6 V and then heat the chip."], w:"temp", q:"15-01"},
   {t:"Temperature inversion", b:["At low VDD, the drop in Vt outweighs the loss of mobility, so a hot chip can be faster. Wires, however, are always slower when hot."], q:"15-04"},
   {t:"Sign-off corners", b:["Setup is checked at the slow corner with low voltage. Hold is checked at the fast corner with high voltage. Leakage is worst at the fast corner, high voltage and high temperature."], q:"15-07"}
 ]},
@@ -1970,7 +1970,7 @@ const UNITS = [
 ]},
 {id:17, title:"Manufacturing and reliability", goal:"Explain the antenna rule, electromigration, latch-up and yield.", cards:[
   {t:"How chips are made", b:["Chips are printed one layer at a time with light, then etched with plasma, doped, and polished flat. Dummy fill keeps the metal density even so polishing works."], q:"17-10"},
-  {t:"The antenna rule (your OA)", b:["Plasma etching charges long wires. If a wire touches only a gate, that charge must go through the thin gate oxide.","The risk is the ratio of metal area to gate area, so a smaller gate is worse. Try shrinking the gate, then add a diode."], w:"antenna", q:"17-01"},
+  {t:"The antenna rule (real OA)", b:["Plasma etching charges long wires. If a wire touches only a gate, that charge must go through the thin gate oxide.","The risk is the ratio of metal area to gate area, so a smaller gate is worse. Try shrinking the gate, then add a diode."], w:"antenna", q:"17-01"},
   {t:"Reliability", b:["Electromigration is driven by current and heat. Latch-up comes from a parasitic thyristor. ESD is static discharge. Aging, such as NBTI, raises Vt over the years."], q:"17-07"}
 ]},
 {id:18, title:"Memory circuits", goal:"Explain SRAM and DRAM reads and writes, and what ECC buys you.", cards:[
@@ -3024,7 +3024,7 @@ async def counts_up(dut):
 }`,
  why:["Cache sizes, FIFO depths and alignments are powers of two because masking replaces division: `addr & (size - 1)` is the offset when size is a power of two."]},
 {id:'c-03', d:'E', lang:'c', area:'C and C++', title:'Reverse a linked list',
- p:["Given `struct node { int val; struct node *next; };`, write `struct node *reverse(struct node *head)` that reverses the list in place and returns the new head. (A linked-list problem was the coding question on your OA.)"],
+ p:["Given `struct node { int val; struct node *next; };`, write `struct node *reverse(struct node *head)` that reverses the list in place and returns the new head. (A linked-list problem was the coding question on a real NVIDIA OA.)"],
  starter:`#include <stddef.h>
 
 struct node { int val; struct node *next; };
@@ -4530,7 +4530,7 @@ BANK.forEach(q => (CH_IDS[q.ch] = CH_IDS[q.ch] || []).push(q.id));
 const MOCK_N = 15, MOCK_MIN = 50, UNIT_N = 5, UNIT_PASS = 4;
 const MUX_NAMES = {OR:'OR', AND:'AND', NOTA:'NOT A', NAND:'NAND', NOR:'NOR', XOR:'XOR'};
 
-// Study lists: your OA, its topics, sources, and the skills NVIDIA's posting names.
+// Study lists: the real OA, its topics, sources, and the skills NVIDIA's posting names.
 const hasTag = (Q, t) => Q.tags.includes(t);
 const oaish = Q => hasTag(Q, 'o') || hasTag(Q, 'v');
 const OA_TOPICS = [
@@ -4578,8 +4578,8 @@ const SKILLS = [
   {key:'sk-prog', name:'Programming, Linux and scripting', ch:[23]}
 ];
 const LISTS = {
-  'oa': {name:'Your OA questions', test:Q => hasTag(Q, 'o')},
-  'oav': {name:'Your OA + variants', test:oaish},
+  'oa': {name:'Real OA questions', test:Q => hasTag(Q, 'o')},
+  'oav': {name:'Real OA + variants', test:oaish},
   'rep': {name:'Reported online', test:Q => hasTag(Q, 'r')},
   'beyond': {name:'Beyond the book', test:Q => hasTag(Q, 'b')}
 };
@@ -4972,7 +4972,7 @@ function statusCell(id){
 }
 function tagChips(Q){
   let h = '';
-  if (hasTag(Q, 'o')) h += '<span class="tag t-oa">Your OA</span>';
+  if (hasTag(Q, 'o')) h += '<span class="tag t-oa">Real OA</span>';
   else if (hasTag(Q, 'v')) h += '<span class="tag t-var">OA variant</span>';
   if (hasTag(Q, 'r')) h += '<span class="tag t-rep">Reported</span>';
   if (hasTag(Q, 'b')) h += '<span class="tag t-bey">Beyond the book</span>';
@@ -5946,7 +5946,7 @@ function viewPosition(){
   const dOk = id => d === 'all' || (BY_ID[id] || CODE_BY_ID[id]).d === d;
   return `<div class="pvbar"><button type="button" class="btn ghost small" data-act="co-back">← Positions</button></div>
     <section class="card cohead">${coAvatar(c, 'lg')}<div class="cohtext"><p class="posmeta"><span class="lvl${p.level === 'Program' ? ' prog' : ''}">${esc(p.level)}</span><span>${esc(R.label)}</span></p><h1>${esc(posName(p))}</h1>
-      <p class="muted">${G.total} questions: ${S.theory.length} theory and ${S.code.length} coding${R.tags ? ', led by the questions from your own assessment and the ones candidates reported' : ', the ones reported for ' + esc(c.name) + ' first'}.</p>
+      <p class="muted">${G.total} questions: ${S.theory.length} theory and ${S.code.length} coding${R.tags ? ', led by the questions from a real Ignite assessment and the ones candidates reported' : ', the ones reported for ' + esc(c.name) + ' first'}.</p>
       <div class="row"><button type="button" class="btn primary" data-act="pos-start">${G.solved ? (G.solved === G.total ? 'Review' : 'Continue') : 'Start'} →</button>${OA_BY_CO[p.co] && OA_BY_CO[p.co].ready && p.level === 'Program' ? '<button type="button" class="btn" data-act="go" data-v="oa">Take the timed OA</button>' : ''}<button type="button" class="btn ghost" data-act="co-open" data-v="${c.id}">All ${esc(c.name)} problems</button></div></div>
       <div class="herostat">${ring(G.total ? G.solved / G.total : 0, 76, 7, `${G.solved} of ${G.total} solved`)}<div><b>${G.solved}<span class="muted">/${G.total}</span></b><span>solved</span></div></div></section>
     <div class="cotabs"><div class="chiprow">${[['all', 'All'], ['E', 'Easy'], ['M', 'Medium'], ['H', 'Hard']].map(([v, l]) => `<button type="button" class="tchip${d === v ? ' on' : ''}" data-act="pos-d" data-v="${v}">${l}</button>`).join('')}</div></div>
@@ -5974,7 +5974,7 @@ function viewCompanies(){
     <p class="muted">Every theory and coding problem is tagged with the companies whose hardware roles test it. Pick a company to work through its list.</p>${seg}
     <input type="search" id="co-q" class="bigsearch" placeholder="Search companies" value="${esc(ui.coq || '')}" aria-label="Search companies"></section>
     <div class="cogrid" id="cogrid">${coCardsHTML(list)}</div>
-    <p class="muted small conote">Tags from a company's core topics come from public job postings and widely reported interview topics; they say "this is tested for these roles", not "this exact question was asked". Problems marked <span class="cotag rep">reported</span> were actually seen: your own OA, its variants, and candidate reports.</p>`;
+    <p class="muted small conote">Tags from a company's core topics come from public job postings and widely reported interview topics; they say "this is tested for these roles", not "this exact question was asked". Problems marked <span class="cotag rep">reported</span> were actually seen: a real OA, its variants, and candidate reports.</p>`;
 }
 function coCardsHTML(list){
   return list.length ? list.map(c => {
@@ -6010,12 +6010,12 @@ function viewCompany(){
 function codeTableHTML(ids, from){
   return `<div class="tablewrap"><table class="ptable ctable"><thead><tr><th class="c-st">Status</th><th class="c-ti">Problem</th><th class="c-tp">Area</th><th class="c-ty">Language</th><th class="c-co">Companies</th><th class="c-df">Difficulty</th></tr></thead><tbody>${codeRowsHTML(ids.map(id => CODE_BY_ID[id]), from)}</tbody></table></div>`;
 }
-// Your OA and what other candidates reported, shown on NVIDIA's page.
+// The real OA's topics and what other candidates reported, shown on NVIDIA's page.
 function nvidiaReportHTML(){
   const listCell = key => { const ids = listIds(key); return `<button type="button" class="linkbtn" data-act="f-list-go" data-v="${key}">${ids.length} problems</button><span class="muted"> · ${solvedIn(ids)} solved</span>`; };
   const oaRows = OA_TOPICS.map(t => { const ids = listIds(t.key), exact = ids.filter(id => hasTag(BY_ID[id], 'o')).length; return `<tr><td>${esc(t.name)}</td><td>${t.book}</td><td class="mono">${exact}</td><td class="mono">${ids.length - exact}</td><td>${listCell(t.key)}</td></tr>`; }).join('');
   const repRows = REPORTED.map(r => `<tr><td>${esc(r.name)}</td><td>Ch ${r.ch}</td><td>${listCell(r.key)}</td></tr>`).join('');
-  return `<section class="card"><h2>Your OA topics</h2><p class="muted">Every question from your Ignite OA is in the bank word for word, plus variants that test the same idea.</p>
+  return `<section class="card"><h2>Real OA topics</h2><p class="muted">Every question from a real Ignite OA is in the bank word for word, plus variants that test the same idea.</p>
     <div class="tablewrap"><table class="rtable"><thead><tr><th>OA topic</th><th>Book</th><th>Exact</th><th>Variants</th><th>Practice</th></tr></thead><tbody>${oaRows}</tbody></table></div></section>
     <section class="card"><h2>Topics other candidates reported</h2><p class="muted">From the book's "Seen on the assessment" boxes.</p>
     <div class="tablewrap"><table class="rtable"><thead><tr><th>Reported topic</th><th>Book</th><th>Practice</th></tr></thead><tbody>${repRows}</tbody></table></div></section>
@@ -6991,7 +6991,7 @@ function act(a){
     case 'pf-recent': ui.prof.recent = a.dataset.v; render(); break;
     case 'mock': startSession('mock', shuffle(BANK.map(q => q.id)).slice(0, MOCK_N), {title:'Timed mock assessment', from:{view:'tab', tab:'theory'}}); break;
     case 'review-attempted': startSession('practice', shuffle(BANK.filter(Q => statusOf(Q.id) === 'attempted').map(Q => Q.id)).slice(0, 25), {title:'Attempted, not solved', from:{view:'tab', tab:'theory'}}); break;
-    case 'review-oa': startSession('practice', shuffle(listIds('oav')).slice(0, 20), {title:'Your OA + variants', from:{view:'tab', tab:'theory'}}); break;
+    case 'review-oa': startSession('practice', shuffle(listIds('oav')).slice(0, 20), {title:'Real OA + variants', from:{view:'tab', tab:'theory'}}); break;
     case 'f-ch': ui.f.ch = a.dataset.v; $('#main').innerHTML = viewProblems(); break;
     case 'f-list': ui.f = Object.assign(blankFilters(), {list:a.dataset.v}); $('#main').innerHTML = viewProblems(); break;
     case 'f-list-go': ui.f = Object.assign(blankFilters(), {list:a.dataset.v}); goTab('theory'); break;
