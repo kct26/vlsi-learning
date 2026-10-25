@@ -504,7 +504,7 @@ const OPEN_TABS = ['home', 'privacy', 'premium'];
 const gated = () => STANDALONE && !!window.FIREBASE_CONFIG && !acct.failed && !acct.user;
 function render(){
   if (gated() && !(ui.view === 'tab' && OPEN_TABS.includes(ui.tab))) {
-    if (!ui.after) ui.after = {tab:ui.tab, view:ui.view, pv:ui.pv, cp:ui.cp, co:ui.co, back:ui.back, cback:ui.cback, unit:ui.unit};
+    if (!ui.after) ui.after = {tab:ui.tab, view:ui.view, pv:ui.pv, cp:ui.cp, co:ui.co, pos:ui.pos, back:ui.back, cback:ui.cback, unit:ui.unit};
     ui.tab = 'home'; ui.view = 'tab'; setHash('home');
     if (acct.ready && acct.known && !ui.auth) setTimeout(openAuth, 0);
   }
@@ -512,7 +512,7 @@ function render(){
   document.body.classList.toggle('noprem', !hasPremium());
   if (needsVerify() && !(ui.view === 'tab' && ui.tab === 'privacy')) { homeStop(); oaStop(); const mv = $('#main'); mv.className = 'wrap main'; mv.innerHTML = viewVerify(); return; }
   const m = $('#main'), home = ui.view === 'tab' && ui.tab === 'home';
-  m.className = home ? 'main home' : 'wrap main' + ((ui.view === 'tab' && ['theory', 'coding', 'companies', 'profile', 'quest', 'admin', 'oa'].includes(ui.tab)) || ui.view === 'code' || ui.view === 'company' ? ' wide' : '');
+  m.className = home ? 'main home' : 'wrap main' + ((ui.view === 'tab' && ['theory', 'coding', 'companies', 'profile', 'quest', 'admin', 'oa'].includes(ui.tab)) || ui.view === 'code' || ui.view === 'company' || ui.view === 'position' ? ' wide' : '');
   if (!home) homeStop();
   oaStop();
   if (ui.view === 'quiz') { m.innerHTML = viewQuiz(); updateTimer(); }
@@ -521,6 +521,7 @@ function render(){
   else if (ui.view === 'problem') m.innerHTML = viewProblem();
   else if (ui.view === 'code') m.innerHTML = viewCode();
   else if (ui.view === 'company') m.innerHTML = viewCompany();
+  else if (ui.view === 'position') m.innerHTML = viewPosition();
   else if (home) { m.innerHTML = viewHome(); homeStart(); }
   else if (ui.tab === 'coding') m.innerHTML = viewCoding();
   else if (ui.tab === 'quest') { m.innerHTML = viewQuest(); if (ui.rm.fit) { ui.rm.fit = false; rmZoom('fit'); } }
@@ -685,7 +686,7 @@ function openProblem(id, list, back){
   ui.view = 'problem'; setHash('p' + BY_ID[id].n); render(); window.scrollTo(0, 0);
 }
 function moveProblem(id){ openProblem(id, ui.pv.list); }
-const backLabel = () => !ui.back ? 'Theory' : ui.back.view === 'unit' ? 'Back to quest' : ui.back.view === 'company' ? 'Back to ' + CO_BY_ID[ui.back.co].name : ui.back.tab === 'profile' ? 'Back to profile' : ui.back.tab === 'roles' ? 'Back to roles' : 'Theory';
+const backLabel = () => !ui.back ? 'Theory' : ui.back.view === 'unit' ? 'Back to quest' : ui.back.view === 'company' ? 'Back to ' + CO_BY_ID[ui.back.co].name : ui.back.view === 'position' ? 'Back to position' : ui.back.tab === 'profile' ? 'Back to profile' : ui.back.tab === 'roles' ? 'Back to roles' : 'Theory';
 function viewProblem(){
   const P = ui.pv, Q = BY_ID[P.id], pos = P.list.indexOf(P.id), s = state.q[Q.id], st = statusOf(Q.id);
   const locked = P.result === 'ok' || P.reveal;
@@ -1002,7 +1003,7 @@ const JUDGE_NAME = {python:'Python (Pyodide)', c:'C (Clang, WebAssembly)', cpp:'
 function viewCode(){
   const C = ui.cp, p = CODE_BY_ID[C.id], pos = C.list.indexOf(C.id), s = state.code[p.id] || {}, st = codeStatus(p.id);
   const src = s.src != null ? s.src : p.starter;
-  const back = ui.cback && ui.cback.tab === 'profile' ? 'Back to profile' : ui.cback && ui.cback.view === 'company' ? 'Back to ' + CO_BY_ID[ui.cback.co].name : 'Coding problems';
+  const back = ui.cback && ui.cback.tab === 'profile' ? 'Back to profile' : ui.cback && ui.cback.view === 'company' ? 'Back to ' + CO_BY_ID[ui.cback.co].name : ui.cback && ui.cback.view === 'position' ? 'Back to position' : 'Coding problems';
   return `<div class="cpv-wrap"><div class="pvbar"><button type="button" class="btn ghost small" data-act="c-back">← ${back}</button>
     <div class="row"><span class="muted mono">${pos + 1} / ${C.list.length}</span>
     <button type="button" class="iconbtn" data-act="c-prev" aria-label="Previous problem"${pos <= 0 ? ' disabled' : ''}>‹</button>
@@ -1244,7 +1245,7 @@ const COMPANIES = COMPANY_NAMES.map(c => Object.assign({}, c));
 const CO_BY_ID = Object.fromEntries(COMPANIES.map(c => [c.id, c]));
 const CO_TAGS = {};   // problem id -> [{co, rank, rep}], best first
 const PREMIUM_KEYS = ['chapters', 'areas', 'tags', 'ids', 'reported', 'note'];
-let ASSESSMENTS = [], OA_BY_CO = {};
+let ASSESSMENTS = [], OA_BY_CO = {}, POSITIONS = [], POS_BY_ID = {};
 const premium = {loaded:false, status:'none'};   // status: none, checking, active, inactive, nocontent, error
 function buildCompanyTags(){
   BANK.forEach(Q => { CO_TAGS[Q.id] = []; });
@@ -1270,12 +1271,12 @@ function applyPremium(data){
   COMPANIES.forEach(c => { const m = data.companies[c.id] || {}; PREMIUM_KEYS.forEach(k => { if (m[k] !== undefined) c[k] = m[k]; }); });
   ASSESSMENTS = Array.isArray(data.assessments) ? data.assessments.filter(a => a && CO_BY_ID[a.co]) : [];
   OA_BY_CO = Object.fromEntries(ASSESSMENTS.map(a => [a.co, a]));
-  buildCompanyTags(); premium.loaded = true;
+  buildCompanyTags(); buildPositions(data.positions); premium.loaded = true;
   return true;
 }
 function clearPremium(){
   COMPANIES.forEach(c => PREMIUM_KEYS.forEach(k => { delete c[k]; }));
-  ASSESSMENTS = []; OA_BY_CO = {}; buildCompanyTags(); premium.loaded = false;
+  ASSESSMENTS = []; OA_BY_CO = {}; POSITIONS = []; POS_BY_ID = {}; buildCompanyTags(); premium.loaded = false;
 }
 const hasPremium = () => premium.loaded;
 buildCompanyTags();
@@ -1310,12 +1311,100 @@ function coChips(id){
 }
 const coOpts = () => [['all', 'Company'], ...COMPANIES.map(c => [c.id, c.name])];
 
+// ---------- Positions: company postings, each with its own fixed problem set ----------
+// The list comes with Premium (positions in premium-data.js); what each kind of position is tested on is POS_ROLES.
+function buildPositions(src){
+  POSITIONS = []; POS_BY_ID = {};
+  const slug = t => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  if (!src || typeof src !== 'object') return;
+  COMPANIES.forEach(c => (Array.isArray(src[c.id]) ? src[c.id] : []).forEach(e => {
+    if (!Array.isArray(e) || typeof e[0] !== 'string' || !POS_ROLES[e[1]] || !POS_LEVELS.includes(e[2])) return;
+    let id = c.id + '-' + slug(e[0]) + (e[2] === 'Intern' && !/intern/i.test(e[0]) ? '-intern' : '');
+    while (POS_BY_ID[id]) id += '-2';
+    const p = {id, co:c.id, title:e[0], role:e[1], level:e[2]};
+    POSITIONS.push(p); POS_BY_ID[id] = p;
+  }));
+  POSITIONS.sort((a, b) => POS_LEVELS.indexOf(a.level) === 0 ? (POS_LEVELS.indexOf(b.level) === 0 ? 0 : -1) : POS_LEVELS.indexOf(b.level) === 0 ? 1 : 0);
+}
+// A position's problems: the company's reported problems first, then its tagged ones, then the rest of the role's
+// topics, spread across the role's chapters. Seeded by the position id, so everyone gets the same set.
+function posSet(p){
+  if (p.set) return p.set;
+  const R = POS_ROLES[p.role], rnd = rngFrom(p.id), n = R.n || 20;
+  const tier = id => { const t = (CO_TAGS[id] || []).find(x => x.co === p.co); return t ? (t.rep ? 0 : 1) : 2; };
+  const codePool = R.code === 'reported' ? coReportedCode(p.co).map(id => CODE_BY_ID[id]) : CODING.filter(q => (R.areas || []).includes(q.area));
+  const code = shuffle(codePool, rnd).sort((a, b) => tier(a.id) - tier(b.id)).slice(0, codePool.length ? (R.nc || 4) : 0).map(q => q.id);
+  let theory;
+  if (R.tags) {
+    const pool = shuffle(BANK.filter(Q => [...R.tags].some(t => hasTag(Q, t))), rnd);
+    theory = pool.sort((a, b) => (hasTag(b, R.first) ? 1 : 0) - (hasTag(a, R.first) ? 1 : 0)).slice(0, n - code.length);
+  } else {
+    const groups = R.ch.map(ch => shuffle(BANK.filter(Q => Q.ch === ch), rnd).sort((a, b) => tier(a.id) - tier(b.id)));
+    theory = [];
+    for (let k = 0; theory.length < n - code.length && groups.some(g => k < g.length); k++) groups.forEach(g => { if (k < g.length && theory.length < n - code.length) theory.push(g[k]); });
+  }
+  theory = theory.sort((a, b) => 'EMH'.indexOf(a.d) - 'EMH'.indexOf(b.d)).map(Q => Q.id);
+  return (p.set = {theory, code});
+}
+const posName = p => CO_BY_ID[p.co].name + ' ' + p.title;
+function posProgress(p){ const S = posSet(p); return {solved:solvedIn(S.theory) + codeSolvedIn(S.code.map(id => CODE_BY_ID[id])), total:S.theory.length + S.code.length}; }
+function posCardsHTML(list){
+  return list.length ? list.map(p => {
+    const c = CO_BY_ID[p.co], G = posProgress(p);
+    return `<button type="button" class="poscard${p.level === 'Program' ? ' prog' : ''}" data-act="pos-open" data-v="${p.id}"><span class="postile">${coAvatar(c, 'xl')}</span>
+      <span class="posbody"><b>${esc(posName(p))}</b><span class="posmeta"><span class="lvl${p.level === 'Program' ? ' prog' : ''}">${esc(p.level)}</span><span>${esc(POS_ROLES[p.role].label)}</span></span>
+      <span class="posfoot"><span class="muted">${G.total} Questions${G.solved ? ` · ${G.solved} solved` : ''}</span><span class="posgo">${G.solved ? (G.solved === G.total ? 'Review' : 'Continue') : 'Start'} ›</span></span>
+      <span class="cobar"><i style="width:${pct(G.solved, G.total)}%"></i></span></span></button>`;
+  }).join('') : '<p class="muted">No positions match.</p>';
+}
+const posFilters = () => ui.pf || (ui.pf = {q:'', co:'all', level:'all', role:'all'});
+function posFiltered(){
+  const F = posFilters(), term = F.q.trim().toLowerCase();
+  return POSITIONS.filter(p => (F.co === 'all' || p.co === F.co) && (F.level === 'all' || p.level === F.level) && (F.role === 'all' || p.role === F.role) &&
+    (!term || (posName(p) + ' ' + POS_ROLES[p.role].label).toLowerCase().includes(term)));
+}
+function posListHTML(){ const l = posFiltered(); return `<p class="muted small posshow">Showing ${l.length} of ${POSITIONS.length} positions</p><div class="posgrid">${posCardsHTML(l)}</div>`; }
+function openPosition(id){ ui.pos = {id, d:'all'}; ui.view = 'position'; setHash('position-' + id); render(); window.scrollTo(0, 0); }
+function posStart(){
+  const p = POS_BY_ID[ui.pos.id]; if (!p) return;
+  const S = posSet(p), back = {view:'position', pos:p.id};
+  const t = S.theory.find(id => statusOf(id) !== 'solved'), k = S.code.find(id => codeStatus(id) !== 'solved');
+  if (t || !k) openProblem(t || S.theory[0], S.theory, back); else openCode(k, S.code, back);
+}
+function viewPosition(){
+  if (!hasPremium()) return premiumLock('Positions');
+  const p = POS_BY_ID[ui.pos && ui.pos.id];
+  if (!p) return `<div class="pvbar"><button type="button" class="btn ghost small" data-act="co-back">← Companies</button></div><section class="pagehead"><h1>${premium.status === 'checking' ? 'Loading…' : 'Position not found'}</h1></section>`;
+  const c = CO_BY_ID[p.co], R = POS_ROLES[p.role], S = posSet(p), G = posProgress(p), d = ui.pos.d;
+  const dOk = id => d === 'all' || (BY_ID[id] || CODE_BY_ID[id]).d === d;
+  return `<div class="pvbar"><button type="button" class="btn ghost small" data-act="co-back">← Positions</button></div>
+    <section class="card cohead">${coAvatar(c, 'lg')}<div class="cohtext"><p class="posmeta"><span class="lvl${p.level === 'Program' ? ' prog' : ''}">${esc(p.level)}</span><span>${esc(R.label)}</span></p><h1>${esc(posName(p))}</h1>
+      <p class="muted">${G.total} questions: ${S.theory.length} theory and ${S.code.length} coding${R.tags ? ', led by the questions from your own assessment and the ones candidates reported' : ', the ones reported for ' + esc(c.name) + ' first'}.</p>
+      <div class="row"><button type="button" class="btn primary" data-act="pos-start">${G.solved ? (G.solved === G.total ? 'Review' : 'Continue') : 'Start'} →</button>${OA_BY_CO[p.co] && OA_BY_CO[p.co].ready && p.level === 'Program' ? '<button type="button" class="btn" data-act="go" data-v="oa">Take the timed OA</button>' : ''}<button type="button" class="btn ghost" data-act="co-open" data-v="${c.id}">All ${esc(c.name)} problems</button></div></div>
+      <div class="herostat">${ring(G.total ? G.solved / G.total : 0, 76, 7, `${G.solved} of ${G.total} solved`)}<div><b>${G.solved}<span class="muted">/${G.total}</span></b><span>solved</span></div></div></section>
+    <div class="cotabs"><div class="chiprow">${[['all', 'All'], ['E', 'Easy'], ['M', 'Medium'], ['H', 'Hard']].map(([v, l]) => `<button type="button" class="tchip${d === v ? ' on' : ''}" data-act="pos-d" data-v="${v}">${l}</button>`).join('')}</div></div>
+    <h3 class="subh">Theory</h3>${tableHTML(S.theory.filter(dOk), 'full', 'posrows', 'position')}
+    ${S.code.length ? `<h3 class="subh">Coding</h3>${codeTableHTML(S.code.filter(dOk), 'position')}` : ''}`;
+}
+
 function viewCompanies(){
   if (!hasPremium()) return premiumLock('Companies');
   const term = (ui.coq || '').trim().toLowerCase();
   const list = COMPANIES.filter(c => !term || (c.name + ' ' + c.focus).toLowerCase().includes(term));
+  const cov = ui.cov || 'pos', F = posFilters();
+  const seg = `<div class="seg" role="tablist"><button type="button" role="tab" aria-selected="${cov === 'pos'}" data-act="co-view" data-v="pos">Positions (${POSITIONS.length})</button><button type="button" role="tab" aria-selected="${cov === 'co'}" data-act="co-view" data-v="co">Companies (${COMPANIES.length})</button></div>`;
+  if (cov === 'pos') {
+    const roles = [...new Set(POSITIONS.map(p => p.role))];
+    return `<section class="pagehead"><p class="eyebrow">Companies</p><h1>Practice by <em>position</em></h1>
+      <p class="muted">Pick the job you are applying for. Each position has its own set of problems, the ones reported for that company first.</p>${seg}</section>
+      <div class="fbar posbar"><input type="search" id="pos-q" class="bigsearch" placeholder="Search positions" value="${esc(F.q)}" aria-label="Search positions">
+        <select id="pos-co" aria-label="Company">${coOpts().map(([v, l]) => `<option value="${v}"${F.co === v ? ' selected' : ''}>${esc(v === 'all' ? 'All companies' : l)}</option>`).join('')}</select>
+        <select id="pos-role" aria-label="Role"><option value="all">All roles</option>${roles.map(r => `<option value="${r}"${F.role === r ? ' selected' : ''}>${esc(POS_ROLES[r].label)}</option>`).join('')}</select>
+        <div class="chiprow">${[['all', 'All'], ...POS_LEVELS.map(l => [l, l === 'Program' ? 'Programs' : l === 'Intern' ? 'Internships' : 'New grad'])].map(([v, l]) => `<button type="button" class="tchip${F.level === v ? ' on' : ''}" data-act="pos-level" data-v="${esc(v)}">${l}</button>`).join('')}</div></div>
+      <div id="poslist">${posListHTML()}</div>`;
+  }
   return `<section class="pagehead"><p class="eyebrow">Companies</p><h1>Practice by <em>company</em></h1>
-    <p class="muted">Every theory and coding problem is tagged with the companies whose hardware roles test it. Pick a company to work through its list.</p>
+    <p class="muted">Every theory and coding problem is tagged with the companies whose hardware roles test it. Pick a company to work through its list.</p>${seg}
     <input type="search" id="co-q" class="bigsearch" placeholder="Search companies" value="${esc(ui.coq || '')}" aria-label="Search companies"></section>
     <div class="cogrid" id="cogrid">${coCardsHTML(list)}</div>
     <p class="muted small conote">Tags from a company's core topics come from public job postings and widely reported interview topics; they say "this is tested for these roles", not "this exact question was asked". Problems marked <span class="cotag rep">reported</span> were actually seen: your own OA, its variants, and candidate reports.</p>`;
@@ -1328,15 +1417,17 @@ function coCardsHTML(list){
       <span class="cobar"><i style="width:${pct(solved, total)}%"></i></span><small class="mono">${solved}/${total} solved</small></span></button>`;
   }).join('') : '<p class="muted">No companies match.</p>';
 }
-function openCompany(id){ ui.co = {id, tab:CO_BY_ID[id].tags || (CO_BY_ID[id].reported || []).length ? 'rep' : 'theory', d:'all'}; ui.view = 'company'; setHash('company-' + id); render(); window.scrollTo(0, 0); }
+function openCompany(id){ ui.co = {id, tab:POSITIONS.some(p => p.co === id) ? 'pos' : CO_BY_ID[id].tags || (CO_BY_ID[id].reported || []).length ? 'rep' : 'theory', d:'all'}; ui.view = 'company'; setHash('company-' + id); render(); window.scrollTo(0, 0); }
 function viewCompany(){
   if (!hasPremium()) return premiumLock('Companies');
   const C = ui.co, c = CO_BY_ID[C.id], t = coTheory(c.id), k = coCoding(c.id), rt = coReported(c.id), rk = coReportedCode(c.id);
   const solved = solvedIn(t) + codeSolvedIn(k.map(id => CODE_BY_ID[id])), total = t.length + k.length;
-  const tabs = [...(rt.length || rk.length ? [['rep', `Reported (${rt.length + rk.length})`]] : []), ['theory', `Theory (${t.length})`], ['coding', `Coding (${k.length})`]];
+  const cps = POSITIONS.filter(p => p.co === c.id);
+  const tabs = [...(cps.length ? [['pos', `Positions (${cps.length})`]] : []), ...(rt.length || rk.length ? [['rep', `Reported (${rt.length + rk.length})`]] : []), ['theory', `Theory (${t.length})`], ['coding', `Coding (${k.length})`]];
   const dOk = id => C.d === 'all' || (BY_ID[id] || CODE_BY_ID[id]).d === C.d;
   let body = '';
-  if (C.tab === 'coding') body = codeTableHTML(k.filter(dOk), 'company');
+  if (C.tab === 'pos') body = `<div class="posgrid">${posCardsHTML(cps)}</div>`;
+  else if (C.tab === 'coding') body = codeTableHTML(k.filter(dOk), 'company');
   else if (C.tab === 'theory') body = tableHTML(t.filter(dOk), 'full', 'corows', 'company');
   else {
     body = (rk.length ? `<h3 class="subh">Coding</h3>${codeTableHTML(rk.filter(dOk), 'company')}` : '') + (rt.length ? `<h3 class="subh">Theory</h3>${tableHTML(rt.filter(dOk), 'full', 'corows', 'company')}` : '');
@@ -1346,7 +1437,7 @@ function viewCompany(){
     <section class="card cohead">${coAvatar(c, 'lg')}<div class="cohtext"><h1>${esc(c.name)}</h1><p class="muted">${esc(c.focus)}</p>${c.note ? `<p class="small">${esc(c.note)}</p>` : ''}</div>
       <div class="herostat">${ring(total ? solved / total : 0, 76, 7, `${solved} of ${total} solved`)}<div><b>${solved}<span class="muted">/${total}</span></b><span>solved</span></div></div></section>
     <div class="cotabs"><div class="seg" role="tablist">${tabs.map(([v, l]) => `<button type="button" role="tab" aria-selected="${C.tab === v}" data-act="co-tab" data-v="${v}">${l}</button>`).join('')}</div>
-      <div class="chiprow">${[['all', 'All'], ['E', 'Easy'], ['M', 'Medium'], ['H', 'Hard']].map(([v, l]) => `<button type="button" class="tchip${C.d === v ? ' on' : ''}" data-act="co-d" data-v="${v}">${l}</button>`).join('')}</div></div>
+      ${C.tab === 'pos' ? '' : `<div class="chiprow">${[['all', 'All'], ['E', 'Easy'], ['M', 'Medium'], ['H', 'Hard']].map(([v, l]) => `<button type="button" class="tchip${C.d === v ? ' on' : ''}" data-act="co-d" data-v="${v}">${l}</button>`).join('')}</div>`}</div>
     ${body}`;
 }
 function codeTableHTML(ids, from){
@@ -2049,8 +2140,9 @@ function oaExam(){
   const secs = A.sections.map((s, si) => `<p class="eyebrow">${esc(s.title)}</p><div class="oanums">${O.items.map((x, j) => x.s !== si ? '' : `<button type="button" class="${j === k ? 'cur ' : ''}${(x.t === 'q' ? x.id in O.ans : O.src[x.id] != null && O.src[x.id].trim() !== CODE_BY_ID[x.id].starter.trim()) ? 'done ' : ''}${O.flag[x.id] ? 'flag' : ''}" data-act="oa-go" data-v="${j}" aria-label="Question ${j + 1}">${j + 1}</button>`).join('')}</div>`).join('');
   return `<div class="oabar"><div><b>Hardware Engineering Online Assessment</b><span class="muted small">Company revealed when you submit${O.neg ? ' · negative marking on' : ''}</span></div>
       <span class="oatime" aria-label="Time left"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg><span id="oatimer">${mmss(O.end - Date.now())}</span></span>
-      ${ui.oaConfirm ? `<span class="oaconfirm">Submit now? ${O.items.length - answered} unanswered.<button type="button" class="btn small primary" data-act="oa-submit-yes">Submit</button><button type="button" class="btn small" data-act="oa-submit-no">Keep going</button></span>`
-        : '<button type="button" class="btn small primary" data-act="oa-submit">Submit test</button>'}</div>
+      ${ui.oaConfirm === 'quit' ? '<span class="oaconfirm">Quit this test? Your answers are thrown away and it does not count.<button type="button" class="btn small danger" data-act="oa-quit-yes">Quit test</button><button type="button" class="btn small" data-act="oa-submit-no">Keep going</button></span>'
+        : ui.oaConfirm ? `<span class="oaconfirm">Submit now? ${O.items.length - answered} unanswered.<button type="button" class="btn small primary" data-act="oa-submit-yes">Submit</button><button type="button" class="btn small" data-act="oa-submit-no">Keep going</button></span>`
+        : '<span class="row"><button type="button" class="btn small ghost" data-act="oa-quit">Quit</button><button type="button" class="btn small primary" data-act="oa-submit">Submit test</button></span>'}</div>
     <div class="oaexam"><aside class="card oaside"><div class="row between"><b>Questions</b><span class="muted small">${answered}/${O.items.length} answered</span></div>${secs}
       <div class="oalegend small muted"><span><i class="lg done"></i>Answered</span><span><i class="lg flag"></i>Flagged</span></div></aside>
       <section class="card oaq" id="oaq">${oaItemHTML(O, it, k)}</section></div>`;
@@ -2223,6 +2315,7 @@ document.addEventListener('click', e => {
     const cfrom = (co.closest('[data-from]') || {dataset:{}}).dataset.from;
     if (cfrom === 'profile') openCode(co.dataset.copen, CODING.map(p => p.id), {view:'tab', tab:'profile'});
     else if (cfrom === 'company') openCode(co.dataset.copen, coCoding(ui.co.id), {view:'company', co:ui.co.id});
+    else if (cfrom === 'position' && POS_BY_ID[ui.pos.id]) openCode(co.dataset.copen, posSet(POS_BY_ID[ui.pos.id]).code, {view:'position', pos:ui.pos.id});
     else openCode(co.dataset.copen, codeFiltered().map(p => p.id), {view:'tab', tab:'coding'});
     return;
   }
@@ -2233,6 +2326,7 @@ document.addEventListener('click', e => {
     if (from === 'profile') openProblem(id, null, {view:'tab', tab:'profile'});
     else if (ui.view === 'unit') openProblem(id, CH_IDS[ui.unit.id], {view:'unit'});
     else if (from === 'company') openProblem(id, ui.co.tab === 'rep' ? coReported(ui.co.id) : coTheory(ui.co.id), {view:'company', co:ui.co.id});
+    else if (from === 'position' && POS_BY_ID[ui.pos.id]) openProblem(id, posSet(POS_BY_ID[ui.pos.id]).theory, {view:'position', pos:ui.pos.id});
     else openProblem(id, filtered().map(Q => Q.id), {view:'tab', tab:'theory'});
   }
 });
@@ -2248,6 +2342,11 @@ function act(a){
     case 'co-back': goTab('companies'); break;
     case 'co-tab': ui.co.tab = a.dataset.v; render(); break;
     case 'co-d': ui.co.d = a.dataset.v; render(); break;
+    case 'co-view': ui.cov = a.dataset.v; render(); break;
+    case 'pos-open': openPosition(a.dataset.v); break;
+    case 'pos-start': posStart(); break;
+    case 'pos-d': ui.pos.d = a.dataset.v; render(); break;
+    case 'pos-level': posFilters().level = a.dataset.v; render(); break;
     case 'home-tab': ui.home.tab = +a.dataset.v; render(); break;
     case 'try-tab': ui.home.tryi = +a.dataset.v; render(); break;
     case 'try-bit': ui.home.tryv.b ^= 1 << +a.dataset.v; $('#trywid').innerHTML = tryHTML(1); break;
@@ -2300,6 +2399,8 @@ function act(a){
     case 'oa-submit': oaSaveCode(); ui.oaConfirm = true; render(); break;
     case 'oa-submit-no': ui.oaConfirm = false; render(); break;
     case 'oa-submit-yes': oaSaveCode(); oaSubmit(false); break;
+    case 'oa-quit': oaSaveCode(); ui.oaConfirm = 'quit'; render(); break;
+    case 'oa-quit-yes': oaStop(); state.oa = null; ui.oaConfirm = false; ui.oaRes = null; save(); render(); window.scrollTo(0, 0); toast('Test quit. It was not counted.'); break;
     case 'oa-again': ui.oaRes = null; render(); window.scrollTo(0, 0); break;
     case 'oa-home': ui.oaRes = null; render(); break;
     case 'adm-open': goTab('admin'); loadAdmin(); break;
@@ -2326,7 +2427,7 @@ function act(a){
       if (pool.length) openCode(pool[Math.floor(Math.random() * pool.length)].id, list.map(p => p.id), {view:'tab', tab:'coding'});
       break;
     }
-    case 'c-back': saveEditorNow(); if (ui.cback && ui.cback.view === 'company') { ui.view = 'company'; setHash('company-' + ui.co.id); render(); } else goTab(ui.cback && ui.cback.tab ? ui.cback.tab : 'coding'); break;
+    case 'c-back': saveEditorNow(); if (ui.cback && ui.cback.view === 'position') returnFrom(ui.cback); else if (ui.cback && ui.cback.view === 'company') { ui.view = 'company'; setHash('company-' + ui.co.id); render(); } else goTab(ui.cback && ui.cback.tab ? ui.cback.tab : 'coding'); break;
     case 'c-prev': case 'c-next': {
       const C = ui.cp, i = C.list.indexOf(C.id) + (a.dataset.act === 'c-next' ? 1 : -1);
       if (i >= 0 && i < C.list.length) openCode(C.list[i], C.list);
@@ -2387,10 +2488,12 @@ function act(a){
 }
 function returnFrom(from){
   if (from && from.view === 'company') { ui.view = 'company'; setHash('company-' + from.co); render(); return; }
+  if (from && from.view === 'position') { ui.pos = {id:from.pos, d:(ui.pos && ui.pos.id === from.pos && ui.pos.d) || 'all'}; ui.view = 'position'; setHash('position-' + from.pos); render(); return; }
   if (from && from.view === 'unit' && ui.unit) { ui.view = 'unit'; render(); return; }
   goTab(from && from.tab ? from.tab : 'quest');
 }
 document.addEventListener('input', e => {
+  if (['pos-q', 'pos-co', 'pos-role'].includes(e.target.id)) { posFilters()[e.target.id.slice(4)] = e.target.value; $('#poslist').innerHTML = posListHTML(); return; }
   if (e.target.id === 'co-q') { ui.coq = e.target.value; $('#cogrid').innerHTML = coCardsHTML(COMPANIES.filter(c => !ui.coq.trim() || (c.name + ' ' + c.focus).toLowerCase().includes(ui.coq.trim().toLowerCase()))); return; }
   if (e.target.dataset.try) {   // update the numbers without replacing the slider being dragged
     ui.home.tryv[e.target.dataset.try] = parseFloat(e.target.value);
@@ -2475,6 +2578,7 @@ if (local) state = normalize(local);
   else if (h === 'practice' || h === 'weekly') ui.tab = 'profile';
   else if (h === 'bank' || h === 'problems') ui.tab = 'theory';
   else if (h === 'jobs') ui.tab = 'roles';
+  else if (/^position-/.test(h)) { ui.tab = 'companies'; ui.pos = {id:h.slice(9), d:'all'}; ui.view = 'position'; }
   else if (/^company-/.test(h) && CO_BY_ID[h.slice(8)]) { ui.tab = 'companies'; ui.co = {id:h.slice(8), tab:'theory', d:'all'}; ui.view = 'company'; }
   if (m && BANK[+m[1] - 1]) { ui.tab = 'theory'; ui.back = {view:'tab', tab:'theory'}; ui.pv = {id:BANK[+m[1] - 1].id, list:BANK.map(Q => Q.id), pick:undefined, result:null, reveal:false, perm:shuffle([0, 1, 2, 3])}; ui.view = 'problem'; }
 })();

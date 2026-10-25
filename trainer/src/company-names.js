@@ -18,3 +18,32 @@ const COMPANY_NAMES = [
   {id:'synopsys',short:'SN',name:'Synopsys',focus:'EDA tools: synthesis, timing and verification'},
   {id:'cadence',short:'CD',name:'Cadence',focus:'EDA tools: implementation and simulation'}
 ];
+
+// What each kind of position is tested on: the book chapters its theory problems come from (most central first) and
+// the Coding areas of its coding problems. Which companies post which positions is Premium (private/premium-data.js).
+// n = problems per position (default 20), nc = how many of them are coding problems (default 4 when it has areas).
+// tags/first: draw theory from these source tags instead of chapters (first = the tag that goes first).
+// code:'reported' draws coding from the company's reported problems.
+const POS_ROLES = {
+  hwe:     {label:'Hardware engineering', ch:[9, 10, 11, 8, 5, 20, 14], areas:['RTL design', 'C and C++']},
+  asic:    {label:'ASIC and RTL design', ch:[9, 10, 11, 12, 19, 22, 13], areas:['RTL design']},
+  dv:      {label:'Design verification', ch:[19, 12, 10, 9, 11], areas:['Verification', 'RTL design']},
+  pd:      {label:'Physical design', ch:[11, 13, 15, 16, 17, 14], areas:['Physical design', 'Linux and scripting']},
+  dft:     {label:'Design for test', ch:[17, 10, 9, 12], areas:['RTL design']},
+  arch:    {label:'Architecture and performance', ch:[20, 18, 21, 22, 11], areas:['C and C++', 'GPU and CUDA']},
+  gpu:     {label:'GPU architecture', ch:[21, 20, 22, 7], areas:['GPU and CUDA', 'C and C++']},
+  power:   {label:'Power', ch:[14, 3, 15, 11, 5], areas:['Python and MATLAB']},
+  psv:     {label:'Silicon validation', ch:[10, 11, 16, 17, 15, 23], areas:['Linux and scripting', 'Python and MATLAB']},
+  circuit: {label:'Circuit design', ch:[5, 6, 8, 4, 13, 18], areas:[]},
+  memory:  {label:'Memory design', ch:[18, 5, 8, 4, 15], areas:[]},
+  board:   {label:'Boards and signal integrity', ch:[1, 2, 16, 3, 6], areas:['Python and MATLAB']},
+  ee:      {label:'Electrical engineering', ch:[1, 2, 6, 3, 14, 5], areas:['Python and MATLAB']},
+  rf:      {label:'RF and analog', ch:[2, 16, 6, 1], areas:['Python and MATLAB']},
+  sysh:    {label:'Hardware systems', ch:[16, 2, 14, 3, 20], areas:['Python and MATLAB', 'Linux and scripting']},
+  test:    {label:'Test and product', ch:[17, 15, 16, 10, 23], areas:['Python and MATLAB', 'Linux and scripting']},
+  process: {label:'Process and yield', ch:[4, 5, 17, 15], areas:['Python and MATLAB']},
+  cad:     {label:'CAD and EDA', ch:[23, 20, 19, 11], areas:['Linux and scripting', 'C and C++', 'Python and MATLAB']},
+  fw:      {label:'Firmware and embedded', ch:[7, 20, 23, 10], areas:['C and C++']},
+  ignite:  {label:'Hardware engineering program', tags:'ovr', first:'o', code:'reported', n:40, nc:5}
+};
+const POS_LEVELS = ['Program', 'Intern', 'New grad'];

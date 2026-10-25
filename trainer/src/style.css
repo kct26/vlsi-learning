@@ -1044,3 +1044,26 @@ h1, h2, h3, .hh2 { letter-spacing: -0.02em; }
 .viscos { display: flex; flex-wrap: wrap; gap: 8px; }
 .hcos { gap: 14px 18px; } .hcos button { padding: 0; } .hcos button:hover .coav { border-color: var(--hover-line); }
 .ptable .c-co { width: 150px; }
+
+/* ---------- Positions: logo-tile cards, like a jobs board ---------- */
+.pagehead .seg { margin-top: 14px; }
+.posbar { margin: 0 0 6px; } .posbar .bigsearch { margin: 0; } .posbar .chiprow { flex: 1 1 100%; }
+.posshow { margin: 10px 0; }
+.posgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.poscard { display: flex; flex-direction: column; text-align: left; padding: 0; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: 0; cursor: pointer; box-shadow: var(--shadow-sm); transition: border-color .15s, box-shadow .15s, transform .15s; color: inherit; font: inherit; }
+.poscard:hover { border-color: var(--hover-line); box-shadow: var(--shadow); transform: translateY(-2px); }
+.postile { display: grid; place-items: center; height: 150px; background: #FFFFFF; border-bottom: 1px solid var(--line); }
+.posbody { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px 16px; flex: 1; }
+.posbody > b { font-size: 1.02rem; line-height: 1.3; }
+.posmeta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 0.8rem; color: var(--muted); margin: 0; }
+.lvl { padding: 2px 8px; border: 1px solid var(--line); font-size: 0.74rem; font-weight: 600; color: var(--ink); }
+.lvl.prog { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.posfoot { display: flex; justify-content: space-between; align-items: center; margin-top: auto; font-size: 0.86rem; }
+.posgo { color: var(--accent); font-weight: 600; }
+.poscard .cobar { margin: 0; }
+.poscard.prog { grid-column: span 2; border-color: var(--accent-line); }
+.poscard.prog .postile { border-bottom: 3px solid var(--accent); }
+.coav.xl { width: 104px; height: 104px; border: 0 !important; background: transparent !important; padding: 0 !important; }
+.coav.xl.logo.wide { width: 190px; }
+.coav.xl:not(.logo) { background: var(--ink) !important; font-size: 1.8rem; }
+@media (max-width: 560px) { .poscard.prog { grid-column: auto; } .postile { height: 120px; } .coav.xl { width: 80px; height: 80px; } }

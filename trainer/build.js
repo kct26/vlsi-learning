@@ -12,8 +12,8 @@ const SCRIPTS = ['questions.js', 'lessons.js', 'widgets.js', 'coding.js', 'hidde
 const ctx = {};
 vm.createContext(ctx);
 const PRIV = path.join(__dirname, 'private', 'premium-data.js'), hasPremium = fs.existsSync(PRIV);
-vm.runInContext(SCRIPTS.slice(0, 7).map(read).join('\n') + (hasPremium ? '\n' + fs.readFileSync(PRIV, 'utf8') : '\nconst PREMIUM_DATA = {companies:{}, assessments:[]};') + '\n;this.PREMIUM_DATA = PREMIUM_DATA; this.COMPANY_NAMES = COMPANY_NAMES; this.HIDDEN = HIDDEN; this.V_CHECKS = V_CHECKS; this.RAW = RAW; this.PARTS = PARTS; this.UNITS = UNITS; this.WIDGETS = WIDGETS; this.CODING = CODING; this.LANGS = LANGS; this.CODE_AREAS = CODE_AREAS;', ctx);
-const {RAW, PARTS, UNITS, WIDGETS, CODING, LANGS, CODE_AREAS, HIDDEN, V_CHECKS, COMPANY_NAMES, PREMIUM_DATA} = ctx;
+vm.runInContext(SCRIPTS.slice(0, 7).map(read).join('\n') + (hasPremium ? '\n' + fs.readFileSync(PRIV, 'utf8') : '\nconst PREMIUM_DATA = {companies:{}, assessments:[]};') + '\n;this.PREMIUM_DATA = PREMIUM_DATA; this.COMPANY_NAMES = COMPANY_NAMES; this.POS_ROLES = POS_ROLES; this.POS_LEVELS = POS_LEVELS; this.HIDDEN = HIDDEN; this.V_CHECKS = V_CHECKS; this.RAW = RAW; this.PARTS = PARTS; this.UNITS = UNITS; this.WIDGETS = WIDGETS; this.CODING = CODING; this.LANGS = LANGS; this.CODE_AREAS = CODE_AREAS;', ctx);
+const {RAW, PARTS, UNITS, WIDGETS, CODING, LANGS, CODE_AREAS, HIDDEN, V_CHECKS, COMPANY_NAMES, POS_ROLES, POS_LEVELS, PREMIUM_DATA} = ctx;
 const COMPANIES = COMPANY_NAMES.map(c => Object.assign({}, c, PREMIUM_DATA.companies[c.id] || {})), ASSESSMENTS = PREMIUM_DATA.assessments;
 const errs = [], ids = new Set(), perCh = {}, texts = new Set();
 RAW.forEach((r, i) => {
@@ -61,6 +61,15 @@ CODING.forEach((p, i) => {
   if (R && R.kind === 'c' && (!['c', 'cpp'].includes(p.lang) || !Array.isArray(R.tests) || R.tests.length < 3 || R.tests.some(t => !Array.isArray(t) || !(t.length === 2 || (t.length === 4 && (t[2] === 'out' || t[2] === null) && t[3]))))) errs.push(where + ': bad C/C++ tests');
   if (R && R.kind === 'v' && (p.lang !== 'verilog' || (R.check ? !V_CHECKS[R.check] || !R.top : !Array.isArray(R.benches) || !R.benches.length || R.benches.some(b => !b.name || !b.top || !Array.isArray(b.in) || !(b.rows || b.rand)))))  errs.push(where + ': bad Verilog tests');
   if (R && R.kind && !['c', 'v'].includes(R.kind)) errs.push(where + ': unknown test kind ' + R.kind);
+});
+// Position roles must use real chapters and areas; every position needs a known company, role and level.
+Object.entries(POS_ROLES).forEach(([k, R]) => {
+  (R.ch || []).forEach(ch => { if (!UNITS.some(U => U.id === ch)) errs.push('position role ' + k + ': unknown chapter ' + ch); });
+  (R.areas || []).forEach(a => { if (!CODE_AREAS.includes(a)) errs.push('position role ' + k + ': unknown coding area ' + a); });
+});
+Object.entries(PREMIUM_DATA.positions || {}).forEach(([co, list]) => {
+  if (!COMPANY_NAMES.some(c => c.id === co)) errs.push('positions for unknown company ' + co);
+  (Array.isArray(list) ? list : []).forEach((e, i) => { if (!Array.isArray(e) || typeof e[0] !== 'string' || !e[0] || !POS_ROLES[e[1]] || !POS_LEVELS.includes(e[2])) errs.push(`positions ${co}[${i}]: needs [title, role, level] with a known role and level`); });
 });
 // Company tags: every id must exist, chapters must be quests, areas must be Coding areas.
 const coIds = new Set();

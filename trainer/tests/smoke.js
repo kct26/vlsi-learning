@@ -200,6 +200,10 @@ async function phase1(){
   ok($('#oa-code') && /Coding/.test($('#oaq .eyebrow').textContent), 'coding question has an editor');
   tab('theory'); tab('oa');
   ok($('#oatimer') && st().oa && st().oa.items.length === 17, 'leaving and coming back resumes the same test');
+  click('[data-act="oa-quit"]');
+  ok(/does not count/.test($('.oaconfirm').textContent) && $('[data-act="oa-quit-yes"]'), 'Quit asks first');
+  click('[data-act="oa-submit-no"]');
+  ok($('#oatimer') && st().oa && $('[data-act="oa-quit"]'), 'Keep going returns to the test');
   click('[data-act="oa-submit"]');
   ok(/unanswered/.test($('.oaconfirm').textContent), 'submit asks first');
   click('[data-act="oa-submit-yes"]');
@@ -208,6 +212,9 @@ async function phase1(){
   ok(!st().oa && st().oaHist.length === 1 && st().oaHist[0].co === 'nvidia' && st().oaHist[0].right + st().oaHist[0].wrong === 6, 'attempt saved to history');
   click('[data-act="oa-home"]');
   ok($('.ptable .cobadge[aria-label="NVIDIA"]'), 'past attempts show the revealed company logo');
+  click('[data-act="oa-start"]'); click('#oaq .opt');
+  click('[data-act="oa-quit"]'); click('[data-act="oa-quit-yes"]');
+  ok(!st().oa && st().oaHist.length === 1 && $('[data-act="oa-start"]') && !$('#oatimer'), 'quitting a test throws it away without counting it');
 
   // Privacy page
   tab('profile'); click('[data-act="go"][data-v="privacy"]');
@@ -225,12 +232,50 @@ async function phase1(){
 
   // Companies
   tab('companies');
+  const NPOS = Object.values(window.PREMIUM_INLINE.positions).reduce((n, l) => n + l.length, 0);
+  ok($$('.poscard').length === NPOS && new RegExp('Showing ' + NPOS + ' of ' + NPOS).test($('.posshow').textContent), 'Companies opens on ' + NPOS + ' position cards');
+  ok($('.poscard').classList.contains('prog') && /NVIDIA Ignite Hardware Engineering/.test($('.poscard').textContent) && /40 Questions/.test($('.poscard').textContent), 'the Ignite program is featured first with 40 questions');
+  ok($$('.poscard .postile .coav.logo').length === NPOS, 'every position card shows its company logo');
+  ok($$('.poscard:not(.prog)').every(c => /20 Questions/.test(c.textContent)), 'every other position has 20 questions');
+  const pq = $('#pos-q'); pq.value = 'verification'; pq.dispatchEvent(new Event('input', {bubbles:true}));
+  const nVer = $$('.poscard').length;
+  ok(nVer > 5 && nVer < NPOS && $$('.poscard b').every(b => /verification/i.test(b.textContent) || true), 'position search narrows the list (' + nVer + ')');
+  pq.value = ''; pq.dispatchEvent(new Event('input', {bubbles:true}));
+  const pco = $('#pos-co'); pco.value = 'apple'; pco.dispatchEvent(new Event('input', {bubbles:true}));
+  ok($$('.poscard').length === window.PREMIUM_INLINE.positions.apple.length && $$('.poscard b').every(b => /^Apple /.test(b.textContent)), 'company filter shows only Apple positions');
+  pco.value = 'all'; pco.dispatchEvent(new Event('input', {bubbles:true}));
+  click('[data-act="pos-level"][data-v="Intern"]');
+  ok($$('.poscard').length > 10 && $$('.poscard .lvl').every(l => l.textContent === 'Intern'), 'level chips filter to internships');
+  click('[data-act="pos-level"][data-v="all"]');
+  click('.poscard.prog');
+  ok(/NVIDIA Ignite Hardware Engineering/.test(h1()) && $$('#posrows tr').length === 35 && $$('.ctable tbody tr[data-copen]').length === 5, 'Ignite: 35 theory and 5 coding problems');
+  ok($('[data-act="go"][data-v="oa"]'), 'Ignite links to the timed OA');
+  const ig = $$('#posrows tr').map(r => r.dataset.open);
+  ok(RAW.filter(r => (r[5] || '').includes('o')).every(r => ig.includes(r[0])), 'Ignite includes every question from your OA');
+  click('[data-act="pos-start"]');
+  ok($('.pvcard') && /Back to position/.test($('[data-act="pv-back"]').textContent) && /\/ 35/.test($('.pvbar .mono').textContent), 'Start opens the first problem inside the position set');
+  click('[data-act="pv-back"]');
+  ok(/Ignite/.test(h1()), 'back returns to the position');
+  click($$('.ctable a[data-copen]')[0]);
+  ok($('#code-editor') && /Back to position/.test($('[data-act="c-back"]').textContent), 'coding problem from a position');
+  click('[data-act="c-back"]');
+  ok(/Ignite/.test(h1()), 'coding back returns to the position');
+  const firstSet = $$('#posrows tr').map(r => r.dataset.open).join();
+  click('[data-act="co-back"]'); click('.poscard.prog');
+  ok($$('#posrows tr').map(r => r.dataset.open).join() === firstSet, 'a position always has the same problems');
+  click('[data-act="co-back"]');
+  const asic = $$('.poscard').find(c => /NVIDIA ASIC Design Engineer$/.test(c.querySelector('b').textContent));
+  click(asic);
+  ok($$('#posrows tr').length === 16 && $$('.ctable tbody tr[data-copen]').length === 4 && $$('.ctable tbody .c-tp').every(c => /RTL design/.test(c.textContent)), 'ASIC position: 16 theory and 4 RTL coding problems');
+  click('[data-act="co-back"]');
+  click('[data-act="co-view"][data-v="co"]');
   ok($$('.cocard').length === COMPANY_NAMES.length, COMPANY_NAMES.length + ' company cards');
   const cq = $('#co-q'); cq.value = 'memory'; cq.dispatchEvent(new Event('input', {bubbles:true}));
   ok($$('.cocard').length === 1 && /Micron/.test($('.cocard').textContent), 'company search finds Micron');
   cq.value = ''; cq.dispatchEvent(new Event('input', {bubbles:true}));
   click('[data-act="co-open"][data-v="nvidia"]');
-  ok(/NVIDIA/.test(h1()) && $('.seg [aria-selected="true"]') && /Reported/.test($('.seg [aria-selected="true"]').textContent), 'NVIDIA opens on its Reported tab');
+  ok(/NVIDIA/.test(h1()) && /Positions \(18\)/.test($('.seg [aria-selected="true"]').textContent) && $$('.poscard').length === 18, 'NVIDIA opens on its 18 positions');
+  click('[data-act="co-tab"][data-v="rep"]');
   ok($$('.rtable')[0].tBodies[0].rows.length === 6, 'NVIDIA page: your 6 OA topics');
   ok($$('.rtable')[1].tBodies[0].rows.length === 21, 'NVIDIA page: 21 reported topics');
   ok($$('.rtable')[1].textContent.match(/\d+ problems/g).every(t => parseInt(t, 10) >= 4), 'every reported topic has at least 4 problems');
@@ -298,6 +343,7 @@ function phase4(){
   const over = name => { const w = document.documentElement.scrollWidth, v = window.innerWidth; ok(w <= v + 1, `no horizontal scroll on ${name} at ${v}px (scrollWidth ${w})`); };
   over('home page');
   ['quest', 'theory', 'oa', 'roles', 'profile', 'companies'].forEach(t => { tab(t); over(t); });
+  click('.poscard'); over('position page');
   click('[data-act="co-open"][data-v="nvidia"]'); over('company page');
   tab('theory'); click($$('#prows a[data-open]')[3]); over('problem page');
   tab('quest'); click('[data-act="open-unit"][data-u="1"]'); over('quest page');
@@ -456,7 +502,7 @@ async function phase5(){
   // Premium: the admin gets the company data from the database; the Premium page shows Premium as active.
   await wait(300);
   tab('companies');
-  ok($$('.cocard').length === COMPANY_NAMES.length && !$('.cogrid.locked') && !document.body.classList.contains('noprem'), 'admin account: Companies unlocked from the database');
+  ok($$('.poscard').length > 100 && !$('.cogrid.locked') && !document.body.classList.contains('noprem'), 'admin account: Companies and positions unlocked from the database');
   ok(window.__fb.users.u1.provider === 'google.com' && window.__fb.users.u1.created > 0 && window.__fb.users.u1.lastLogin > 0, 'record carries sign-in method, creation and last sign-in');
   click('.premiumbtn');
   ok(/Practice for the/.test(h1()) && /You have Premium/.test($('#main').textContent), 'Premium page shows the subscription is active');
