@@ -1,0 +1,286 @@
+% An extra chapter for the Learn tab (not part of the printed book). Written in the same LaTeX subset as the book's
+% chapters so book-convert.js turns it into lessons. It builds on Chapter 23 (Programming for Hardware Engineers).
+\chapter{C and C++ for the Online Assessment}
+\label{ch:occpp}
+
+The coding part of a hardware online assessment is usually one or two easy-to-medium problems: reverse a linked list, count or reverse bits, build a mask, format a number as hex, or a small queue. Chapter~\ref{ch:prog} covers the C you need. This chapter adds what the assessment itself asks of you: choosing between C and C++, the pointer and bit patterns that come up again and again, the C++ library shortcuts that save time, and a strategy for the hidden tests. Every idea is shown in plain C first, then the C++ shortcut, so you are ready whichever language the test allows.
+
+\begin{remember}
+Most assessments let you pick the language from a dropdown. When C++ is offered, it is usually the better choice: C++ contains almost all of C, so C-style code still compiles, and you also get \code{std::vector}, \code{std::string}, \code{std::sort} and hash maps when you need them.
+\end{remember}
+
+\section{Choosing C or C++}
+
+The starter code tells you a lot. If it is written in C style (\code{struct node *reverse(struct node *head)}), you can keep that style in either language. The differences that matter in a timed test are small:
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Task & C & C++ \\
+\midrule
+Empty pointer & \code{NULL} & \code{nullptr} \\
+Allocate one node & \code{malloc(sizeof *p)}, then \code{free(p)} & \code{new Node\{v, nullptr\}}, then \code{delete p} \\
+Growing array & \code{realloc} by hand & \code{std::vector<int>} \\
+Text & \code{char} array ending in \code{'\textbackslash{}0'} & \code{std::string} \\
+Sort & \code{qsort} with a comparator & \code{std::sort(v.begin(), v.end())} \\
+Hash map & write your own & \code{std::unordered\_map} \\
+Heap & write your own & \code{std::priority\_queue} \\
+Count set bits & loop with \code{x \&= x - 1} & \code{std::bitset<32>(x).count()} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{trap}
+In C, \code{malloc} returns \code{void *}, which converts to any pointer type on its own. In C++ it does not, so C code like \code{node *p = malloc(sizeof *p);} fails to compile as C++. Write \code{(node *)malloc(sizeof *p)}, or use \code{new}.
+\end{trap}
+
+On this site, every C problem has a Language menu: choose C (Clang) or C++17 (Clang). The judge compiles your code in the browser with the same hidden tests either way.
+
+\section{Pointers in five minutes}
+
+A pointer holds an address. Three operators do almost everything:
+
+\begin{itemize}
+  \item \code{\&x} is the address of \code{x}.
+  \item \code{*p} is the value at the address in \code{p}.
+  \item \code{p->val} is shorthand for \code{(*p).val}, the field of the struct that \code{p} points to.
+\end{itemize}
+
+Pointer arithmetic moves in whole elements, not bytes: if \code{p} points at an \code{int}, then \code{p + 1} points 4 bytes further on. An array name used in an expression turns into a pointer to its first element, which is why \code{a[i]} and \code{*(a + i)} mean the same thing.
+
+To let a function change the caller's pointer (for example the head of a list), pass a pointer to the pointer in C, or a reference in C++:
+
+\begin{lstlisting}
+/* C: insert at the front; the caller's head changes */
+void push(struct node **head, int v) {
+    struct node *n = malloc(sizeof *n);
+    n->val = v;
+    n->next = *head;
+    *head = n;
+}
+
+// C++: the same with a reference
+void push(Node *&head, int v) { head = new Node{v, head}; }
+\end{lstlisting}
+
+\begin{trap}
+Three bugs cause most crashes: following a \code{NULL} pointer (check before \code{p->next}), returning the address of a local variable (it disappears when the function returns), and using memory after \code{free} or \code{delete}.
+\end{trap}
+
+\section{Linked lists: three moves}
+
+Almost every linked-list question is one of three moves (Chapter~\ref{ch:prog} has the basics).
+
+\paragraph{Walk with three pointers} to rewire links in one pass. Reversing a list keeps \code{prev}, \code{cur} and \code{next}:
+
+\begin{lstlisting}
+struct node *reverse(struct node *head) {
+    struct node *prev = NULL;
+    while (head) {
+        struct node *next = head->next;   /* save it before overwriting */
+        head->next = prev;
+        prev = head;
+        head = next;
+    }
+    return prev;                          /* the old tail is the new head */
+}
+\end{lstlisting}
+
+\paragraph{Two speeds.} A slow pointer moves one node at a time and a fast one moves two. When the fast pointer reaches the end, the slow one is in the middle. If the list has a cycle, the fast pointer laps the slow one and they meet (Floyd's algorithm):
+
+\begin{lstlisting}
+bool has_cycle(struct node *head) {
+    struct node *slow = head, *fast = head;
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+        if (slow == fast) return true;
+    }
+    return false;
+}
+\end{lstlisting}
+
+\paragraph{A dummy head} removes the special case for the first node. Merging two sorted lists appends the smaller front node to a tail that starts at a dummy:
+
+\begin{lstlisting}
+struct node *merge(struct node *a, struct node *b) {
+    struct node dummy = {0, NULL}, *tail = &dummy;
+    while (a && b) {
+        if (a->val <= b->val) { tail->next = a; a = a->next; }
+        else                  { tail->next = b; b = b->next; }
+        tail = tail->next;
+    }
+    tail->next = a ? a : b;               /* attach whatever is left */
+    return dummy.next;
+}
+\end{lstlisting}
+
+\begin{bigidea}
+Before you submit, run the list code in your head on three inputs: an empty list (\code{NULL}), a list of one node, and a list of two nodes. Most hidden-test failures are one of these three.
+\end{bigidea}
+
+Practice on this site: Reverse a linked list, Detect a cycle in a linked list, and Merge two sorted lists.
+
+\section{Bits and masks}
+
+Bit questions are short and reward knowing a handful of idioms by heart. Use \code{unsigned} (or \code{uint32\_t}) for bit work: shifting a 1 into the sign bit of a signed \code{int} is undefined behavior.
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Task & Expression \\
+\midrule
+Test bit $k$ & \code{(x >> k) \& 1u} \\
+Set bit $k$ & \code{x |= 1u << k} \\
+Clear bit $k$ & \code{x \&= \textasciitilde(1u << k)} \\
+Toggle bit $k$ & \code{x \^= 1u << k} \\
+Lowest set bit & \code{x \& -x} \\
+Clear the lowest set bit & \code{x \& (x - 1)} \\
+Power of two & \code{x \&\& !(x \& (x - 1))} \\
+Low $n$ bits set ($n < 32$) & \code{(1u << n) - 1} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{worked}{a mask from bit lo to bit hi}
+Ones in bits \code{lo..hi} inclusive is a run of \code{hi - lo + 1} ones shifted up by \code{lo}. The catch is the full-width case: when the run is 32 bits long, \code{1u << 32} is undefined in C and C++ (on x86 it usually gives 1, not 0). Handle it on its own:
+\begin{lstlisting}
+uint32_t mask(int lo, int hi) {
+    int n = hi - lo + 1;
+    uint32_t ones = (n == 32) ? 0xFFFFFFFFu : ((1u << n) - 1);
+    return ones << lo;
+}
+\end{lstlisting}
+For lo = 4 and hi = 7 this gives \code{0x000000F0}.
+\end{worked}
+
+Two classics swap groups of bits with masks. Byte swap moves each byte to the mirror position; reversing all 32 bits swaps halves, then bytes, nibbles, pairs and single bits:
+
+\begin{lstlisting}
+uint32_t bswap(uint32_t x) {
+    return (x >> 24) | ((x >> 8) & 0xFF00u) | ((x << 8) & 0xFF0000u) | (x << 24);
+}
+uint32_t reverse_bits(uint32_t x) {
+    x = (x >> 16) | (x << 16);
+    x = ((x >> 8) & 0x00FF00FFu) | ((x & 0x00FF00FFu) << 8);
+    x = ((x >> 4) & 0x0F0F0F0Fu) | ((x & 0x0F0F0F0Fu) << 4);
+    x = ((x >> 2) & 0x33333333u) | ((x & 0x33333333u) << 2);
+    x = ((x >> 1) & 0x55555555u) | ((x & 0x55555555u) << 1);
+    return x;
+}
+\end{lstlisting}
+
+In C++, \code{std::bitset<32> b(x);} gives \code{b.count()}, \code{b.test(k)} and \code{b.to\_string()}. GCC and Clang also have \code{\_\_builtin\_popcount(x)}, which works in C too.
+
+\paragraph{Read-modify-write.} Hardware registers pack several fields into one word. To change one field without touching the others, clear its bits and then OR in the new value:
+
+\begin{lstlisting}
+/* write v into bits lo..hi of reg, leaving the other bits alone */
+reg = (reg & ~mask(lo, hi)) | (((uint32_t)v << lo) & mask(lo, hi));
+\end{lstlisting}
+
+Practice on this site: Count the set bits, Is it a power of two?, Bit mask from lo to hi as hex, Reverse the bits of a 32-bit word, Byte swap and endianness, and Read-modify-write a hardware register.
+
+\section{Strings and printing hex}
+
+A C string is a \code{char} array that ends with a zero byte, \code{'\textbackslash{}0'}. \code{strlen} counts the characters before it, so a buffer for $n$ characters needs $n + 1$ bytes.
+
+\code{printf} and \code{snprintf} format numbers: \code{\%u} for unsigned decimal, \code{\%x} and \code{\%X} for lowercase and uppercase hex, and a width with a leading zero pads it. \code{"0x\%08X"} prints \code{0x} followed by exactly 8 uppercase hex digits:
+
+\begin{lstlisting}
+char out[11];                                   /* "0x" + 8 digits + '\0' */
+snprintf(out, sizeof out, "0x%08X", mask(4, 7)); /* "0x000000F0" */
+\end{lstlisting}
+
+Without \code{printf}, build the digits yourself, four bits at a time from the top:
+
+\begin{lstlisting}
+const char *hex = "0123456789ABCDEF";
+out[0] = '0'; out[1] = 'x';
+for (int i = 0; i < 8; i++) out[2 + i] = hex[(x >> (28 - 4 * i)) & 0xF];
+out[10] = '\0';
+\end{lstlisting}
+
+In C++, \code{std::string} manages its own memory, and \code{std::ostringstream} with \code{std::hex}, \code{std::uppercase}, \code{std::setw(8)} and \code{std::setfill('0')} formats the same way.
+
+\begin{trap}
+Writing one byte past the end of a buffer, usually the terminating zero, is a classic source of wrong answers that pass some tests and fail others. Size buffers for the terminator, and prefer \code{snprintf}, which never writes past the size you give it.
+\end{trap}
+
+\section{Memory layout: structs and endianness}
+
+Assessments like short questions about how data sits in memory (Chapter~\ref{ch:prog} explains padding in detail). Each member is placed at an offset that is a multiple of its own alignment, and the whole struct is padded to a multiple of its largest member's alignment. On a 64-bit machine, \code{struct \{ char c; int *p; \}} takes 16 bytes: 1 for \code{c}, 7 of padding, then 8 for the pointer. Ordering members from largest to smallest usually removes most of the padding.
+
+\term{Endianness} is the order of bytes in a word. A \term{little-endian} machine (x86, most ARM systems) stores the least significant byte at the lowest address, so \code{0x12345678} in memory reads 78 56 34 12. Network protocols use big-endian order, which is why byte swaps show up in driver code.
+
+Practice on this site: Struct padding, and Byte swap and endianness.
+
+\section{Heaps, hash maps and the C++ library}
+
+When a problem needs ``the $k$ largest'', ``the next event in time order'' or ``look this up fast'', the C++ library saves you from writing a data structure under time pressure.
+
+\begin{itemize}
+  \item \code{std::priority\_queue<int>} is a max-heap: \code{top()} is the largest. For a min-heap, write \code{std::priority\_queue<int, std::vector<int>, std::greater<int>>}.
+  \item \code{std::unordered\_map<K, V>} finds, inserts and erases in $O(1)$ on average.
+  \item \code{std::list} can move a node to the front in $O(1)$ with \code{splice}, which is the heart of an LRU cache: a list in recency order plus a hash map from key to list position.
+\end{itemize}
+
+\begin{worked}{the k-th largest element}
+Keep a min-heap of the $k$ largest values seen so far. Each new value goes in; if the heap grows past $k$, drop the smallest. At the end, the top of the heap is the $k$-th largest. This takes $O(n \log k)$ time and $O(k)$ memory:
+\begin{lstlisting}
+int kth_largest(const std::vector<int> &a, int k) {
+    std::priority_queue<int, std::vector<int>, std::greater<int>> h;
+    for (int x : a) {
+        h.push(x);
+        if ((int)h.size() > k) h.pop();
+    }
+    return h.top();
+}
+\end{lstlisting}
+In C without a library, sorting a copy with \code{qsort} and taking element $n - k$ is $O(n \log n)$, which is fine for the input sizes an assessment uses.
+\end{worked}
+
+Practice on this site: k-th largest with a min-heap, LRU cache in O(1), and Event-driven simulation scheduler.
+
+\section{A ring buffer: a FIFO in software}
+
+A ring buffer is the software version of the hardware FIFO in Chapter~\ref{ch:rtl}: a fixed array, a read index and a write index that wrap around. Keeping a count makes full and empty easy to tell apart:
+
+\begin{lstlisting}
+#define N 8
+struct ring { int buf[N]; int head, tail, count; };   /* head: next read, tail: next write */
+
+bool ring_push(struct ring *r, int v) {
+    if (r->count == N) return false;                   /* full */
+    r->buf[r->tail] = v;
+    r->tail = (r->tail + 1) % N;
+    r->count++;
+    return true;
+}
+bool ring_pop(struct ring *r, int *v) {
+    if (r->count == 0) return false;                   /* empty */
+    *v = r->buf[r->head];
+    r->head = (r->head + 1) % N;
+    r->count--;
+    return true;
+}
+\end{lstlisting}
+
+When $N$ is a power of two, \code{(i + 1) \& (N - 1)} wraps the index without a division, just as a hardware FIFO wraps its pointers.
+
+Practice on this site: Ring buffer (a FIFO in software).
+
+\section{Strategy for the coding section}
+
+\begin{enumerate}
+  \item \term{Read the starter code first.} Keep the function name and signature exactly as given; the hidden tests call it.
+  \item \term{List the edge cases before you code:} an empty input or \code{NULL}, a single element, zero, the largest value (\code{0xFFFFFFFF}), negative numbers, and $k$ at either end of its range.
+  \item \term{Get a simple correct solution first.} Hidden tests are scored one by one, so a correct $O(n^2)$ answer that passes the small tests beats a fast answer that crashes. Speed it up only if time allows: with $n$ around $10^5$, $O(n \log n)$ is fine and $O(n^2)$ is too slow.
+  \item \term{Test with your own input,} especially the edge cases, before you submit. On this site, use the + tab (or Custom Input in the Online Assessment).
+  \item \term{Keep debug output out of the answer.} When the judge compares what you print, an extra line is a wrong answer. Remove debug prints, or send them to standard error (\code{fprintf(stderr, ...)} or \code{std::cerr}), which most judges ignore.
+  \item \term{Watch the clock.} An easy problem should take 15 to 20 minutes. If you are stuck, submit what passes and move on; you can come back.
+\end{enumerate}
+
+\begin{onoa}
+Candidates report easy C problems in the Ignite coding section: a linked list, bit manipulation, a mask printed as hex. Every one of them is a direct use of the patterns in this chapter.
+\end{onoa}

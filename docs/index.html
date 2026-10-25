@@ -1305,6 +1305,9 @@ body.dragging .ed-area textarea { pointer-events: none; }
   .lmain { padding: 18px 16px 22px; }
 }
 @media (min-width: 700px) { .lhero { flex-direction: row; flex-wrap: nowrap; } }
+.lnum.wide { width: auto; min-width: 40px; padding: 0 8px; font-size: 0.85rem; }
+.lart .opts { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 6px; font-size: 0.95em; }
+.lart .blank { letter-spacing: 1px; }
 
 </style>
 </head>
@@ -6334,7 +6337,11 @@ function viewRoles(){
 // ---------- Learn: the book as lessons, LeetCode Explore style ----------
 // Each chapter of Hardware from the Ground Up is a card of lessons (its sections), ending with that chapter's
 // problems. Reading a lesson and solving a problem both count toward the chapter.
-const CH_CODE = {11:['Physical design'], 19:['RTL design', 'Verification'], 21:['GPU and CUDA'], 23:['C and C++', 'Python and MATLAB', 'Linux and scripting']};
+const CH_CODE = {11:['Physical design'], 19:['RTL design', 'Verification'], 21:['GPU and CUDA'], 23:['C and C++', 'Python and MATLAB', 'Linux and scripting'], 27:['C and C++']};
+// The book's parts, then the pages for the days before an assessment: the C and C++ chapter (27), the practice
+// assessment (Chapter 25) and the formula sheet (Appendix A, page 26).
+const LEARN_PARTS = PARTS.concat([{n:9, name:'Before the assessment', units:[27, 25, 26]}]);
+const chLabel = c => c.label || `Chapter ${c.n}`;
 const chapterCode = ch => CODING.filter(p => (CH_CODE[ch] || []).includes(p.area)).map(p => p.id);
 const book = () => window.BOOK_LESSONS || null;
 const bookCh = ch => (book() || []).find(c => c.n === ch);
@@ -6351,7 +6358,7 @@ function chapterProgress(ch){
 }
 function openChapter(ch){
   const c = bookCh(ch); if (!c) return;
-  const first = c.sections.find(x => !state.read[x.id]);
+  const first = c.sections.find(x => !state.read[x.id]) || (!chapterProgress(ch).probs && c.sections[0]);
   openLesson(ch, first ? first.id.split('-')[1] : 'p');
 }
 function openLesson(ch, sec){
@@ -6364,50 +6371,53 @@ function openLesson(ch, sec){
 function lessonStep(dir){
   const B = book(), L = ui.lesson; if (!B || !L) return null;
   const seq = [];
-  B.forEach(c => { c.sections.forEach(x => seq.push({ch:c.n, sec:x.id.split('-')[1]})); seq.push({ch:c.n, sec:'p'}); });
+  LEARN_PARTS.flatMap(p => p.units).map(bookCh).filter(Boolean).forEach(c => { c.sections.forEach(x => seq.push({ch:c.n, sec:x.id.split('-')[1]})); if (chapterProgress(c.n).probs) seq.push({ch:c.n, sec:'p'}); });
   const i = seq.findIndex(x => x.ch === L.ch && x.sec === L.sec);
   return i < 0 ? null : seq[i + dir] || null;
 }
 function viewLearn(){
   const B = book();
   if (!B) { ensureBook(); return `<section class="pagehead"><p class="eyebrow">Learn</p><h1>${ui.bookErr ? 'The book could not be loaded' : 'Loading the book…'}</h1>${ui.bookErr ? '<p class="muted">Check your connection and reload the page.</p>' : ''}</section>`; }
-  const all = B.map(c => chapterProgress(c.n)), lessons = all.reduce((n, x) => n + x.lessons, 0), read = all.reduce((n, x) => n + x.read, 0);
+  const all = B.filter(c => c.n <= 23).map(c => chapterProgress(c.n)), lessons = all.reduce((n, x) => n + x.lessons, 0), read = all.reduce((n, x) => n + x.read, 0);
   const probs = all.reduce((n, x) => n + x.probs, 0), solved = all.reduce((n, x) => n + x.solved, 0), done = read + solved, total = lessons + probs;
-  const next = B.find(c => { const P = chapterProgress(c.n); return P.read < P.lessons; });
-  const card = c => { const P = chapterProgress(c.n); return `<button type="button" class="lcard${P.done && P.done === P.total ? ' complete' : ''}" data-act="learn-open" data-v="${c.n}"><span class="lnum">${c.n}</span>
-      <span class="lbody"><b>${esc(c.title)}</b><small>${P.lessons} lessons · ${P.probs} problems</small><span class="cobar"><i style="width:${pct(P.done, P.total)}%"></i></span>
+  const next = B.filter(c => c.n <= 23).find(c => { const P = chapterProgress(c.n); return P.read < P.lessons; });
+  const card = c => { const P = chapterProgress(c.n); return `<button type="button" class="lcard${P.done && P.done === P.total ? ' complete' : ''}" data-act="learn-open" data-v="${c.n}"><span class="lnum${String(c.badge || c.n).length > 2 ? ' wide' : ''}">${esc(c.badge || c.n)}</span>
+      <span class="lbody"><b>${esc(c.title)}</b><small>${c.label ? esc(c.label) + ' · ' : ''}${P.lessons} ${P.lessons === 1 ? 'page' : 'lessons'}${P.probs ? ` · ${P.probs} problems` : ''}</small><span class="cobar"><i style="width:${pct(P.done, P.total)}%"></i></span>
       <small class="mono">${P.done}/${P.total} done${P.done && P.done === P.total ? ' ✓' : ''}</small></span></button>`; };
   return `<section class="card lhero"><div><p class="eyebrow">Learn</p><h1>Hardware from the <em>Ground Up</em></h1>
       <p class="muted">The whole book, chapter by chapter, as short lessons. Read a topic, then practice the problems on it right after. Lessons you finish and problems you solve both count.</p>
       <div class="lstats"><span><b>${read}</b>/${lessons} lessons read</span><span><b>${solved}</b>/${probs} problems solved</span></div>
       ${next ? `<div class="row"><button type="button" class="btn primary" data-act="learn-open" data-v="${next.n}">${read ? 'Continue' : 'Start'} with Chapter ${next.n} →</button></div>` : ''}</div>
       <div class="herostat">${ring(total ? done / total : 0, 96, 8, `${done} of ${total} done`)}<div><b>${pct(done, total).replace(/\.0$/, '')}%</b><span>complete</span></div></div></section>
-    ${PARTS.map(part => `<section class="lpart"><h2 class="lparth"><span class="mono">Part ${part.n}</span> ${esc(part.name)}</h2><div class="lgrid">${part.units.map(n => bookCh(n)).filter(Boolean).map(card).join('')}</div></section>`).join('')}`;
+    ${LEARN_PARTS.map(part => `<section class="lpart"><h2 class="lparth"><span class="mono">Part ${part.n}</span> ${esc(part.name)}</h2><div class="lgrid">${part.units.map(n => bookCh(n)).filter(Boolean).map(card).join('')}</div></section>`).join('')}`;
 }
 function viewLesson(){
   const B = book(), L = ui.lesson;
   if (!B) { ensureBook(); return '<section class="pagehead"><p class="eyebrow">Learn</p><h1>Loading the book…</h1></section>'; }
   const c = bookCh(L.ch); if (!c) { ui.view = 'tab'; return viewLearn(); }
-  const P = chapterProgress(c.n), prac = L.sec === 'p', sec = prac ? null : c.sections.find(x => x.id === `${c.n}-${L.sec}`) || c.sections[0];
+  const P = chapterProgress(c.n), prac = L.sec === 'p' && P.probs > 0, sec = prac ? null : c.sections.find(x => x.id === `${c.n}-${L.sec}`) || c.sections[0];
   const items = c.sections.map((x, i) => `<button type="button" class="litem${!prac && sec.id === x.id ? ' on' : ''}${state.read[x.id] ? ' done' : ''}" data-act="learn-go" data-v="${x.id}"><i class="lchk" aria-label="${state.read[x.id] ? 'read' : 'not read'}">${state.read[x.id] ? '✓' : ''}</i><span>${x.id.endsWith('-0') ? '' : x.id.split('-')[1] + '. '}${esc(x.title)}</span></button>`).join('')
-    + `<button type="button" class="litem prac${prac ? ' on' : ''}${P.probs && P.solved === P.probs ? ' done' : ''}" data-act="learn-go" data-v="${c.n}-p"><i class="lchk">${P.probs && P.solved === P.probs ? '✓' : '✎'}</i><span>Practice problems</span><em>${P.solved}/${P.probs}</em></button>`;
-  const prevCh = bookCh(c.n - 1), nextCh = bookCh(c.n + 1);
+    + (P.probs ? `<button type="button" class="litem prac${prac ? ' on' : ''}${P.solved === P.probs ? ' done' : ''}" data-act="learn-go" data-v="${c.n}-p"><i class="lchk">${P.solved === P.probs ? '✓' : '✎'}</i><span>Practice problems</span><em>${P.solved}/${P.probs}</em></button>` : '');
+  const order = LEARN_PARTS.flatMap(p => p.units).filter(n => bookCh(n)), oi = order.indexOf(c.n);
+  const prevCh = bookCh(order[oi - 1]), nextCh = bookCh(order[oi + 1]);
+  const short = x => x.badge && isNaN(+x.badge) ? x.badge : 'Ch ' + x.n;
   const side = `<aside class="lside panel"><div class="lside-h"><button type="button" class="linkbtn small" data-act="learn-home">← All chapters</button>
-      <p class="eyebrow">Chapter ${c.n}</p><b>${esc(c.title)}</b><span class="cobar"><i style="width:${pct(P.done, P.total)}%"></i></span><small class="muted">${P.read}/${P.lessons} lessons · ${P.solved}/${P.probs} problems</small></div>
+      <p class="eyebrow">${esc(chLabel(c))}</p><b>${esc(c.title)}</b><span class="cobar"><i style="width:${pct(P.done, P.total)}%"></i></span><small class="muted">${P.read}/${P.lessons} ${P.lessons === 1 ? 'page' : 'lessons'}${P.probs ? ` · ${P.solved}/${P.probs} problems` : ''}</small></div>
     <nav class="litems" aria-label="Lessons">${items}</nav>
-    <div class="lside-f">${prevCh ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${prevCh.n}">‹ Ch ${prevCh.n}</button>` : '<span></span>'}${nextCh ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${nextCh.n}">Ch ${nextCh.n} ›</button>` : ''}</div></aside>`;
+    <div class="lside-f">${prevCh ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${prevCh.n}">‹ ${esc(short(prevCh))}</button>` : '<span></span>'}${nextCh ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${nextCh.n}">${esc(short(nextCh))} ›</button>` : ''}</div></aside>`;
   const step = lessonStep(1), back = lessonStep(-1);
   let main;
   if (prac) {
     const k = chapterCode(c.n);
-    main = `<nav class="crumbs"><button type="button" class="linkbtn" data-act="learn-home">Learn</button> › Chapter ${c.n} · ${esc(c.title)}</nav>
+    const t = CH_IDS[c.n] || [];
+    main = `<nav class="crumbs"><button type="button" class="linkbtn" data-act="learn-home">Learn</button> › ${esc(chLabel(c))} · ${esc(c.title)}</nav>
       <div class="lprac"><div><h1>Practice: ${esc(c.title)}</h1><p class="muted">${P.read === P.lessons ? 'You have read every lesson in this chapter.' : `You have read ${P.read} of ${P.lessons} lessons.`} These are the problems on this chapter's topics. Each one you solve counts toward the chapter.</p>
         <div class="row"><button type="button" class="btn primary" data-act="learn-practice">${P.solved ? 'Continue practicing' : 'Start practicing'} →</button></div></div>
         <div class="herostat">${ring(P.probs ? P.solved / P.probs : 0, 76, 7, `${P.solved} of ${P.probs} solved`)}<div><b>${P.solved}<span class="muted">/${P.probs}</span></b><span>solved</span></div></div></div>
-      <h3 class="subh">Theory (${CH_IDS[c.n].length})</h3>${tableHTML(CH_IDS[c.n], 'full', 'lprows', 'learn')}
+      ${t.length ? `<h3 class="subh">Theory (${t.length})</h3>${tableHTML(t, 'full', 'lprows', 'learn')}` : ''}
       ${k.length ? `<h3 class="subh">Coding (${k.length})</h3>${codeTableHTML(k, 'learn')}` : ''}`;
   } else {
-    main = `<nav class="crumbs"><button type="button" class="linkbtn" data-act="learn-home">Learn</button> › Chapter ${c.n} · ${esc(c.title)}</nav>
+    main = `<nav class="crumbs"><button type="button" class="linkbtn" data-act="learn-home">Learn</button> › ${esc(chLabel(c))} · ${esc(c.title)}</nav>
       <h1 class="ltitle">${esc(sec.title)}</h1><article class="lart">${sec.html}</article>
       <div class="lnav"><button type="button" class="btn ghost" data-act="learn-prev"${back ? '' : ' disabled'}>← Previous</button>
         <button type="button" class="btn small ghost${state.read[sec.id] ? ' on' : ''}" data-act="learn-read">${state.read[sec.id] ? '✓ Read' : 'Mark as read'}</button>
@@ -7343,7 +7353,12 @@ function act(a){
     case 'learn-next': { const L = ui.lesson; if (L && L.sec !== 'p') markRead(`${L.ch}-${L.sec}`, true); const nx = lessonStep(1); if (nx) openLesson(nx.ch, nx.sec); break; }
     case 'learn-prev': { const pv = lessonStep(-1); if (pv) openLesson(pv.ch, pv.sec); break; }
     case 'learn-read': { const L = ui.lesson; if (L) { markRead(`${L.ch}-${L.sec}`, !state.read[`${L.ch}-${L.sec}`]); render(); } break; }
-    case 'learn-practice': { const ch = ui.lesson.ch, ids = CH_IDS[ch], next = ids.find(id => statusOf(id) !== 'solved') || ids[0]; openProblem(next, ids, {view:'lesson'}); break; }
+    case 'learn-practice': {
+      const ch = ui.lesson.ch, ids = CH_IDS[ch] || [], k = chapterCode(ch);
+      const t = ids.find(id => statusOf(id) !== 'solved'), c = k.find(id => codeStatus(id) !== 'solved');
+      if (t || (ids.length && !c)) openProblem(t || ids[0], ids, {view:'lesson'}); else if (k.length) openCode(c || k[0], k, {view:'lesson'});
+      break;
+    }
     case 'rm-sel': ui.rm.sel = a.dataset.v; rmRefreshSel(); break;
     case 'rm-zoom': rmZoom(a.dataset.v); break;
     case 'theme': setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'); break;

@@ -1290,3 +1290,6 @@ body.dragging .ed-area textarea { pointer-events: none; }
   .lmain { padding: 18px 16px 22px; }
 }
 @media (min-width: 700px) { .lhero { flex-direction: row; flex-wrap: nowrap; } }
+.lnum.wide { width: auto; min-width: 40px; padding: 0 8px; font-size: 0.85rem; }
+.lart .opts { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 6px; font-size: 0.95em; }
+.lart .blank { letter-spacing: 1px; }

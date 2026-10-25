@@ -6,6 +6,13 @@ const fs = require('fs'), path = require('path');
 
 const BOOK = path.join(__dirname, '..', 'book', 'chapters');
 const FIGS = path.join(__dirname, '..', 'docs', 'book', 'figures.json');
+// Parts of the book after the topic chapters that are useful before an assessment, plus HardCode's own extra chapter.
+// n is the page id; label and badge are what the Learn pages show.
+const EXTRA = [
+  {dir:path.join(__dirname, 'lessons'), file:'oa-c-cpp.tex', n:27, label:'Extra chapter', badge:'C++'},
+  {dir:BOOK, file:'25-practice-exam.tex', n:25, label:'Chapter 25', badge:'25'},
+  {dir:BOOK, file:'A-formulas.tex', n:26, label:'Appendix A', badge:'A'},
+];
 
 const BOXES = {bigidea:'Big idea', everyday:'In everyday life', trap:'Common trap', onoa:'Seen on the assessment', remember:'Remember', worked:'Worked example', defn:'Definition'};
 const DROP_ENVS = ['tikzpicture', 'circuitikz', 'tikztimingtable', 'pgfonlayer'];
@@ -54,9 +61,10 @@ function collectLabels(files){
 }
 const strip = tex => tex.replace(/(^|[^\\])%.*$/gm, '$1');
 
-function convertChapter(file, labels, figMeta){
-  const n = parseInt(file, 10);
-  let tex = strip(fs.readFileSync(path.join(BOOK, file), 'utf8'));
+function convertChapter(file, labels, figMeta, extra){
+  const n = extra ? extra.n : parseInt(file, 10);
+  let tex = strip(fs.readFileSync(path.join(extra ? extra.dir : BOOK, file), 'utf8'));
+  tex = tex.replace(/^\\newcommand\{[^}]*\}(\[\d\])?\{.*\}\s*$/gm, '');
   const keep = [];   // protected HTML: index -> {html, block}
   const K = (html, block) => { keep.push({html, block}); return `\u0000${keep.length - 1}\u0000`; };
 
@@ -114,7 +122,7 @@ function convertChapter(file, labels, figMeta){
     if (i === 0) { if (html.replace(/<[^>]+>/g, '').trim()) sections.push({id:`${n}-0`, title:'Introduction', html}); return; }
     sections.push({id:`${n}-${i}`, title:plain(p.title), html});
   });
-  return {n, title:plain(title), sections};
+  return Object.assign({n, title:plain(title), sections}, extra ? {label:extra.label, badge:extra.badge} : {});
 }
 
 function dedent(code){
@@ -185,21 +193,14 @@ function tables(s, keep, labels){
     const end = s.indexOf(`\\end{${m[1]}}`, spec[1]);
     const body = s.slice(spec[1], end);
     re.lastIndex = end;
-    const rowsRaw = body.split(/\\\\(?:\[[^\]]*\])?/);
-    let head = null; const rows = [];
-    let seenMid = /\\midrule|\\hline/.test(body) ? false : true;
-    rowsRaw.forEach(r => {
-      const mid = /\\midrule|\\hline/.test(r);
-      const clean = r.replace(/\\(toprule|midrule|bottomrule|hline)|\\cline\{[^}]*\}|\\cmidrule(\([^)]*\))?\{[^}]*\}/g, '').trim();
-      if (!clean) { if (mid && !head && rows.length === 1) { head = rows.pop(); } return; }
-      const cells = clean.split(/(?<!\\)&/).map(c => {
-        const mc = /^\s*\\multicolumn\{(\d+)\}\{[^}]*\}\{([\s\S]*)\}\s*$/.exec(c);
-        return mc ? {span:+mc[1], html:inline(mc[2], keep, labels)} : {span:1, html:inline(c, keep, labels).trim()};
-      });
-      rows.push(cells);
-      if (mid && !head && rows.length === 1) head = rows.pop();
-    });
-    if (!head && /\\toprule/.test(body) && rows.length > 1) head = rows.shift();
+    const cellsOf = r => r.replace(/\\(toprule|midrule|bottomrule|hline)|\\cline\{[^}]*\}|\\cmidrule(\([^)]*\))?\{[^}]*\}/g, '').trim();
+    const toRows = part => part.split(/\\\\(?:\[[^\]]*\])?/).map(cellsOf).filter(Boolean).map(clean => clean.split(/(?<!\\)&/).map(c => {
+      const mc = /^\s*\\multicolumn\{(\d+)\}\{[^}]*\}\{([\s\S]*)\}\s*$/.exec(c);
+      return mc ? {span:+mc[1], html:inline(mc[2], keep, labels)} : {span:1, html:inline(c, keep, labels).trim()};
+    }));
+    const mi = body.search(/\\midrule|\\hline/), hasHead = mi > 0 && /\\\\/.test(body.slice(0, mi));
+    const headRows = hasHead ? toRows(body.slice(0, mi)) : [], rows = toRows(hasHead ? body.slice(mi) : body);
+    const head = headRows.length ? headRows[headRows.length - 1] : null;
     const tr = (cells, tag) => '<tr>' + cells.map(c => `<${tag}${c.span > 1 ? ` colspan="${c.span}"` : ''}>${c.html}</${tag}>`).join('') + '</tr>';
     out.push(`<div class="tablewrap btable"><table>${head ? `<thead>${tr(head, 'th')}</thead>` : ''}<tbody>${rows.map(r => tr(r, 'td')).join('')}</tbody></table></div>`);
   }
@@ -230,6 +231,8 @@ function inline(s, keep, labels){
       while (s[i] === ' ' && !['term', 'textbf', 'emph', 'code', 'texttt', 'ref', 'url', 'href', 'textit', 'footnote', 'paragraph'].includes(name) && !(s[i + 1] === '{')) break;
       const arg = () => { let j = i; while (s[j] === ' ') j++; j = skipOpt(s, j); if (s[j] !== '{') return null; const [a, e] = group(s, j); i = e; return a; };
       if (ONE_ARG[name]) { const a = arg(); out += a == null ? '' : `<${ONE_ARG[name]}>${name === 'code' || name === 'texttt' ? codeText(a) : inline(a, keep, labels)}</${ONE_ARG[name]}>`; continue; }
+      if (name === 'opts') { const o = [arg(), arg(), arg(), arg()]; out += `<span class="opts">${o.map((x, k) => `<span>(${'abcd'[k]}) ${inline(x || '', keep, labels)}</span>`).join('')}</span>`; continue; }
+      if (name === 'underline') { const a = arg(); out += a && plain(a).trim() ? `<u>${inline(a, keep, labels)}</u>` : '<span class="blank">______</span>'; continue; }
       if (name === 'paragraph') { const a = arg(); out += `<strong class="runin">${inline(a, keep, labels)}</strong> `; continue; }
       if (name === 'ref' || name === 'eqref' || name === 'autoref' || name === 'pageref') { const a = arg(); const L = labels[a]; out += L ? L.text.replace(/^(Chapter|Figure|Section|Table) /, '') : '?'; continue; }
       if (name === 'url') { const a = arg(); out += `<a href="${esc(a)}" target="_blank" rel="noopener">${esc(a)}</a>`; continue; }
@@ -254,14 +257,14 @@ function inline(s, keep, labels){
   }
   return out.replace(/[ \t]*\n[ \t]*/g, ' ').replace(/ {2,}/g, ' ');
 }
-const codeText = a => a.replace(/\\([_#%&${}])/g, '$1').replace(/\\textbackslash(\{\})?/g, '\\').replace(/\\textasciitilde(\{\})?|\\~\{\}/g, '~').replace(/\\textasciicircum(\{\})?|\\\^\{\}/g, '^').replace(/\u0002/g, '&amp;');
+const codeText = a => a.replace(/\\ /g, ' ').replace(/\\\u0002/g, '\u0002').replace(/\\\^(?!\{)/g, '^').replace(/\\([_#%&${}])/g, '$1').replace(/\\textbackslash(\{\})?/g, '\\').replace(/\\textasciitilde(\{\})?|\\~\{\}/g, '~').replace(/\\textasciicircum(\{\})?|\\\^\{\}/g, '^').replace(/\u0002/g, '&amp;');
 const plain = s => String(s || '').replace(/\u0000\d+\u0000/g, '').replace(/\\[a-zA-Z]+\*?/g, '').replace(/[{}$~]/g, ' ').replace(/\\(.)/g, '$1').replace(/\s+/g, ' ').trim();
 
 function convertBook(){
   const files = chapterFiles();
   const labels = collectLabels(files);
   const figMeta = fs.existsSync(FIGS) ? JSON.parse(fs.readFileSync(FIGS, 'utf8')) : {};
-  return files.map(f => convertChapter(f, labels, figMeta));
+  return files.map(f => convertChapter(f, labels, figMeta)).concat(EXTRA.filter(e => fs.existsSync(path.join(e.dir, e.file))).map(e => convertChapter(e.file, labels, figMeta, e)));
 }
 
 module.exports = {convertBook};

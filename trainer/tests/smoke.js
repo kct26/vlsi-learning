@@ -233,7 +233,24 @@ async function phase1(){
   // Learn: the book as lessons, then the chapter's problems
   ok($('.navlinks button').dataset.tab === 'learn', 'Learn is the first tab, left of Theory');
   tab('learn');
-  ok($$('.lcard').length === 23 && /Hardware from the/.test($('.lhero').textContent), 'Learn lists the 23 chapters of the book');
+  ok($$('.lcard').length === 26 && /Hardware from the/.test($('.lhero').textContent), 'Learn lists the 23 chapters, the C and C++ chapter, the practice assessment and the formula sheet');
+  ok(/Before the assessment/.test($$('.lparth').pop().textContent) && $$('.lpart').pop().querySelectorAll('.lcard').length === 3, 'the last part gathers the pages for before the assessment');
+  click('[data-act="learn-open"][data-v="27"]');
+  ok(/C and C\+\+ for the Online Assessment/.test($('.lside-h').textContent) && /Extra chapter/.test($('.lside-h').textContent), 'the C and C++ chapter opens');
+  click('[data-act="learn-go"][data-v="27-3"]');
+  ok(/Linked lists/.test($('.ltitle').textContent) && $$('.lart pre.code').length >= 3, 'its lessons have code examples');
+  click('[data-act="learn-go"][data-v="27-p"]');
+  ok(!$('#lprows') && $$('.ctable tbody tr[data-copen]').length === 15, 'its Practice page lists the 15 C and C++ problems');
+  click('[data-act="learn-practice"]');
+  ok($('#code-editor') && /Back to the lesson/.test($('[data-act="c-back"]').textContent), 'Start practicing opens the first C problem');
+  click('[data-act="c-back"]');
+  tab('learn'); click('[data-act="learn-open"][data-v="26"]');
+  click('[data-act="learn-go"][data-v="26-1"]');
+  ok(/Formula Sheet/.test($('.lside-h').textContent) && !$('.litem.prac') && $('.lart table'), 'the formula sheet has tables and no Practice page');
+  tab('learn');
+  click('[data-act="learn-open"][data-v="25"]');
+  ok(/Practice Assessment/.test($('.lside-h').textContent) && $$('.litem').some(b => /Answer key/.test(b.textContent)), 'the practice assessment includes its answer key');
+  tab('learn');
   click('[data-act="learn-open"][data-v="11"]');
   const nSec11 = window.BOOK_LESSONS.find(c => c.n === 11).sections.length;
   ok($('.lx') && $$('.litem').length === nSec11 + 1 && /Practice problems/.test($('.litem.prac').textContent), 'a chapter shows its lessons and a Practice page in the sidebar');
