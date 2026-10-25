@@ -2,17 +2,17 @@
 :root {
   /* Light theme: the warm paper, near-black ink and lavender/pink accents of IBM's Quantum posters */
   --bg: #ECE9E2; --surface: #F7F5F0; --surface-2: #E4E0D7; --row: #F7F5F0; --ink: #161616; --muted: #5D5A55; --line: #D6D1C6;
-  --accent: #8A3FFC; --accent-ink: #FFFFFF; --accent-soft: #EBE1FF; --accent-line: #C6A9FF; --accent-hover: #6929C4;
+  --accent: #00753E; --accent-ink: #FFFFFF; --accent-soft: #E3F8EB; --accent-line: #A4D8B9; --accent-hover: #005F32;
   --primary: #161616; --primary-ink: #F7F5F0;
   --go: #161616; --go-ink: #F7F5F0;
-  --easy: #198038; --medium: #8A3FFC; --hard: #D02670;
-  --easy-soft: #DEF5E5; --medium-soft: #EBE1FF; --hard-soft: #FFE3EE;
+  --easy: #198038; --medium: #A16207; --hard: #D02670;
+  --easy-soft: #DEF5E5; --medium-soft: #FEF3C7; --hard-soft: #FFE3EE;
   --ok: #198038; --ok-soft: #DEF5E5; --warn: #8E6A00; --warn-soft: #FCF4D6; --bad: #D02670; --bad-soft: #FFE3EE;
   --code-bg: #E4E0D7; --editor-bg: #161616; --editor-ink: #F4F4F4; --gutter: #6F6F6F; --editor-line: #2A2A2A;
   --shadow: 0 8px 24px rgba(22, 22, 22, 0.07); --shadow-sm: 0 1px 2px rgba(22, 22, 22, 0.06);
-  --nav-bg: #F7F5F0; --nav-line: #D6D1C6; --nav-ink: #4A4744; --nav-ink-strong: #161616; --nav-feature: #8A3FFC; --nav-feature-hover: #6929C4; --nav-ring: #D6D1C6;
-  --pink: #EE5396; --lav: #A56EFF; --node-c: #8A3FFC; --node-r: #EE5396;
-  --em-color: var(--ink); --eyebrow: var(--ink); --selection: #E8DAFF;
+  --nav-bg: #F7F5F0; --nav-line: #D6D1C6; --nav-ink: #4A4744; --nav-ink-strong: #161616; --nav-feature: #00753E; --nav-feature-hover: #005F32; --nav-ring: #D6D1C6;
+  --pink: #EE5396; --lav: #2FA866; --node-c: #2563EB; --node-r: #EE5396;
+  --em-color: var(--ink); --eyebrow: var(--ink); --selection: #CDEFD9;
   --hover-soft: #E3F8EB; --hover-line: #A4D8B9; --hover-ink: #00753E;   /* hover stays the light green from the earlier theme */
   --font-body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
@@ -803,7 +803,7 @@ code, pre, .code-editor, .editor, .hcode, .mono { font-variant-ligatures: none; 
 .hmwrap { overflow-x: auto; padding-bottom: 4px; }
 .heatmap { display: block; max-width: none; }
 .heatmap text { font-size: 9px; fill: var(--muted); }
-.hm0 { fill: var(--surface-2); background: var(--surface-2); } .hm1 { fill: #E8DAFF; background: #E8DAFF; } .hm2 { fill: #C6A9FF; background: #C6A9FF; } .hm3 { fill: #A56EFF; background: #A56EFF; } .hm4 { fill: #6929C4; background: #6929C4; }
+.hm0 { fill: var(--surface-2); background: var(--surface-2); } .hm1 { fill: #BEE9CD; background: #BEE9CD; } .hm2 { fill: #7FD3A0; background: #7FD3A0; } .hm3 { fill: #2FA866; background: #2FA866; } .hm4 { fill: #00753E; background: #00753E; }
 .hmlegend { display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
 .hmlegend i { width: 11px; height: 11px; border-radius: 2.5px; }
 .recent { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -938,10 +938,7 @@ code, pre, .code-editor, .editor, .hcode, .mono { font-variant-ligatures: none; 
 :root:not([data-theme="dark"]) .qst.cur { background: var(--pink); color: #FFFFFF; }
 :root:not([data-theme="dark"]) .hpi { background: var(--accent-soft); color: var(--accent); }
 h1, h2, h3, .hh2 { letter-spacing: -0.02em; }
-:root:not([data-theme="dark"]) .hvis .wclk, :root:not([data-theme="dark"]) .hvis .wsig { stroke: #C6A9FF; }
-:root:not([data-theme="dark"]) .hvis .wbus.on path { stroke: #EE5396; fill: rgba(238, 83, 150, 0.14); } :root:not([data-theme="dark"]) .hvis .wbus.on text { fill: #FF7EB6; }
-:root:not([data-theme="dark"]) .hchecks li.ok::before { background: #C6A9FF; border-color: #C6A9FF; }
-:root:not([data-theme="dark"]) .hrun { color: #C6A9FF; }
+
 
 /* Top bar: full width, flat, no border or rounded corners (LeetCode style) */
 .topbar { padding: env(safe-area-inset-top, 0px) 0 0; background: var(--nav-bg); backdrop-filter: none; -webkit-backdrop-filter: none; border-bottom: 0; box-shadow: none; }
