@@ -192,12 +192,18 @@ async function phase1(){
   ok($$('.oapool > div').length === COMPANY_NAMES.length && $$('.oapool > div.ready').length === 1 && /NVIDIA/.test($('.oapool .ready').textContent), 'pool: NVIDIA ready, the rest coming soon');
   click('[data-act="oa-start"]');
   ok($$('.oanums button').length === 17 && /^\d+:\d\d$/.test($('#oatimer').textContent), '15 hardware + 2 coding questions with a timer (' + $('#oatimer').textContent + ')');
+  ok($$('.oalist tbody tr').length === 17 && $$('.oalist [data-act="oa-go"]').every(b => /Solve/.test(b.textContent)) && $$('.oalist td').some(td => td.textContent === 'Coding'), 'the test opens on a HackerRank-style question list with Solve buttons');
+  click('[data-act="oa-go"][data-v="0"]');
   ok(!/NVIDIA/.test($('#main').textContent) && /revealed when you submit/.test($('.oabar').textContent), 'company hidden during the test');
   for (let i = 0; i < 6; i++) { click('#oaq .opt'); click('[data-act="oa-go"][data-v="' + (i + 1) + '"]'); }
   click('[data-act="oa-flag"]');
   ok($$('.oanums button.done').length === 6 && $$('.oanums button.flag').length === 1, 'answered and flagged questions show in the navigator');
   click('.oanums button[data-v="15"]');
   ok($('#oa-code') && /Coding/.test($('#oaq .eyebrow').textContent), 'coding question has an editor');
+  ok($('.oastmt') && /Sample Input 0/.test($('.oastmt').textContent) && /Sample Output 0/.test($('.oastmt').textContent) && $('[data-act="oa-run"]') && $('[data-act="oa-runall"]'), 'coding question shows its sample cases next to the editor, with Run Code and Submit code');
+  ok(/Test Results/.test($('.oaide .ctabs').textContent) && (/Custom Input/.test($('.oaide .ctabs').textContent) || !$('[data-act="oa-ctab"][data-v="case"]')), 'the OA console has Test Results and Custom Input tabs');
+  click('[data-act="oa-go"][data-v="-1"]');
+  ok($$('.oalist [data-act="oa-go"]').filter(b => /Review/.test(b.textContent)).length === 6, 'answered questions show Review in the question list');
   tab('theory'); tab('oa');
   ok($('#oatimer') && st().oa && st().oa.items.length === 17, 'leaving and coming back resumes the same test');
   click('[data-act="oa-quit"]');
@@ -212,7 +218,7 @@ async function phase1(){
   ok(!st().oa && st().oaHist.length === 1 && st().oaHist[0].co === 'nvidia' && st().oaHist[0].right + st().oaHist[0].wrong === 6, 'attempt saved to history');
   click('[data-act="oa-home"]');
   ok($('.ptable .cobadge[aria-label="NVIDIA"]'), 'past attempts show the revealed company logo');
-  click('[data-act="oa-start"]'); click('#oaq .opt');
+  click('[data-act="oa-start"]'); click('[data-act="oa-go"][data-v="0"]'); click('#oaq .opt');
   click('[data-act="oa-quit"]'); click('[data-act="oa-quit-yes"]');
   ok(!st().oa && st().oaHist.length === 1 && $('[data-act="oa-start"]') && !$('#oatimer'), 'quitting a test throws it away without counting it');
 
@@ -270,12 +276,16 @@ async function phase1(){
   click('[data-act="co-back"]');
   click('[data-act="co-view"][data-v="co"]');
   ok($$('.cocard').length === COMPANY_NAMES.length, COMPANY_NAMES.length + ' company cards');
+  ok($('.tagnote') && /Only "Real OA" questions were actually asked/.test($('.tagnote').textContent) && /not affiliated/.test($('.tagnote').textContent), 'Companies explains what the labels mean');
+  ok(!/actually reported|its real assessment|real format/i.test($('#main').textContent), 'Companies makes no unverified claims');
   const cq = $('#co-q'); cq.value = 'memory'; cq.dispatchEvent(new Event('input', {bubbles:true}));
   ok($$('.cocard').length === 1 && /Micron/.test($('.cocard').textContent), 'company search finds Micron');
   cq.value = ''; cq.dispatchEvent(new Event('input', {bubbles:true}));
   click('[data-act="co-open"][data-v="nvidia"]');
   ok(/NVIDIA/.test(h1()) && /Positions \(18\)/.test($('.seg [aria-selected="true"]').textContent) && $$('.poscard').length === 18, 'NVIDIA opens on its 18 positions');
   click('[data-act="co-tab"][data-v="rep"]');
+  ok(/Real OA and reported/.test($('.seg [aria-selected="true"]').textContent) && /not the exact problems/.test($('.coline').textContent), 'NVIDIA reported tab says what is real and what is written by HardCode');
+  ok(!$$('#corows tr').some(r => /OA variant/.test(r.textContent) && !/Real OA|Reported topic/.test(r.textContent)), 'OA variants are not listed as reported');
   ok($$('.rtable')[0].tBodies[0].rows.length === 6, 'NVIDIA page: your 6 OA topics');
   ok($$('.rtable')[1].tBodies[0].rows.length === 21, 'NVIDIA page: 21 reported topics');
   ok($$('.rtable')[1].textContent.match(/\d+ problems/g).every(t => parseInt(t, 10) >= 4), 'every reported topic has at least 4 problems');
@@ -370,7 +380,7 @@ async function phase3b(){
   const dt2 = new DataTransfer(); dt2.items.add(evil); const inp2 = $('#import-file'); inp2.files = dt2.files; inp2.dispatchEvent(new Event('change', {bubbles:true}));
   for (let k = 0; k < 40 && !(st().q['03-03']); k++) await wait(250);
   tab('profile'); await wait(200);
-  ok(st().q['03-03'] && !window.__pwned && !$('#main img[src="x"]') && st().hist.every(h => typeof h.score === 'number') && st().log.every(x => x[1] !== bad), 'imported markup is neutralized (numbers stay numbers, unknown ids dropped)');
+  ok(st().q['03-03'] && !window.__pwned && !$('#main img[src="x"]') && st().hist.every(h => typeof h.score === 'number') && st().log.every(x => x[1] !== bad), 'imported markup is neutralized (numbers stay numbers, unknown ids dropped) [' + [!!st().q['03-03'], !window.__pwned, !$('#main img[src="x"]'), st().hist.every(h => typeof h.score === 'number'), st().log.every(x => x[1] !== bad)].join(',') + ']');
 }
 async function phase6(){
   // The Coding tab: list, filters, a hand-checked problem, the weekly card, and real judging of Python, C, C++ and Verilog.
@@ -409,15 +419,16 @@ async function phase6(){
   // Python: Run tries the example cases, Submit runs every test and records a submission.
   tab('coding');
   click('#crows a[data-copen="py-04"]');
-  ok($$('.casechip').length === 3 && /gray_codes/.test($('#run-out').textContent), 'Testcase tab shows 3 example cases');
+  ok($$('#run-out .casechip:not(.add)').length === 3 && $('#run-out .casechip.add') && /^n =$/.test($('#run-out .kv span').textContent), 'Testcase tab shows Case 1-3 with each argument by name, plus a + for a custom case');
+  ok($$('.cstate .lcex').length >= 3 && /Example 1:/.test($('.cstate').textContent) && /Input: n = /.test($('.cstate .lcexbox').textContent), 'the description shows LeetCode-style examples');
   setCode('def gray_codes(n):\n    print("checking", n)\n    return list(range(1 << n))\n');
   ok(await judge('c-run', 300) === 'Wrong Answer', 'Run: a wrong Python answer gets Wrong Answer (' + verdict() + ')');
-  ok($$('#run-out .hrcase').length === 3 && $('#run-out .hrcase.fail') && /Sample Test case 0/.test($('#run-out .hrlist').textContent), 'Run lists each sample test case, HackerRank style');
-  ok(/Input \(stdin\)/.test($('#run-out').textContent) && /Expected output/.test($('#run-out').textContent) && /Your output/.test($('#run-out').textContent), 'a sample case shows input, your output and expected output');
-  ok(/checking/.test($('#run-out .hrdetail').textContent) && /Debug output/.test($('#run-out').textContent), 'printed output is shown as debug output');
-  const custom = on => { const cb = $('#c-custom'); cb.checked = on; cb.dispatchEvent(new Event('change', {bubbles:true})); };
+  ok($$('#run-out .casechip').length === 3 && $('#run-out .casechip.fail') && /Case 1/.test($('#run-out .casechips').textContent), 'Run shows a result tab per example case, LeetCode style');
+  ok(/n =/.test($('#run-out').textContent) && /Expected/.test($('#run-out').textContent) && /Output/.test($('#run-out').textContent), 'a case shows its input, your output and the expected output');
+  ok(/checking/.test($('#run-out .tcase').textContent) && /Stdout/.test($('#run-out').textContent), 'printed output is shown as stdout');
+  const custom = on => { click('[data-act="c-ctab"][data-v="case"]'); click(on ? '[data-act="c-custom-on"]' : '[data-act="c-case"][data-v="0"]'); };
   custom(true);
-  ok($('#c-cin') && /Custom Input/.test($('.ctabs').textContent), 'custom input box appears');
+  ok($('#c-cin') && /Custom/.test($('#run-out .casechip.on').textContent), 'the + tab opens a custom input box');
   const cin = $('#c-cin'); cin.value = '2'; cin.dispatchEvent(new Event('input', {bubbles:true}));
   ok(await judge('c-run', 120) === 'Output differs' && /\[0, 1, 3, 2\]/.test($('#run-out').textContent) && /reference solution/.test($('#run-out').textContent), 'custom input runs your code and the reference solution (' + verdict() + ')');
   custom(false);
@@ -436,16 +447,21 @@ async function phase6(){
   click('#crows a[data-copen="c-01"]');
   setCode('int popcount(unsigned int x) {\n    return 0;\n}\n');
   ok(await judge('c-submit', 300) === 'Wrong Answer', 'C: a wrong answer gets Wrong Answer (' + verdict() + ' ' + $('#run-out').textContent.slice(0, 120) + ')');
-  ok($$('#run-out .hrcase').length > 3 && $$('#run-out .hrlock').length === $$('#run-out .hrcase').length - 3, 'Submit lists every test case, the hidden ones locked');
-  ok($('#run-out .hrcase.on.fail') && /popcount\(1u\)/.test($('#run-out .hrdetail').textContent), 'Submit opens on the first failing test case');
+  ok($$('#run-out .casechip').length > 3 && $$('#run-out .casechip.locked').length === $$('#run-out .casechip').length - 3, 'Submit lists every test case, the hidden ones locked');
+  ok($('#run-out .casechip.on.fail') && /popcount\(1u\)/.test($('#run-out .tcase').textContent), 'Submit opens on the first failing test case');
   setCode('int popcount(unsigned int x) {\n    return y;\n}\n');
   ok(await judge('c-run', 60) === 'Compile Error' && /undeclared identifier/.test($('#run-out').textContent), 'C: a compile error shows the compiler message');
   setCode('int popcount(unsigned int x) {\n    int c = 0;\n    while (x) { x &= x - 1; c++; }\n    return c;\n}\n');
   ok(await judge('c-submit', 60) === 'Accepted' && st().code['c-01'].solved > 0, 'C: a correct answer is Accepted');
   custom(true);
   const ccin = $('#c-cin'); ccin.value = 'popcount(255u)'; ccin.dispatchEvent(new Event('input', {bubbles:true}));
-  ok(await judge('c-run', 120) === 'Output matches' && /\b8\b/.test($('#run-out .hrdetail').textContent), 'C: custom input compiles and compares with the reference (' + verdict() + ')');
+  ok(await judge('c-run', 120) === 'Output matches' && /\b8\b/.test($('#run-out .tcase').textContent), 'C: custom input compiles and compares with the reference (' + verdict() + ')');
   custom(false);
+  const lsel = $('#c-lang'); lsel.value = 'cpp'; lsel.dispatchEvent(new Event('change', {bubbles:true}));
+  ok(st().code['c-01'].lang === 'cpp' && /C\+\+17/.test($('#c-lang').selectedOptions[0].textContent), 'a C problem can switch to C++');
+  setCode('#include <bitset>\nint popcount(unsigned int x) {\n    return (int)std::bitset<32>(x).count();\n}\n');
+  ok(await judge('c-submit', 180) === 'Accepted', 'C++: a C problem solved in C++ is Accepted (' + verdict() + ' ' + $('#run-out').textContent.slice(0, 160) + ')');
+  const lsel2 = $('#c-lang'); lsel2.value = 'c'; lsel2.dispatchEvent(new Event('change', {bubbles:true}));
   setCode('int popcount(unsigned int x) {\n    while (x) { }\n    return 0;\n}\n');
   ok(await judge('c-run', 60) === 'Time Limit Exceeded', 'C: an infinite loop is stopped (' + verdict() + ')');
   tab('coding');

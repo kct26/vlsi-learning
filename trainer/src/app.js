@@ -68,7 +68,7 @@ const SKILLS = [
 const LISTS = {
   'oa': {name:'Real OA questions', test:Q => hasTag(Q, 'o')},
   'oav': {name:'Real OA + variants', test:oaish},
-  'rep': {name:'Reported online', test:Q => hasTag(Q, 'r')},
+  'rep': {name:'Reported topics', test:Q => hasTag(Q, 'r')},
   'beyond': {name:'Beyond the book', test:Q => hasTag(Q, 'b')}
 };
 OA_TOPICS.forEach(t => { LISTS[t.key] = {name:'OA topic: ' + t.name, test:Q => oaish(Q) && t.ch.includes(Q.ch)}; });
@@ -214,6 +214,7 @@ function normalize(s){
   if (s.code && typeof s.code === 'object') Object.keys(s.code).forEach(id => {
     const x = s.code[id]; if (!knownId(id) || !x || typeof x !== 'object') return;
     e.code[id] = {src:typeof x.src === 'string' ? x.src.slice(0, CODE_MAX) : null, solved:num(x.solved), at:num(x.at)};
+    if (x.lang === 'cpp') e.code[id].lang = 'cpp';
     if (Array.isArray(x.subs)) e.code[id].subs = x.subs.filter(u => u && VERDICTS.includes(u.v)).slice(-20).map(u => ({at:num(u.at), v:u.v, p:num(u.p), t:num(u.t)}));
   });
   if (s.codeWeek && s.codeWeek.wk) e.codeWeek = s.codeWeek;
@@ -222,13 +223,14 @@ function normalize(s){
   if (s.oa && typeof s.oa === 'object' && CO_BY_ID[s.oa.co] && Array.isArray(s.oa.items)) {
     const items = s.oa.items.filter(x => x && ((x.t === 'q' && BY_ID[x.id]) || (x.t === 'c' && CODING.some(p => p.id === x.id)))).map(x => ({t:x.t, id:x.id, s:num(x.s)}));
     if (items.length) {
-      const o = {co:s.oa.co, start:num(s.oa.start), end:num(s.oa.end), neg:!!s.oa.neg, items, perm:{}, ans:{}, src:{}, flag:{}, i:Math.min(num(s.oa.i), items.length - 1)};
-      const P = obj(s.oa.perm), An = obj(s.oa.ans), Sr = obj(s.oa.src), F = obj(s.oa.flag);
+      const o = {co:s.oa.co, start:num(s.oa.start), end:num(s.oa.end), neg:!!s.oa.neg, items, perm:{}, ans:{}, src:{}, flag:{}, i:s.oa.i === -1 ? -1 : Math.min(num(s.oa.i), items.length - 1)};
+      const P = obj(s.oa.perm), An = obj(s.oa.ans), Sr = obj(s.oa.src), F = obj(s.oa.flag), L = obj(s.oa.lang);
+      o.lang = {};
       items.forEach(x => {
         if (x.t === 'q') {
           const p = P[x.id]; o.perm[x.id] = Array.isArray(p) && p.length === 4 && [0, 1, 2, 3].every(d => p.includes(d)) ? p.map(Number) : [0, 1, 2, 3];
           const a = An[x.id]; if (typeof a === 'boolean' || [0, 1, 2, 3].includes(a)) o.ans[x.id] = a;
-        } else if (typeof Sr[x.id] === 'string') o.src[x.id] = Sr[x.id].slice(0, CODE_MAX);
+        } else { if (typeof Sr[x.id] === 'string') o.src[x.id] = Sr[x.id].slice(0, CODE_MAX); if (L[x.id] === 'cpp') o.lang[x.id] = 'cpp'; }
         if (F[x.id]) o.flag[x.id] = 1;
       });
       e.oa = o;
@@ -460,9 +462,9 @@ function statusCell(id){
 }
 function tagChips(Q){
   let h = '';
-  if (hasTag(Q, 'o')) h += '<span class="tag t-oa">Real OA</span>';
-  else if (hasTag(Q, 'v')) h += '<span class="tag t-var">OA variant</span>';
-  if (hasTag(Q, 'r')) h += '<span class="tag t-rep">Reported</span>';
+  if (hasTag(Q, 'o')) h += '<span class="tag t-oa" title="This question appeared on a real NVIDIA Ignite online assessment.">Real OA</span>';
+  else if (hasTag(Q, 'v')) h += '<span class="tag t-var" title="Written by HardCode to test the same idea as a real OA question.">OA variant</span>';
+  if (hasTag(Q, 'r')) h += '<span class="tag t-rep" title="Candidates reported this topic from a real assessment. The question itself is written by HardCode.">Reported topic</span>';
   if (hasTag(Q, 'b')) h += '<span class="tag t-bey">Beyond the book</span>';
   return h;
 }
@@ -918,18 +920,44 @@ function caseLabel(p, t){
   if (!p.run.kind) return p.run.fn + '(' + t[0].map(pyRepr).join(', ') + ')';
   return t[3] || t[0];
 }
-// Custom input, like HackerRank's "Test against custom input": your code and the reference solution both run on it.
+// The language you write in: every C problem can also be solved in C++ (compiled with clang++).
+const langOf = (p, pick) => p.lang === 'c' && pick === 'cpp' ? 'cpp' : p.lang;
+const userLang = id => langOf(CODE_BY_ID[id], (state.code[id] || {}).lang);
+function langPickHTML(p, cur, pre){
+  if (p.lang !== 'c' || !judged(p)) return `<span class="elang">${esc(JUDGE_NAME[p.lang] && judged(p) ? JUDGE_NAME[p.lang] : LANGS[p.lang])}</span>`;
+  return `<label class="elang langpick">Language <select id="${pre}-lang"><option value="c"${cur === 'c' ? ' selected' : ''}>C (Clang)</option><option value="cpp"${cur === 'cpp' ? ' selected' : ''}>C++17 (Clang)</option></select></label>`;
+}
+// Custom input: your code and the reference solution both run on it.
 const canCustom = p => !!p.run && p.run.kind !== 'v';
 function customDefault(p){ const t = p.run.tests[0]; return p.run.kind ? t[0] : t[0].map(pyRepr).join(', '); }
 function customHint(p){
   if (!p.run.kind) return `The arguments to <code>${esc(p.run.fn)}</code>, as Python values separated by commas.`;
-  return p.run.tests[0][2] === 'out' ? 'C statements to run. What they print is the output.' : 'A C expression that calls your code. Its value is the output.';
+  return p.run.tests[0][2] === 'out' ? 'C/C++ statements to run. What they print is the output.' : 'A C/C++ expression that calls your code. Its value is the output.';
 }
-function testcaseHTML(p){
-  const R = p.run, C = ui.cp;
-  if (C.custom && canCustom(p)) return `<div class="tcase"><label class="kv" for="c-cin"><span>Custom input</span></label>
-    <textarea id="c-cin" class="cin" spellcheck="false" autocomplete="off">${esc(C.cin != null ? C.cin : customDefault(p))}</textarea>
-    <p class="muted small">${customHint(p)} Run shows your output next to the reference solution's, plus anything you print as debug output.</p></div>`;
+// Python cases are shown LeetCode style, one "name =" box per argument.
+function pyParams(p){
+  const m = new RegExp('def\\s+' + p.run.fn + '\\s*\\(([^)]*)\\)').exec(p.starter || '');
+  return m ? m[1].split(',').map(x => x.split(/[:=]/)[0].trim()).filter(x => x && x !== 'self') : [];
+}
+function caseInputHTML(p, t){
+  if (!p.run.kind) { const names = pyParams(p); return t[0].map((v, k) => `<div class="kv"><span>${esc(names[k] || 'arg' + (k + 1))} =</span><pre class="code">${esc(pyRepr(v))}</pre></div>`).join(''); }
+  return `<div class="kv"><span>Input</span><pre class="code">${esc(caseLabel(p, t))}</pre></div>`;
+}
+const caseExp = (p, t) => p.run.kind ? String(t[1]) : pyRepr(t[1]);
+const caseInputLine = (p, t) => { if (p.run.kind) return caseLabel(p, t); const names = pyParams(p); return t[0].map((v, k) => `${names[k] || 'arg' + (k + 1)} = ${pyRepr(v)}`).join(', '); };
+// "Example 1:" blocks in the description, LeetCode style, built from the example cases.
+function examplesHTML(p){
+  if (!p.run || p.run.kind === 'v') return p.ex ? `<div class="lcex"><p><b>Example:</b></p><pre class="lcexbox">${esc(p.ex)}</pre></div>` : '';
+  return p.run.tests.slice(0, exampleCount(p)).map((t, k) => `<div class="lcex"><p><b>Example ${k + 1}:</b></p><pre class="lcexbox"><b>Input:</b> ${esc(caseInputLine(p, t))}\n<b>Output:</b> ${esc(caseExp(p, t))}</pre></div>`).join('');
+}
+// Sample cases in the statement, HackerRank style (used in the Online Assessment).
+function samplesHTML(p){
+  if (!p.run || p.run.kind === 'v') return p.ex ? `<h3 class="hrh">Example</h3><pre class="code">${esc(p.ex)}</pre>` : '';
+  return p.run.tests.slice(0, exampleCount(p)).map((t, k) => `<h3 class="hrh">Sample Case ${k}</h3><div class="kv"><span>Sample Input ${k}</span><pre class="code">${esc(caseLabel(p, t))}</pre></div><div class="kv"><span>Sample Output ${k}</span><pre class="code">${esc(caseExp(p, t))}</pre></div>`).join('');
+}
+function testcaseHTML(p, C, pre){
+  C = C || ui.cp; pre = pre || 'c';
+  const R = p.run;
   if (R.kind === 'v') {
     const b = R.benches && R.benches[0];
     const what = R.check ? 'This design is checked for the properties in the statement, under random traffic. Run and Submit both run every check.'
@@ -937,51 +965,66 @@ function testcaseHTML(p){
     return `<div class="tcase"><p class="muted small">${what}</p>${b ? `<div class="kv"><span>Example</span><code>${esc(b.name)}</code></div><div class="kv"><span>Inputs</span><code>${esc((b.clk ? [b.clk] : []).concat(b.in).join(', '))}</code></div>
       ${b.rows ? `<div class="kv"><span>First rows</span><pre class="code">${esc(b.in.join(' ') + '\n' + b.rows.slice(0, 6).join('\n') + (b.rows.length > 6 ? '\n…' : ''))}</pre></div>` : ''}` : ''}
       ${R.benches && R.benches.length > 1 ? `<p class="muted small">Run uses this bench. Submit runs all ${R.benches.length}, including corner cases and random stimulus.</p>` : ''}</div>`;
-  }
-  const n = exampleCount(p), i = Math.min(C.ccase, n - 1), t = R.tests[i];
-  return `<div class="casechips">${R.tests.slice(0, n).map((_, k) => `<button type="button" class="casechip${k === i ? ' on' : ''}" data-act="c-case" data-v="${k}">Case ${k + 1}</button>`).join('')}</div>
-    <div class="tcase"><div class="kv"><span>Input</span><pre class="code">${esc(caseLabel(p, t))}</pre></div>
-    <div class="kv"><span>Expected</span><pre class="code">${esc(R.kind ? t[1] : pyRepr(t[1]))}</pre></div>
+  }  const n = exampleCount(p), custom = C.custom && canCustom(p), i = Math.min(C.ccase || 0, n - 1), t = R.tests[i];
+  const chips = R.tests.slice(0, n).map((_, k) => `<button type="button" class="casechip${!custom && k === i ? ' on' : ''}" data-act="${pre}-case" data-v="${k}">Case ${k + 1}</button>`).join('')
+    + (canCustom(p) ? `<button type="button" class="casechip add${custom ? ' on' : ''}" data-act="${pre}-custom-on" title="Try your own input" aria-label="Custom case">${custom ? 'Custom' : '+'}</button>` : '');
+  if (custom) return `<div class="casechips">${chips}</div>${customBoxHTML(p, C, pre)}`;
+  return `<div class="casechips">${chips}</div><div class="tcase">${caseInputHTML(p, t)}<div class="kv"><span>Expected</span><pre class="code">${esc(caseExp(p, t))}</pre></div>
     <p class="muted small">Submit also runs ${R.tests.length - n} hidden test${R.tests.length - n === 1 ? '' : 's'}.</p></div>`;
 }
+function customBoxHTML(p, C, pre){
+  return `<div class="tcase"><label class="kv" for="${pre}-cin"><span>Custom input</span></label>
+    <textarea id="${pre}-cin" class="cin" spellcheck="false" autocomplete="off">${esc(C.cin != null ? C.cin : customDefault(p))}</textarea>
+    <p class="muted small">${customHint(p)} Run shows your output next to the reference solution's, plus anything you print.</p></div>`;
+}
 function verdictClass(v){ return v === 'Accepted' || v === 'Output matches' ? 'ok' : 'bad'; }
-// Results laid out like HackerRank: the test cases down the left (samples first, hidden ones locked), the selected one's
-// compiler message, input, output and expected output on the right, and anything printed as debug output.
+// Results: LeetCode style on the problem pages (case tabs across the top), HackerRank style in the Online
+// Assessment (test cases down the left). Hidden test cases are locked in both.
 const sampleCount = p => p.run.kind === 'v' ? 1 : exampleCount(p);
 const outBox = (label, text, err) => `<div class="kv"><span>${label}</span><pre class="code${err ? ' err' : ''}">${esc(text === '' || text == null ? '(empty)' : text)}</pre></div>`;
-function caseDetail(r){
-  return `${outBox('Compiler message', r.ok ? 'Success' : 'Wrong Answer', !r.ok)}${r.at ? outBox('When', r.at) : ''}${outBox('Input (stdin)', r.label)}
-    ${r.exp !== '' || r.got !== '' ? outBox('Your output (stdout)', r.got, !r.ok) + outBox('Expected output', r.exp) : ''}`;
+function caseDetail(p, r, k, hr){
+  const input = !hr && !p.run.kind && p.run.tests[k] ? caseInputHTML(p, p.run.tests[k]) : outBox(hr ? 'Input (stdin)' : 'Input', r.label);
+  return `${hr ? outBox('Compiler message', r.ok ? 'Success' : 'Wrong Answer', !r.ok) : ''}${r.at ? outBox('When', r.at) : ''}${input}
+    ${r.exp !== '' || r.got !== '' ? outBox(hr ? 'Your Output (stdout)' : 'Output', r.got, !r.ok) + outBox(hr ? 'Expected Output' : 'Expected', r.exp) : ''}`;
 }
-function resultHTML(p){
-  const C = ui.cp, R = C.run;
+function resultHTML(p, C, pre){
+  C = C || ui.cp; pre = pre || 'c';
+  const R = C.run, hr = pre === 'oa';
   if (C.busy) return `<p class="runmsg"><span class="spin" aria-hidden="true"></span>${esc(C.busy)}</p>`;
-  if (!R) return `<p class="muted small">Run your code to see the results here.${canCustom(p) ? ' To debug with your own input, tick "Test against custom input".' : ''}</p>`;
+  if (!R) return `<p class="muted small">${hr ? `Run Code checks the sample cases. Submit code also runs the hidden test cases ${ICON.lock}. Use print statements to debug; they show up as debug output.` : 'You must run your code first.'}</p>`;
   const head = `<div class="vhead hrhead v-${verdictClass(R.verdict)}"><h3 class="v-${verdictClass(R.verdict)}">${esc(R.verdict)}</h3>${R.total ? `<span class="muted">${R.passed} / ${R.total} test cases passed</span>` : ''}${R.ms != null ? `<span class="muted">Runtime ${R.ms} ms</span>` : ''}</div>`;
-  const debug = R.stdout ? outBox('Debug output', R.stdout) : '';
-  if (R.error) return head + outBox('Compiler message', R.error, true) + debug;
-  if (R.mode === 'custom') return head + `<div class="hrdetail solo">${outBox('Input (stdin)', R.input)}${outBox('Your output (stdout)', R.got, !R.ok)}${outBox('Expected output (reference solution)', R.exp)}${debug}</div>`;
-  const nS = sampleCount(p), i = Math.min(C.rcase, R.results.length - 1), r = R.results[i];
-  const list = R.results.map((x, k) => `<button type="button" class="hrcase ${x.ok ? 'pass' : 'fail'}${k === i ? ' on' : ''}" data-act="c-rcase" data-v="${k}"><span>${k < nS ? 'Sample Test case' : 'Test case'} ${k}</span>${k >= nS ? `<span class="hrlock" title="Hidden">${ICON.lock}</span>` : ''}<i aria-label="${x.ok ? 'passed' : 'failed'}">${x.ok ? '✓' : '✗'}</i></button>`).join('');
-  const detail = i < nS ? caseDetail(r) : `<div class="hrlocked">${ICON.lock}<b>Hidden test case ${i}</b><p class="muted small">${r.ok ? 'Passed.' : 'Failed.'} Hidden test cases do not show their input or expected output, like on HackerRank. Test against custom input to debug.</p>
-      ${r.ok ? '' : `<details class="hrreveal"><summary>Reveal this test case</summary>${caseDetail(r)}</details>`}</div>`;
-  return head + `<div class="hrres"><div class="hrlist" role="list">${list}</div><div class="hrdetail">${detail}${debug}</div></div>`;
+  const debug = R.stdout ? outBox(hr ? 'Debug output' : 'Stdout', R.stdout) : '';
+  if (R.error) return head + outBox(hr ? 'Compilation message' : 'Error', R.error, true) + debug;
+  if (R.mode === 'custom') return head + `<div class="tcase">${outBox(hr ? 'Input (stdin)' : 'Input', R.input)}${outBox(hr ? 'Your Output (stdout)' : 'Output', R.got, !R.ok)}${outBox('Expected (reference solution)', R.exp)}${debug}</div>`;
+  const nS = sampleCount(p), i = Math.min(C.rcase || 0, R.results.length - 1), r = R.results[i];
+  const detail = i < nS ? caseDetail(p, r, i, hr) : `<div class="hrlocked">${ICON.lock}<b>Hidden test case ${hr ? i : i - nS + 1}</b><p class="muted small">${r.ok ? 'Passed.' : 'Failed.'} Hidden test cases do not show their input or expected output. Try a custom case to debug.</p>
+      ${r.ok ? '' : `<details class="hrreveal"><summary>Reveal this test case</summary>${caseDetail(p, r, i, hr)}</details>`}</div>`;
+  if (hr) {
+    const list = R.results.map((x, k) => `<button type="button" class="hrcase ${x.ok ? 'pass' : 'fail'}${k === i ? ' on' : ''}" data-act="oa-rcase" data-v="${k}"><span>${k < nS ? 'Sample Test case' : 'Test case'} ${k}</span>${k >= nS ? `<span class="hrlock" title="Hidden">${ICON.lock}</span>` : ''}<i aria-label="${x.ok ? 'passed' : 'failed'}">${x.ok ? '✓' : '✗'}</i></button>`).join('');
+    return head + `<div class="hrres"><div class="hrlist" role="list">${list}</div><div class="hrdetail">${detail}${debug}</div></div>`;
+  }
+  const chips = R.results.map((x, k) => `<button type="button" class="casechip ${x.ok ? 'pass' : 'fail'}${k === i ? ' on' : ''}${k >= nS ? ' locked' : ''}" data-act="c-rcase" data-v="${k}">${x.ok ? '✓' : '✗'} ${k < nS ? 'Case ' + (k + 1) : ICON.lock + ' Hidden ' + (k - nS + 1)}</button>`).join('');
+  return head + `<div class="casechips">${chips}</div><div class="tcase">${detail}${debug}</div>`;
 }
-function consoleWrapHTML(p){
-  const C = ui.cp;
-  return `<div class="console"><div class="ctabs" role="tablist">${judged(p) ? `<button type="button" role="tab" aria-selected="${C.ctab === 'case'}" data-act="c-ctab" data-v="case">${C.custom ? 'Custom Input' : 'Testcase'}</button><button type="button" role="tab" aria-selected="${C.ctab === 'result'}" data-act="c-ctab" data-v="result">Test Result</button>` : '<span class="ctitle">Check it yourself</span>'}
-    ${canCustom(p) ? `<label class="customtoggle"><input type="checkbox" id="c-custom"${C.custom ? ' checked' : ''}> Test against custom input</label>` : ''}</div>
-    ${consoleHTML(p)}</div>`;
+function consoleWrapHTML(p, C, pre){
+  C = C || ui.cp; pre = pre || 'c';
+  const tabs = pre === 'oa'
+    ? `<button type="button" role="tab" aria-selected="${C.ctab !== 'case'}" data-act="oa-ctab" data-v="result">Test Results</button>${canCustom(p) ? `<button type="button" role="tab" aria-selected="${C.ctab === 'case'}" data-act="oa-ctab" data-v="case">Custom Input${C.custom ? ' ✓' : ''}</button>` : ''}`
+    : `<button type="button" role="tab" aria-selected="${C.ctab === 'case'}" data-act="c-ctab" data-v="case">Testcase</button><button type="button" role="tab" aria-selected="${C.ctab === 'result'}" data-act="c-ctab" data-v="result">Test Result</button>`;
+  return `<div class="console${pre === 'oa' ? ' hr' : ''}"><div class="ctabs" role="tablist">${judged(p) ? tabs : '<span class="ctitle">Check it yourself</span>'}</div>
+    ${consoleHTML(p, C, pre)}</div>`;
 }
 function actionsHTML(p){
   const C = ui.cp, st = codeStatus(p.id);
   return `<span class="eacts">${judged(p) ? `<button type="button" class="btn small" data-act="c-run"${C.busy ? ' disabled' : ''}>▶ Run</button><button type="button" class="btn small go" data-act="c-submit"${C.busy ? ' disabled' : ''}>Submit</button>`
     : `<button type="button" class="btn small${st === 'solved' ? '' : ' go'}" data-act="c-mark">${st === 'solved' ? 'Mark as not solved' : 'Mark as solved'}</button>`}</span>`;
 }
-function consoleHTML(p){
-  const C = ui.cp;
+function consoleHTML(p, C, pre){
+  C = C || ui.cp; pre = pre || 'c';
   if (!judged(p)) return `<div class="cbody"><p class="muted small">${toolNote(p.lang)}</p></div>`;
-  return `<div class="cbody" id="run-out">${C.ctab === 'case' ? testcaseHTML(p) : resultHTML(p)}</div>`;
+  const body = C.ctab !== 'case' ? resultHTML(p, C, pre) : pre === 'oa'
+    ? `<label class="customtoggle solo"><input type="checkbox" id="oa-custom"${C.custom ? ' checked' : ''}> Test against custom input</label>${customBoxHTML(p, C, pre)}` : testcaseHTML(p, C, pre);
+  return `<div class="cbody" id="${pre === 'oa' ? 'oa-runout' : 'run-out'}">${body}</div>`;
 }
 function codeTabsHTML(){
   const C = ui.cp, s = state.code[C.id] || {}, n = (s.subs || []).length;
@@ -1000,7 +1043,7 @@ function codeLeftHTML(){
   } else body = `<div class="qmeta"><span class="dpill d-${p.d}">${DIFF[p.d]}</span><span class="topicchip">${esc(p.area)}</span><span>${esc(LANGS[p.lang])}</span>${judged(p) ? '<span class="tag t-run">Judged here</span>' : ''}</div>
     <div class="body">${p.p.map(t => `<p>${inlineCode(t)}</p>`).join('')}</div>
     ${coChips(p.id)}
-    ${p.ex ? `<div><p class="eyebrow">Example</p><pre class="code">${esc(p.ex)}</pre></div>` : ''}
+    ${examplesHTML(p)}
     <div class="hintbox">${p.hints.slice(0, C.hints).map((h, i) => `<p><b>Hint ${i + 1}.</b> ${inlineCode(h)}</p>`).join('')}
       ${C.hints < p.hints.length ? `<button type="button" class="btn small ghost" data-act="c-hint">Show hint ${C.hints + 1} of ${p.hints.length}</button>` : ''}</div>`;
   return `<article class="cstate panel"><div class="ptabs" role="tablist">${codeTabsHTML()}</div><div class="pscroll">
@@ -1024,9 +1067,9 @@ function viewCode(){
     <button type="button" class="iconbtn" data-act="c-prev" aria-label="Previous problem"${pos <= 0 ? ' disabled' : ''}>‹</button>
     <button type="button" class="iconbtn" data-act="c-next" aria-label="Next problem"${pos >= C.list.length - 1 ? ' disabled' : ''}>›</button></div></div>
     <div class="cpv">${codeLeftHTML()}
-    <section class="ceditor panel"><div class="ehead"><span class="elang">${esc(JUDGE_NAME[p.lang] && judged(p) ? JUDGE_NAME[p.lang] : LANGS[p.lang])}</span><span class="spacer"></span>
+    <section class="ceditor panel"><div class="ehead"><span class="etitle">&lt;/&gt; Code</span>${langPickHTML(p, userLang(p.id), 'c')}<span class="spacer"></span>
       <button type="button" class="btn small ghost" data-act="c-reset">Reset</button>${actionsHTML(p)}</div>
-      <div class="editor" data-lang="${p.lang}"><pre class="gutter" aria-hidden="true">${gutter(src)}</pre><div class="ed-area"><pre class="hl" aria-hidden="true">${highlight(src, p.lang)}\n</pre>
+      <div class="editor" data-lang="${userLang(p.id)}"><pre class="gutter" aria-hidden="true">${gutter(src)}</pre><div class="ed-area"><pre class="hl" aria-hidden="true">${highlight(src, userLang(p.id))}\n</pre>
         <textarea id="code-editor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your code (Tab inserts spaces; Esc leaves the editor)">${esc(src)}</textarea></div></div>
       ${consoleWrapHTML(p)}</section></div></div>`;
 }
@@ -1068,10 +1111,19 @@ function highlight(src, lang){
 const gutter = src => Array.from({length:src.split('\n').length}, (_, i) => i + 1).join('\n');
 function syncEditor(){
   const ed = $('#code-editor'); if (!ed || !ui.cp) return;
-  const p = CODE_BY_ID[ui.cp.id];
-  $('.editor .hl').innerHTML = highlight(ed.value, p.lang) + '\n';
+  $('.editor .hl').innerHTML = highlight(ed.value, userLang(ui.cp.id)) + '\n';
   $('.editor .gutter').textContent = gutter(ed.value);
   syncScroll();
+}
+function syncEdOf(ed, lang){
+  const box = ed.closest('.editor'); if (!box) return;
+  box.querySelector('.hl').innerHTML = highlight(ed.value, lang) + '\n';
+  box.querySelector('.gutter').textContent = gutter(ed.value);
+  syncScrollOf(ed);
+}
+function syncScrollOf(ed){
+  const box = ed.closest('.editor'); if (!box) return;
+  const hl = box.querySelector('.hl'); hl.scrollTop = ed.scrollTop; hl.scrollLeft = ed.scrollLeft; box.querySelector('.gutter').scrollTop = ed.scrollTop;
 }
 function syncScroll(){
   const ed = $('#code-editor'); if (!ed) return;
@@ -1179,8 +1231,8 @@ async function judgePython(p, src, all){
   return {results:raw.map((r, i) => ({ok:r[0], label:caseLabel(p, tests[i]), exp:pyRepr(tests[i][1]), got:r[1]})), stdout:res.stdout};
 }
 const mb = (d, t) => t ? ` ${Math.round(100 * d / t)}%` : '';
-async function judgeC(p, src, all){
-  const cpp = p.lang === 'cpp', sub = Object.assign({}, p.run, {tests:all ? p.run.tests : p.run.tests.slice(0, exampleCount(p))});
+async function judgeC(p, src, all, lang){
+  const cpp = (lang || p.lang) === 'cpp', sub = Object.assign({}, p.run, {tests:all ? p.run.tests : p.run.tests.slice(0, exampleCount(p))});
   const prob = Object.assign({}, p, {run:sub});
   const file = cpp ? 'solution.cpp' : 'solution.c';
   setBusy('Compiling…');
@@ -1230,7 +1282,7 @@ async function judgeV(p, src, all){
 }
 // Runs one custom input through your code and the reference solution, and compares what each produced.
 const customRef = {};
-async function judgeCustom(p, src, cin){
+async function judgeCustom(p, src, cin, lang){
   if (!cin.trim()) return {verdict:'Error', error:'Type an input first.'};
   if (!p.run.kind) {
     const code = s => [s, '', 'def __norm(v):', '    if isinstance(v, tuple): v = list(v)', '    if isinstance(v, list): return [__norm(x) for x in v]',
@@ -1251,7 +1303,7 @@ async function judgeCustom(p, src, cin){
     ? `printf("\\n@@E 0\\n"); const char *__r = (${cin}); printf("\\n@@B 0\\n%s", __r ? __r : "(null)");`
     : `printf("\\n@@E 0\\n"); long long __v = (long long)(${cin}); printf("\\n@@B 0\\n%lld", __v);`;
   const prob = Object.assign({}, p, {run:Object.assign({}, p.run, {tests:[[block, '', 'out', cin]]})});
-  const mine = await judgeC(prob, src, true);
+  const mine = await judgeC(prob, src, true, lang);
   if (mine.error && !(mine.results || []).length) return Object.assign({input:cin}, mine);
   if (mine.verdict === 'Compile Error' || mine.verdict === 'Error') return Object.assign({input:cin}, mine);
   const key = p.id + '\n' + cin;
@@ -1267,13 +1319,13 @@ async function judgeCode(mode){
     const cin = C.cin != null ? C.cin : customDefault(p);
     C.busy = 'Pending…'; C.ctab = 'result'; showRun();
     let r;
-    try { r = await judgeCustom(p, src, cin); } catch (e) { r = {verdict:'Error', error:String(e && e.message || e)}; }
+    try { r = await judgeCustom(p, src, cin, userLang(id)); } catch (e) { r = {verdict:'Error', error:String(e && e.message || e)}; }
     if (!ui.cp || ui.cp.id !== id) return;
     C.busy = null; C.run = Object.assign({mode:'custom', results:[], total:0}, r); showRun(); return;
   }
   C.busy = 'Pending…'; C.ctab = 'result'; C.rcase = 0; showRun();
   let res;
-  try { res = await (p.run.kind === 'c' ? judgeC : p.run.kind === 'v' ? judgeV : judgePython)(p, src, all); }
+  try { res = await (p.run.kind === 'c' ? judgeC : p.run.kind === 'v' ? judgeV : judgePython)(p, src, all, userLang(id)); }
   catch (e) { res = {verdict:'Error', error:String(e && e.message || e)}; }
   if (!ui.cp || ui.cp.id !== id) return;
   if (res.results && res.results.some(r => !r.ok)) C.rcase = res.results.findIndex(r => !r.ok);
@@ -1314,7 +1366,7 @@ function buildCompanyTags(){
     BANK.forEach(Q => {
       const k = (c.chapters || []).indexOf(Q.ch);
       if (k >= 0) add(Q.id, 10 + k, false);
-      if (c.tags && [...c.tags].some(t => hasTag(Q, t))) add(Q.id, 0, true);
+      if (c.tags && [...c.tags].some(t => hasTag(Q, t))) add(Q.id, 0, hasTag(Q, 'o') || hasTag(Q, 'r'));   // OA variants are ours, so not "reported"
     });
     CODING.forEach(p => { const k = (c.areas || []).indexOf(p.area); if (k >= 0) add(p.id, 10 + k, false); });
     (c.ids || []).forEach(id => add(id, 1, (c.reported || []).includes(id)));
@@ -1343,7 +1395,7 @@ const coReported = co => BANK.filter(Q => CO_TAGS[Q.id].some(t => t.co === co &&
 const coReportedCode = co => CODING.filter(p => CO_TAGS[p.id].some(t => t.co === co && t.rep)).map(p => p.id);
 const coHas = (id, co) => co === 'all' || CO_TAGS[id].some(t => t.co === co);
 // A small logo standing in for a company's name (the name is kept for hover and screen readers).
-const coBadge = (c, rep) => `<span class="cobadge${rep ? ' rep' : ''}" title="${esc(c.name + (rep ? ' (reported)' : ''))}" role="img" aria-label="${esc(c.name + (rep ? ', reported' : ''))}">${coAvatar(c, 'xs')}</span>`;
+const coBadge = (c, rep) => `<span class="cobadge${rep ? ' rep' : ''}" title="${esc(c.name + (rep === undefined ? '' : rep ? ': reported' : ': tested topic'))}" role="img" aria-label="${esc(c.name + (rep === undefined ? '' : rep ? ', reported' : ', tested topic'))}">${coAvatar(c, 'xs')}</span>`;
 // A company's logo on a white tile (logos.js), or its short letters when there is no logo.
 function coAvatar(c, size){
   const L = typeof LOGOS !== 'undefined' && LOGOS[c.id], cls = 'coav' + (size ? ' ' + size : '');
@@ -1355,16 +1407,26 @@ function coAvatar(c, size){
 function coMini(id){
   const l = CO_TAGS[id] || [];
   if (!l.length) return '';
-  return `<span class="comini" title="${esc(l.map(t => CO_BY_ID[t.co].name + (t.rep ? ' (reported)' : '')).join(', '))}">` +
+  return `<span class="comini" title="${esc('Tested topic at ' + l.map(t => CO_BY_ID[t.co].name + (t.rep ? ' (reported)' : '')).join(', '))}">` +
     l.slice(0, 4).map(t => coBadge(CO_BY_ID[t.co], t.rep)).join('') + (l.length > 4 ? `<span class="comore">+${l.length - 4}</span>` : '') + '</span>';
 }
 // Full tags for a problem page; each opens that company's list.
 function coChips(id){
   const l = CO_TAGS[id] || [];
   if (!l.length) return '';
-  return `<div class="cochips"><span class="eyebrow">Companies</span>${l.map(t => `<button type="button" class="cologo${t.rep ? ' rep' : ''}" data-act="co-open" data-v="${t.co}" title="${esc(CO_BY_ID[t.co].name + (t.rep ? ' (reported)' : ''))}" aria-label="${esc(CO_BY_ID[t.co].name + (t.rep ? ', reported' : ''))}">${coAvatar(CO_BY_ID[t.co], 'sm')}</button>`).join('')}</div>`;
+  return `<div class="cochips"><span class="eyebrow" title="Companies whose hardware roles are tested on this topic. Not a claim that they asked this exact question.">Tested topic at</span>${l.map(t => `<button type="button" class="cologo${t.rep ? ' rep' : ''}" data-act="co-open" data-v="${t.co}" title="${esc(CO_BY_ID[t.co].name + (t.rep ? ': reported' : ': tested topic'))}" aria-label="${esc(CO_BY_ID[t.co].name + (t.rep ? ', reported' : ''))}">${coAvatar(CO_BY_ID[t.co], 'sm')}</button>`).join('')}</div>`;
 }
 const coOpts = () => [['all', 'Company'], ...COMPANIES.map(c => [c.id, c.name])];
+// What the company labels mean, shown wherever company data appears. Only "Real OA" questions were actually asked.
+function tagNoteHTML(){
+  return `<details class="card tagnote"><summary><b>What the company labels mean</b><span class="muted small">Only "Real OA" questions were actually asked.</span></summary><dl>
+    <div><dt><span class="tag">Tested topic</span></dt><dd>The topic appears in this company's public hardware job postings or is commonly covered in its interviews. It is not a claim that the company asked this question.</dd></div>
+    <div><dt><span class="tag t-rep">Reported topic</span></dt><dd>Candidates reported this topic or problem type from a real assessment. The question itself is written by HardCode.</dd></div>
+    <div><dt><span class="tag t-oa">Real OA</span></dt><dd>The question as it appeared on a real NVIDIA Ignite online assessment. These are the only questions confirmed as asked.</dd></div>
+    <div><dt><span class="tag t-var">OA variant</span></dt><dd>Written by HardCode to test the same idea as a real OA question.</dd></div>
+    <div><dt>Positions</dt><dd>Typical hardware roles at each company, not live job postings. Each set is picked from the topics that kind of role is usually tested on.</dd></div></dl>
+    <p class="muted small">HardCode is unofficial study material, not affiliated with or endorsed by any company shown. Names and logos only identify the companies.</p></details>`;
+}
 
 // ---------- Positions: company postings, each with its own fixed problem set ----------
 // The list comes with Premium (positions in premium-data.js); what each kind of position is tested on is POS_ROLES.
@@ -1434,7 +1496,7 @@ function viewPosition(){
   const dOk = id => d === 'all' || (BY_ID[id] || CODE_BY_ID[id]).d === d;
   return `<div class="pvbar"><button type="button" class="btn ghost small" data-act="co-back">← Positions</button></div>
     <section class="card cohead">${coAvatar(c, 'lg')}<div class="cohtext"><p class="posmeta"><span class="lvl${p.level === 'Program' ? ' prog' : ''}">${esc(p.level)}</span><span>${esc(R.label)}</span></p><h1>${esc(posName(p))}</h1>
-      <p class="muted">${G.total} questions: ${S.theory.length} theory and ${S.code.length} coding${R.tags ? ', led by the questions from a real Ignite assessment and the ones candidates reported' : ', the ones reported for ' + esc(c.name) + ' first'}.</p>
+      <p class="muted">${G.total} questions: ${S.theory.length} theory and ${S.code.length} coding${R.tags ? ', led by the questions from a real Ignite OA, then topics candidates reported' : ' on the topics this kind of role is usually tested on' + (coReported(c.id).length ? ', with topics reported for ' + esc(c.name) + ' first' : '')}. ${p.level === 'Program' ? '' : 'This is a typical role at ' + esc(c.name) + ', not a live job posting.'}</p>
       <div class="row"><button type="button" class="btn primary" data-act="pos-start">${G.solved ? (G.solved === G.total ? 'Review' : 'Continue') : 'Start'} →</button>${OA_BY_CO[p.co] && OA_BY_CO[p.co].ready && p.level === 'Program' ? '<button type="button" class="btn" data-act="go" data-v="oa">Take the timed OA</button>' : ''}<button type="button" class="btn ghost" data-act="co-open" data-v="${c.id}">All ${esc(c.name)} problems</button></div></div>
       <div class="herostat">${ring(G.total ? G.solved / G.total : 0, 76, 7, `${G.solved} of ${G.total} solved`)}<div><b>${G.solved}<span class="muted">/${G.total}</span></b><span>solved</span></div></div></section>
     <div class="cotabs"><div class="chiprow">${[['all', 'All'], ['E', 'Easy'], ['M', 'Medium'], ['H', 'Hard']].map(([v, l]) => `<button type="button" class="tchip${d === v ? ' on' : ''}" data-act="pos-d" data-v="${v}">${l}</button>`).join('')}</div></div>
@@ -1451,18 +1513,18 @@ function viewCompanies(){
   if (cov === 'pos') {
     const roles = [...new Set(POSITIONS.map(p => p.role))];
     return `<section class="pagehead"><p class="eyebrow">Companies</p><h1>Practice by <em>position</em></h1>
-      <p class="muted">Pick the job you are applying for. Each position has its own set of problems, the ones reported for that company first.</p>${seg}</section>
+      <p class="muted">Pick the kind of role you are applying for. Each position has its own set of problems on the topics that role is usually tested on. Positions are typical roles, not live job postings.</p>${seg}</section>
       <div class="fbar posbar"><input type="search" id="pos-q" class="bigsearch" placeholder="Search positions" value="${esc(F.q)}" aria-label="Search positions">
         <select id="pos-co" aria-label="Company">${coOpts().map(([v, l]) => `<option value="${v}"${F.co === v ? ' selected' : ''}>${esc(v === 'all' ? 'All companies' : l)}</option>`).join('')}</select>
         <select id="pos-role" aria-label="Role"><option value="all">All roles</option>${roles.map(r => `<option value="${r}"${F.role === r ? ' selected' : ''}>${esc(POS_ROLES[r].label)}</option>`).join('')}</select>
         <div class="chiprow">${[['all', 'All'], ...POS_LEVELS.map(l => [l, l === 'Program' ? 'Programs' : l === 'Intern' ? 'Internships' : 'New grad'])].map(([v, l]) => `<button type="button" class="tchip${F.level === v ? ' on' : ''}" data-act="pos-level" data-v="${esc(v)}">${l}</button>`).join('')}</div></div>
-      <div id="poslist">${posListHTML()}</div>`;
+      <div id="poslist">${posListHTML()}</div>${tagNoteHTML()}`;
   }
   return `<section class="pagehead"><p class="eyebrow">Companies</p><h1>Practice by <em>company</em></h1>
-    <p class="muted">Every theory and coding problem is tagged with the companies whose hardware roles test it. Pick a company to work through its list.</p>${seg}
+    <p class="muted">Every theory and coding problem is tagged with the companies whose hardware roles are tested on its topic. Pick a company to work through its list.</p>${seg}
     <input type="search" id="co-q" class="bigsearch" placeholder="Search companies" value="${esc(ui.coq || '')}" aria-label="Search companies"></section>
     <div class="cogrid" id="cogrid">${coCardsHTML(list)}</div>
-    <p class="muted small conote">Tags from a company's core topics come from public job postings and widely reported interview topics; they say "this is tested for these roles", not "this exact question was asked". Problems marked <span class="cotag rep">reported</span> were actually seen: a real OA, its variants, and candidate reports.</p>`;
+    ${tagNoteHTML()}`;
 }
 function coCardsHTML(list){
   return list.length ? list.map(c => {
@@ -1478,14 +1540,15 @@ function viewCompany(){
   const C = ui.co, c = CO_BY_ID[C.id], t = coTheory(c.id), k = coCoding(c.id), rt = coReported(c.id), rk = coReportedCode(c.id);
   const solved = solvedIn(t) + codeSolvedIn(k.map(id => CODE_BY_ID[id])), total = t.length + k.length;
   const cps = POSITIONS.filter(p => p.co === c.id);
-  const tabs = [...(cps.length ? [['pos', `Positions (${cps.length})`]] : []), ...(rt.length || rk.length ? [['rep', `Reported (${rt.length + rk.length})`]] : []), ['theory', `Theory (${t.length})`], ['coding', `Coding (${k.length})`]];
+  const tabs = [...(cps.length ? [['pos', `Positions (${cps.length})`]] : []), ...(rt.length || rk.length ? [['rep', `Real OA and reported (${rt.length + rk.length})`]] : []), ['theory', `Tested topics: theory (${t.length})`], ['coding', `Tested topics: coding (${k.length})`]];
   const dOk = id => C.d === 'all' || (BY_ID[id] || CODE_BY_ID[id]).d === C.d;
   let body = '';
-  if (C.tab === 'pos') body = `<div class="posgrid">${posCardsHTML(cps)}</div>`;
-  else if (C.tab === 'coding') body = codeTableHTML(k.filter(dOk), 'company');
-  else if (C.tab === 'theory') body = tableHTML(t.filter(dOk), 'full', 'corows', 'company');
+  const topicLine = `<p class="muted small coline">Problems on the topics ${esc(c.name)}'s public hardware job postings ask for. They are not questions ${esc(c.name)} is known to have asked.</p>`;
+  if (C.tab === 'pos') body = `<p class="muted small coline">Typical hardware roles at ${esc(c.name)}, not live job postings.</p><div class="posgrid">${posCardsHTML(cps)}</div>`;
+  else if (C.tab === 'coding') body = topicLine + codeTableHTML(k.filter(dOk), 'company');
+  else if (C.tab === 'theory') body = topicLine + tableHTML(t.filter(dOk), 'full', 'corows', 'company');
   else {
-    body = (rk.length ? `<h3 class="subh">Coding</h3>${codeTableHTML(rk.filter(dOk), 'company')}` : '') + (rt.length ? `<h3 class="subh">Theory</h3>${tableHTML(rt.filter(dOk), 'full', 'corows', 'company')}` : '');
+    body = `<p class="muted small coline">Theory: the questions from a real ${esc(c.name)} OA, and HardCode questions on topics candidates reported. Coding: HardCode problems of the types candidates reported, not the exact problems.</p>` + (rk.length ? `<h3 class="subh">Coding</h3>${codeTableHTML(rk.filter(dOk), 'company')}` : '') + (rt.length ? `<h3 class="subh">Theory</h3>${tableHTML(rt.filter(dOk), 'full', 'corows', 'company')}` : '');
     if (c.id === 'nvidia') body += nvidiaReportHTML();
   }
   return `<div class="pvbar"><button type="button" class="btn ghost small" data-act="co-back">← Companies</button></div>
@@ -1493,7 +1556,7 @@ function viewCompany(){
       <div class="herostat">${ring(total ? solved / total : 0, 76, 7, `${solved} of ${total} solved`)}<div><b>${solved}<span class="muted">/${total}</span></b><span>solved</span></div></div></section>
     <div class="cotabs"><div class="seg" role="tablist">${tabs.map(([v, l]) => `<button type="button" role="tab" aria-selected="${C.tab === v}" data-act="co-tab" data-v="${v}">${l}</button>`).join('')}</div>
       ${C.tab === 'pos' ? '' : `<div class="chiprow">${[['all', 'All'], ['E', 'Easy'], ['M', 'Medium'], ['H', 'Hard']].map(([v, l]) => `<button type="button" class="tchip${C.d === v ? ' on' : ''}" data-act="co-d" data-v="${v}">${l}</button>`).join('')}</div>`}</div>
-    ${body}`;
+    ${body}${tagNoteHTML()}`;
 }
 function codeTableHTML(ids, from){
   return `<div class="tablewrap"><table class="ptable ctable"><thead><tr><th class="c-st">Status</th><th class="c-ti">Problem</th><th class="c-tp">Area</th><th class="c-ty">Language</th><th class="c-co">Companies</th><th class="c-df">Difficulty</th></tr></thead><tbody>${codeRowsHTML(ids.map(id => CODE_BY_ID[id]), from)}</tbody></table></div>`;
@@ -1516,7 +1579,7 @@ function viewRoles(){
   const listCell = key => { if (!key) return '<span class="muted">Not in this trainer</span>'; const ids = listIds(key); return `<button type="button" class="linkbtn" data-act="f-list-go" data-v="${key}">${ids.length} problems</button><span class="muted"> · ${solvedIn(ids)} solved</span>`; };
   const hiring = r => COMPANIES.filter(c => (r.code && (c.areas || []).includes(r.code)) || r.ch.filter(ch => (c.chapters || []).slice(0, 4).includes(ch)).length >= 2).slice(0, 6);
   let html = `<section class="pagehead"><p class="eyebrow">Roles</p><h1>Find your <em>hardware</em> role</h1>
-    <p class="muted">What hardware engineering postings ask for, how well the book and this trainer cover it, and the roles to aim for, each with its quests, coding track and the companies that hire for it.</p></section>
+    <p class="muted">What hardware engineering postings ask for, how well the book and this trainer cover it, and the roles to aim for, each with its quests, coding track and companies that hire for that kind of role.</p></section>
     <section class="card"><h2>What hardware postings ask for</h2><p class="muted">The requirements that show up again and again in hardware internship and new-grad postings.</p><div class="reviews">`;
   SKILL_REVIEW.forEach(it => {
     const [label, cls] = VERDICT[it.v];
@@ -1598,7 +1661,7 @@ function viewHome(){
       <div class="hbody"><div class="hvis"><p class="hlab">WAVEFORM · q(t)</p>${homeVis('wave')}<p class="mono hstat" id="hstat">cycle 0 | q = 0</p></div>
       <pre class="hcode">${lines(HOME_TABS[1].code)}</pre></div>
       <ul class="hchecks" id="hchecks"><li>resets to 0</li><li>counts on every rising edge</li><li>wraps from 15 to 0</li></ul></div></section>
-    <section class="hstrip wrap wide"><p>Problems tagged for hardware roles at</p><div class="hcos">${COMPANIES.map(c => `<button type="button" data-act="co-open" data-v="${c.id}" title="${esc(c.name)}" aria-label="${esc(c.name)}">${coAvatar(c, 'md')}</button>`).join('')}</div></section>
+    <section class="hstrip wrap wide"><p>Topics tested in hardware roles at</p><div class="hcos">${COMPANIES.map(c => `<button type="button" data-act="co-open" data-v="${c.id}" title="${esc(c.name)}" aria-label="${esc(c.name)}">${coAvatar(c, 'md')}</button>`).join('')}</div></section>
     <section class="hsec wrap wide"><h2 class="hh2">The complete hardware engineering trainer</h2>
       <div class="hplat"><div class="hptabs" role="tablist">${HOME_TABS.map((t, i) => `<button type="button" role="tab" aria-selected="${H.tab === i}" data-act="home-tab" data-v="${i}"><span class="hpi">${['◎', '⌁', '{ }', '▦', '⏱'][i]}</span>${esc(t.name)}</button>`).join('')}</div>
         <div class="hcard hpcard"><div class="hbar"><span class="dots"><i></i><i></i><i></i></span><span class="mono">${esc(tab.file)}</span></div>
@@ -1923,7 +1986,7 @@ function rmPanelHTML(){
     body = `<p class="muted small">${esc(R.what)}</p><div class="row">${R.ch.map(c => `<button type="button" class="topicchip${unitPassed(c) ? ' ok' : ''}" data-act="rm-sel" data-v="u${c}">${unitPassed(c) ? '✓ ' : ''}${esc(TOPICS[c])}</button>`).join('')}</div><p class="muted small">Also: ${esc(R.add)}</p>`;
     btn = '<button type="button" class="btn primary" data-act="go" data-v="roles">See all roles →</button>';
   } else {
-    body = '<p class="muted small">Practice the theory and coding lists tagged for the company you are applying to, including the questions reported from real assessments.</p>';
+    body = '<p class="muted small">Practice the theory and coding problems on the topics the company you are applying to tests, plus a real NVIDIA OA and topics candidates reported.</p>';
     btn = '<button type="button" class="btn primary" data-act="go" data-v="companies">Browse companies →</button>';
   }
   return `<p class="eyebrow">${esc(I.kind)}</p><h3>${esc(I.title)}</h3><div class="rmprog"><span class="rmbar"><i style="width:${Math.round(I.frac * 100)}%"></i></span><span class="mono small">${Math.round(I.frac * 100)}%</span></div>${body}<div class="row">${btn}</div>`;
@@ -2137,7 +2200,7 @@ function oaBuild(A){
       shuffle(ids).forEach(id => { items.push({t:'q', id, s:si}); perm[id] = shuffle([0, 1, 2, 3]); });
     } else take(sec.ids.filter(id => CODE_BY_ID[id]), sec.n).forEach(id => items.push({t:'c', id, s:si}));
   });
-  return items.length ? {co:A.co, start:Date.now(), end:Date.now() + A.minutes * 60000, neg:!!ui.oaNeg, items, perm, ans:{}, src:{}, flag:{}, i:0} : null;
+  return items.length ? {co:A.co, start:Date.now(), end:Date.now() + A.minutes * 60000, neg:!!ui.oaNeg, items, perm, ans:{}, src:{}, flag:{}, lang:{}, i:-1} : null;
 }
 function oaStart(){
   const pool = oaReady(); if (!pool.length) return;
@@ -2159,8 +2222,8 @@ function oaTickStart(){
 function oaIntro(){
   const pool = oaReady(), last = state.oaHist.slice(0, 8);
   const A = pool[0], nq = A ? A.sections.filter(s => s.kind === 'mcq').reduce((n, s) => n + s.n, 0) : 0, nc = A ? A.sections.filter(s => s.kind === 'code').reduce((n, s) => n + s.n, 0) : 0;
-  return `<section class="pagehead"><p class="eyebrow">Online assessment</p><h1>A real OA, from a <em>random</em> company</h1>
-      <p class="muted">You get one company's assessment format, picked at random, with a single timer like HackerRank. The company stays hidden until you submit, so you practice the way the real thing feels: cold.</p></section>
+  return `<section class="pagehead"><p class="eyebrow">Online assessment</p><h1>A mock OA, from a <em>random</em> company</h1>
+      <p class="muted">You get a timed mock in one company's assessment format, picked at random, with a single timer like HackerRank. The company stays hidden until you submit, so you practice the way the real thing feels: cold. NVIDIA's format is modeled on a real Ignite OA; the others are coming.</p></section>
     <div class="oagrid"><section class="card oastart"><h2>Before you start</h2><ul class="privlist">
         <li><b>${nq} hardware questions</b> (multiple choice and true/false) and <b>${nc} coding problem${nc === 1 ? '' : 's'}</b>, graded by hidden tests.</li>
         <li><b>One timer</b> for the whole test${A ? ` (${A.minutes} minutes)` : ''}. It keeps running if you leave the page, and the test submits itself at zero.</li>
@@ -2183,24 +2246,65 @@ function oaItemHTML(O, it, k){
       <div class="opts" role="radiogroup">${items.map((x, j) => `<button type="button" class="opt${O.ans[it.id] === x.v ? ' sel' : ''}" role="radio" aria-checked="${O.ans[it.id] === x.v}" data-act="oa-pick" data-v="${typeof x.v === 'boolean' ? (x.v ? 'T' : 'F') : x.v}"><span class="key">${'ABCD'[j]}</span><span>${esc(x.text)}</span></button>`).join('')}</div>
       ${it.id in O.ans ? '<button type="button" class="linkbtn small" data-act="oa-clear">Clear answer</button>' : ''}${nav}`;
   }
-  const p = CODE_BY_ID[it.id], src = O.src[it.id] != null ? O.src[it.id] : p.starter;
-  return `<p class="eyebrow">Question ${k + 1} of ${n} · Coding · ${esc(LANGS[p.lang])}</p><h2>${esc(p.title)}</h2>
-    <div class="body">${p.p.map(t => `<p>${inlineCode(t)}</p>`).join('')}</div>${p.ex ? `<pre class="code">${esc(p.ex)}</pre>` : ''}
-    <textarea id="oa-code" class="oaeditor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your code">${esc(src)}</textarea>
-    <div class="row">${p.run ? '<button type="button" class="btn small" data-act="oa-run">▶ Run examples</button>' : ''}<span class="muted small" id="oa-runout">${p.run ? 'Hidden tests run when you submit the test.' : 'Graded by hand: compare with the solution after you submit.'}</span></div>${nav}`;
+  const p = CODE_BY_ID[it.id], src = O.src[it.id] != null ? O.src[it.id] : p.starter, lang = langOf(p, (O.lang || {})[p.id]), R = oaRunState(p.id);
+  return `<div class="oacode"><section class="panel oastmt"><div class="pscroll"><p class="eyebrow">Question ${k + 1} of ${n} · Coding</p><h2>${esc(p.title)}</h2>
+      <div class="body">${p.p.map(t => `<p>${inlineCode(t)}</p>`).join('')}</div>${samplesHTML(p)}
+      ${p.run ? `<p class="muted small">Hidden test cases ${ICON.lock} also check corner cases. They are graded when you submit the test.</p>` : ''}</div></section>
+    <section class="panel ceditor oaide"><div class="ehead">${langPickHTML(p, lang, 'oa')}<span class="spacer"></span><button type="button" class="btn small ghost" data-act="oa-reset">Reset</button>
+      ${p.run ? `<span class="eacts"><button type="button" class="btn small" data-act="oa-run"${R.busy ? ' disabled' : ''}>Run Code</button><button type="button" class="btn small go" data-act="oa-runall"${R.busy ? ' disabled' : ''}>Submit code</button></span>` : ''}</div>
+      <div class="editor" data-lang="${lang}"><pre class="gutter" aria-hidden="true">${gutter(src)}</pre><div class="ed-area"><pre class="hl" aria-hidden="true">${highlight(src, lang)}\n</pre>
+        <textarea id="oa-code" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your code (Tab inserts spaces)">${esc(src)}</textarea></div></div>
+      ${p.run ? consoleWrapHTML(p, R, 'oa') : '<div class="console"><div class="cbody"><p class="muted small">Graded by hand: compare with the solution after you submit.</p></div></div>'}</section></div>${nav}`;
+}
+// Run Code (sample cases), Submit code (every test, hidden ones locked) and custom input inside the assessment.
+const oaRunState = id => (ui.oaRun || (ui.oaRun = {}))[id] || (ui.oaRun[id] = {busy:null, run:null, rcase:0, ctab:'result', custom:false, cin:null});
+const oaCurRun = () => { const O = state.oa, it = O && O.items[O.i]; return it && it.t === 'c' ? oaRunState(it.id) : null; };
+function oaShowRun(){
+  const O = state.oa, it = O && O.items[O.i], c = $('.oaide .console'); if (!it || it.t !== 'c' || !c) return;
+  const p = CODE_BY_ID[it.id], R = oaRunState(p.id), t = document.createElement('div');
+  t.innerHTML = consoleWrapHTML(p, R, 'oa'); c.replaceWith(t.firstElementChild);
+  document.querySelectorAll('[data-act="oa-run"], [data-act="oa-runall"]').forEach(b => { b.disabled = !!R.busy; });
+}
+async function oaJudge(all){
+  oaSaveCode();
+  const O = state.oa, it = O && O.items[O.i], p = it && it.t === 'c' && CODE_BY_ID[it.id]; if (!p || !p.run) return;
+  const R = oaRunState(p.id); if (R.busy) return;
+  const src = O.src[p.id] != null ? O.src[p.id] : p.starter, lang = langOf(p, (O.lang || {})[p.id]), custom = !all && R.custom && canCustom(p);
+  R.busy = custom ? 'Running your custom input…' : all ? 'Running every test case…' : 'Running the sample cases…'; R.ctab = 'result'; oaShowRun();
+  let run;
+  try {
+    if (custom) run = Object.assign({mode:'custom', results:[], total:0}, await judgeCustom(p, src, R.cin != null ? R.cin : customDefault(p), lang));
+    else {
+      const res = await (p.run.kind === 'c' ? judgeC : p.run.kind === 'v' ? judgeV : judgePython)(p, src, all, lang), results = res.results || [], passed = results.filter(r => r.ok).length;
+      run = Object.assign({}, res, {mode:all ? 'submit' : 'run', results, passed, total:res.error && !results.length ? 0 : results.length, verdict:res.verdict || (passed === results.length && results.length ? 'Accepted' : 'Wrong Answer')});
+    }
+  } catch (e) { run = {verdict:'Error', error:String(e && e.message || e), results:[]}; }
+  R.busy = null; R.run = run; R.rcase = Math.max(0, (run.results || []).findIndex(r => !r.ok)); oaShowRun();
 }
 function oaExam(){
-  const O = state.oa, k = Math.min(O.i, O.items.length - 1), it = O.items[k], A = OA_BY_CO[O.co];
-  const answered = O.items.filter(x => x.t === 'q' ? x.id in O.ans : (O.src[x.id] != null && O.src[x.id].trim() !== CODE_BY_ID[x.id].starter.trim())).length;
-  const secs = A.sections.map((s, si) => `<p class="eyebrow">${esc(s.title)}</p><div class="oanums">${O.items.map((x, j) => x.s !== si ? '' : `<button type="button" class="${j === k ? 'cur ' : ''}${(x.t === 'q' ? x.id in O.ans : O.src[x.id] != null && O.src[x.id].trim() !== CODE_BY_ID[x.id].starter.trim()) ? 'done ' : ''}${O.flag[x.id] ? 'flag' : ''}" data-act="oa-go" data-v="${j}" aria-label="Question ${j + 1}">${j + 1}</button>`).join('')}</div>`).join('');
-  return `<div class="oabar"><div><b>Hardware Engineering Online Assessment</b><span class="muted small">Company revealed when you submit${O.neg ? ' · negative marking on' : ''}</span></div>
+  const O = state.oa, n = O.items.length, k = Math.min(O.i, n - 1), it = k >= 0 ? O.items[k] : null;
+  const isDone = x => x.t === 'q' ? x.id in O.ans : (O.src[x.id] != null && O.src[x.id].trim() !== CODE_BY_ID[x.id].starter.trim());
+  const answered = O.items.filter(isDone).length;
+  const rail = `<nav class="oarail" aria-label="Questions"><button type="button" class="oaall-btn${k < 0 ? ' cur' : ''}" data-act="oa-go" data-v="-1">All</button>
+    <div class="oanums">${O.items.map((x, j) => `<button type="button" class="${j === k ? 'cur ' : ''}${isDone(x) ? 'done ' : ''}${O.flag[x.id] ? 'flag' : ''}" data-act="oa-go" data-v="${j}" aria-label="Question ${j + 1}">${j + 1}</button>`).join('')}</div></nav>`;
+  const main = it ? `<section class="card oaq${it.t === 'c' ? ' oacodeq' : ''}" id="oaq">${oaItemHTML(O, it, k)}</section>` : oaAllHTML(O, isDone, answered);
+  return `<div class="oabar"><div><b>Hardware Engineering Online Assessment</b><span class="muted small">Company revealed when you submit${O.neg ? ' · negative marking on' : ''} · ${answered}/${n} answered</span></div>
       <span class="oatime" aria-label="Time left"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg><span id="oatimer">${mmss(O.end - Date.now())}</span></span>
       ${ui.oaConfirm === 'quit' ? '<span class="oaconfirm">Quit this test? Your answers are thrown away and it does not count.<button type="button" class="btn small danger" data-act="oa-quit-yes">Quit test</button><button type="button" class="btn small" data-act="oa-submit-no">Keep going</button></span>'
-        : ui.oaConfirm ? `<span class="oaconfirm">Submit now? ${O.items.length - answered} unanswered.<button type="button" class="btn small primary" data-act="oa-submit-yes">Submit</button><button type="button" class="btn small" data-act="oa-submit-no">Keep going</button></span>`
+        : ui.oaConfirm ? `<span class="oaconfirm">Submit now? ${n - answered} unanswered.<button type="button" class="btn small primary" data-act="oa-submit-yes">Submit</button><button type="button" class="btn small" data-act="oa-submit-no">Keep going</button></span>`
         : '<span class="row"><button type="button" class="btn small ghost" data-act="oa-quit">Quit</button><button type="button" class="btn small primary" data-act="oa-submit">Submit test</button></span>'}</div>
-    <div class="oaexam"><aside class="card oaside"><div class="row between"><b>Questions</b><span class="muted small">${answered}/${O.items.length} answered</span></div>${secs}
-      <div class="oalegend small muted"><span><i class="lg done"></i>Answered</span><span><i class="lg flag"></i>Flagged</span></div></aside>
-      <section class="card oaq" id="oaq">${oaItemHTML(O, it, k)}</section></div>`;
+    <div class="oaexam">${rail}<div class="oamain">${main}</div></div>`;
+}
+// The question list, like HackerRank's "All" page.
+function oaAllHTML(O, isDone, answered){
+  const row = (x, j) => {
+    const title = x.t === 'c' ? CODE_BY_ID[x.id].title : BY_ID[x.id].q, type = x.t === 'c' ? 'Coding' : BY_ID[x.id].k === 'm' ? 'Multiple choice' : 'True / false';
+    return `<tr><td class="oat"><b>${j + 1}.</b> ${esc(title.length > 90 ? title.slice(0, 88) + '…' : title)}</td><td>${type}</td><td>${isDone(x) ? '<span class="v-ok">Answered</span>' : '<span class="muted">Not answered</span>'}${O.flag[x.id] ? ' <span class="oaflag">⚑ Flagged</span>' : ''}</td>
+      <td class="oaact"><button type="button" class="btn small ${isDone(x) ? '' : 'go'}" data-act="oa-go" data-v="${j}">${isDone(x) ? 'Review' : 'Solve'}</button></td></tr>`;
+  };
+  return `<section class="card oaall"><div class="row between"><h2>Questions</h2><span class="muted small">${answered}/${O.items.length} answered</span></div>
+    <div class="tablewrap"><table class="oalist"><thead><tr><th>Question</th><th>Type</th><th>Status</th><th>Action</th></tr></thead><tbody>${O.items.map(row).join('')}</tbody></table></div>
+    <div class="row between"><span class="oalegend small muted"><span><i class="lg done"></i>Answered</span><span><i class="lg flag"></i>Flagged</span></span><button type="button" class="btn primary" data-act="oa-submit">Submit test</button></div></section>`;
 }
 async function oaSubmit(timeUp){
   const O = state.oa; if (!O || ui.oaGrading) return;
@@ -2224,7 +2328,7 @@ async function oaSubmit(timeUp){
     if (touched && p.run) {
       const g = $('#oa-grading'); if (g) g.textContent = `Running hidden tests on coding problem ${j + 1} of ${cs.length} (the first run downloads the compiler)…`;
       try {
-        const res = await (p.run.kind === 'c' ? judgeC : p.run.kind === 'v' ? judgeV : judgePython)(p, src, true);
+        const res = await (p.run.kind === 'c' ? judgeC : p.run.kind === 'v' ? judgeV : judgePython)(p, src, true, langOf(p, (O.lang || {})[p.id]));
         const results = res.results || [];
         r.passed = results.filter(x => x.ok).length; r.total = results.length || r.total;
         r.verdict = res.verdict || (r.passed === r.total ? 'Accepted' : 'Wrong Answer');
@@ -2247,7 +2351,7 @@ async function oaSubmit(timeUp){
 }
 function oaResults(){
   const R = ui.oaRes, c = CO_BY_ID[R.co], A = OA_BY_CO[R.co];
-  return `<section class="card oareveal">${coAvatar(c, 'lg')}<div><p class="eyebrow">${R.timeUp ? "Time's up · " : ''}The company was</p><h1>${esc(c.name)}</h1><p class="muted">This assessment followed <b>${esc(c.name)} ${esc(A.title)}</b> (${esc(A.platform)}, ${A.minutes} minutes).</p></div>
+  return `<section class="card oareveal">${coAvatar(c, 'lg')}<div><p class="eyebrow">${R.timeUp ? "Time's up · " : ''}The company was</p><h1>${esc(c.name)}</h1><p class="muted">This mock followed the format of <b>${esc(c.name)} ${esc(A.title)}</b> (${esc(A.platform)}, ${A.minutes} minutes). It is practice, not ${esc(c.name)}'s actual test.</p></div>
       <div class="oascore"><b>${Math.round(R.pct)}%</b><span>${R.score} / ${R.total} points</span></div></section>
     <div class="admstats oastats">${[[`${R.right}/${R.n}`, 'hardware correct'], [R.wrong, 'wrong' + (R.neg ? ' (−' + A.negative + ' each)' : '')], [R.n - R.right - R.wrong, 'skipped'], [`${R.codeDone}/${R.codeN}`, 'coding accepted'], [mmss(R.used), 'time used'], [mmss(A.minutes * 60000), 'time allowed']].map(([n, l]) => `<div class="card"><b>${n}</b><span>${l}</span></div>`).join('')}</div>
     <div class="row"><button type="button" class="btn primary" data-act="oa-again">Take another random assessment</button><button type="button" class="btn" data-act="co-open" data-v="${R.co}">Practice ${esc(c.name)}'s list →</button><button type="button" class="btn ghost" data-act="oa-home">Back to Online Assessment</button></div>
@@ -2262,8 +2366,8 @@ function oaLock(){
   const checking = premium.status === 'checking';
   return `<section class="oalock"><div class="mbox" aria-hidden="true"><span>?</span></div>
     <p class="eyebrow">Online Assessment</p>
-    <h1>A real online assessment.<br>The company is a <em>mystery</em>.</h1>
-    <p class="muted">${checking ? 'Checking your subscription…' : 'We pick a company at random and give you its real assessment: the same timer, the same mix of hardware questions and coding problems, graded by hidden test cases. You find out which company it was only when you submit.'}</p>
+    <h1>A mock online assessment.<br>The company is a <em>mystery</em>.</h1>
+    <p class="muted">${checking ? 'Checking your subscription…' : 'We pick a company at random and give you a timed mock in its assessment format: one timer, a mix of hardware questions and coding problems, graded by hidden test cases. You find out which company it was only when you submit. NVIDIA\'s is modeled on a real Ignite OA, with its real questions; more companies are coming.'}</p>
     <div class="mfacts"><span>${ICON.lock} Company hidden until the end</span><span>One timer for the whole test</span><span>Coding graded by hidden tests</span></div>
     <div class="mrow" aria-hidden="true">${Array.from({length:6}, (_, i) => `<i style="--k:${i}">?</i>`).join('')}</div>
     <div class="row center"><button type="button" class="btn primary big" data-act="go" data-v="premium">Unlock with Premium →</button></div></section>`;
@@ -2277,7 +2381,7 @@ function viewOA(){
   return oaIntro();
 }
 // Saves code typed during the test (debounced like the main editor).
-function oaSaveCode(){ const ed = $('#oa-code'); if (!ed || !state.oa) return; const it = state.oa.items[state.oa.i]; if (it && it.t === 'c') { state.oa.src[it.id] = ed.value.slice(0, CODE_MAX); save(); } }
+function oaSaveCode(){ const ed = $('#oa-code'); if (!ed || !state.oa || state.oa.i < 0) return; const it = state.oa.items[state.oa.i]; if (it && it.t === 'c') { state.oa.src[it.id] = ed.value.slice(0, CODE_MAX); save(); } }
 
 // ---------- Premium: who has it, loading its data, and the Premium page ----------
 // premium/{uid} = {active, plan, since, until, note, by} is written only by the admin (see firestore.rules);
@@ -2320,16 +2424,17 @@ function viewPremium(){
     : link ? `<div class="row"><a class="btn primary big" href="${esc(link)}" target="_blank" rel="noopener">Subscribe${P.price ? ' · ' + esc(P.price) : ''} →</a></div><p class="muted small">After you pay, Premium is switched on for <b>${esc(u ? u.email || u.uid : 'your account')}</b>, usually within a day. Pay with the same email you use here.</p>`
     : '<div class="row"><button type="button" class="btn primary big" disabled>Subscriptions open soon</button></div>';
   return `<section class="pagehead prem-hero"><p class="eyebrow">HardCode Premium</p><h1>Practice for the <em>company</em> you want</h1>
-      <p class="muted">Every theory and coding problem tagged by the companies that test it, the problems candidates actually reported, and timed online assessments in each company's format.</p>${cta}</section>
+      <p class="muted">Every theory and coding problem tagged with the companies whose roles are tested on its topic, a real NVIDIA Ignite OA and the topics candidates reported, and a timed mock OA with the company hidden until the end.</p>${cta}</section>
     <div class="prem-grid">
-      ${[['Company problem lists', `${COMPANIES.length} companies, each with its theory, coding and reported problems, filtered by difficulty.`],
-        ['Company tags and filters', 'See which companies test every problem, and filter Theory and Coding by company.'],
-        ['Online Assessment', "A timed mock OA in a random company's real format, graded by hidden tests, with the company revealed at the end."],
-        ['Reported questions', 'The questions and topics candidates reported from real assessments, kept together for each company.']].map(([t, d]) => `<section class="card"><h3>${ICON.solved} ${esc(t)}</h3><p class="muted small">${esc(d)}</p></section>`).join('')}
+      ${[['Company problem lists', `${COMPANIES.length} companies and their typical roles, each with theory and coding problems on the topics those roles are tested on.`],
+        ['Company tags and filters', 'See which companies test the topic of every problem, and filter Theory and Coding by company.'],
+        ['Online Assessment', "A timed mock OA in a random company's format, graded by hidden tests, with the company revealed at the end. NVIDIA's is modeled on a real Ignite OA; more are coming."],
+        ['Real OA and reported topics', 'Every question from a real NVIDIA Ignite OA, plus practice on the topics candidates reported. More companies as reports come in.']].map(([t, d]) => `<section class="card"><h3>${ICON.solved} ${esc(t)}</h3><p class="muted small">${esc(d)}</p></section>`).join('')}
     </div>
     <section class="card"><h2>Companies included</h2><div class="prem-logos">${COMPANIES.map(c => `<span>${coAvatar(c)}<b>${esc(c.name)}</b></span>`).join('')}</div></section>
     <section class="card"><h2>How it works</h2><ol class="privlist"><li>Sign in, then press <b>Subscribe</b> and pay with the same email as your account.</li><li>The site owner switches Premium on for your account, usually within a day.</li><li>Sign in on any device: Companies, company tags and the Online Assessment unlock.</li></ol>
-      <p class="muted small">Free forever: Theory, Coding, the judge, the Roadmap, Roles and your profile.</p></section>`;
+      <p class="muted small">Free forever: Theory, Coding, the judge, the Roadmap, Roles and your profile.</p></section>
+    ${tagNoteHTML()}`;
 }
 
 // ---------- Privacy: what is stored, where, and who can see it ----------
@@ -2446,22 +2551,16 @@ function act(a){
     case 'delete-no': ui.confirmDelete = false; render(); break;
     case 'delete-yes': ui.confirmDelete = false; deleteAccount(); break;
     case 'oa-start': ui.oaNeg = !!($('#oa-neg') && $('#oa-neg').checked); oaStart(); break;
-    case 'oa-go': { oaSaveCode(); const k = +a.dataset.v; if (state.oa && k >= 0 && k < state.oa.items.length) { state.oa.i = k; save(); render(); } break; }
+    case 'oa-go': { oaSaveCode(); const k = +a.dataset.v; if (state.oa && k >= -1 && k < state.oa.items.length) { state.oa.i = k; save(); render(); window.scrollTo(0, 0); } break; }
     case 'oa-pick': { const O = state.oa, it = O && O.items[O.i]; if (!it) break; const v = a.dataset.v; O.ans[it.id] = v === 'T' ? true : v === 'F' ? false : +v; save(); render(); break; }
     case 'oa-clear': { const O = state.oa, it = O && O.items[O.i]; if (it) { delete O.ans[it.id]; save(); render(); } break; }
     case 'oa-flag': if (state.oa) { const id = a.dataset.v; if (state.oa.flag[id]) delete state.oa.flag[id]; else state.oa.flag[id] = 1; save(); render(); } break;
-    case 'oa-run': {
-      oaSaveCode();
-      const O = state.oa, it = O && O.items[O.i], p = it && CODE_BY_ID[it.id], out = $('#oa-runout'); if (!p || !p.run) break;
-      a.disabled = true; out.textContent = 'Running the examples…';
-      (p.run.kind === 'c' ? judgeC : p.run.kind === 'v' ? judgeV : judgePython)(p, O.src[p.id] != null ? O.src[p.id] : p.starter, false).then(res => {
-        const o = $('#oa-runout'); if (!o) return;
-        const r = res.results || [], ok = r.filter(x => x.ok).length;
-        o.textContent = res.error && !r.length ? (res.verdict || 'Error') + ': ' + res.error.split('\n')[0] : `${ok}/${r.length} example${r.length === 1 ? '' : 's'} passed` + (ok < r.length ? ` · first failure: ${r.find(x => !x.ok).label}` : '');
-        const b = $('[data-act="oa-run"]'); if (b) b.disabled = false;
-      });
-      break;
-    }
+    case 'oa-run': oaJudge(false); break;
+    case 'oa-runall': oaJudge(true); break;
+    case 'oa-ctab': { const R = oaCurRun(); if (R) { R.ctab = a.dataset.v; oaShowRun(); } break; }
+    case 'oa-rcase': { const R = oaCurRun(); if (R) { R.rcase = +a.dataset.v; oaShowRun(); } break; }
+    case 'oa-reset': { const O = state.oa, it = O && O.items[O.i]; if (it && it.t === 'c') { O.src[it.id] = CODE_BY_ID[it.id].starter; save(); render(); } break; }
+    case 'c-custom-on': ui.cp.custom = true; ui.cp.ctab = 'case'; showRun(); break;
     case 'oa-submit': oaSaveCode(); ui.oaConfirm = true; render(); break;
     case 'oa-submit-no': ui.oaConfirm = false; render(); break;
     case 'oa-submit-yes': oaSaveCode(); oaSubmit(false); break;
@@ -2502,7 +2601,7 @@ function act(a){
     case 'c-hint': ui.cp.hints++; $('.cstate').outerHTML = codeLeftHTML(); break;
     case 'c-ltab': ui.cp.ltab = a.dataset.v; $('.cstate').outerHTML = codeLeftHTML(); break;
     case 'c-ctab': ui.cp.ctab = a.dataset.v; showRun(); break;
-    case 'c-case': ui.cp.ccase = +a.dataset.v; showRun(); break;
+    case 'c-case': ui.cp.ccase = +a.dataset.v; ui.cp.custom = false; showRun(); break;
     case 'c-rcase': ui.cp.rcase = +a.dataset.v; showRun(); break;
     case 'c-reset': { const p = CODE_BY_ID[ui.cp.id]; $('#code-editor').value = p.starter; setCode(p.id, {src:p.starter}); save(); syncEditor(); break; }
     case 'c-run': judgeCode('run'); break;
@@ -2568,7 +2667,8 @@ document.addEventListener('input', e => {
     w.querySelectorAll('label b').forEach((b, i) => { b.textContent = t.querySelectorAll('label b')[i].textContent; });
     return;
   }
-  if (e.target.id === 'oa-code') { clearTimeout(ui.oaSaveT); ui.oaSaveT = setTimeout(oaSaveCode, 500); return; }
+  if (e.target.id === 'oa-code') { const O = state.oa, it = O && O.items[O.i]; if (it) syncEdOf(e.target, langOf(CODE_BY_ID[it.id], (O.lang || {})[it.id])); clearTimeout(ui.oaSaveT); ui.oaSaveT = setTimeout(oaSaveCode, 500); return; }
+  if (e.target.id === 'oa-cin') { const R = oaCurRun(); if (R) R.cin = e.target.value; return; }
   if (e.target.id === 'c-cin' && ui.cp) { ui.cp.cin = e.target.value; return; }
   if (e.target.id === 'c-custom' && ui.cp) { if (ui.cp.custom !== e.target.checked) { ui.cp.custom = e.target.checked; ui.cp.ctab = 'case'; showRun(); } return; }
   if (e.target.id === 'code-editor') { syncEditor(); clearTimeout(ui.codeTimer); ui.codeTimer = setTimeout(saveEditorNow, 500); return; }
@@ -2577,11 +2677,12 @@ document.addEventListener('input', e => {
 });
 // In the code editor, Tab inserts two spaces and Esc leaves the editor (so the keyboard can move on).
 document.addEventListener('keydown', e => {
-  if (e.target.id !== 'code-editor') return;
+  if (e.target.id !== 'code-editor' && e.target.id !== 'oa-code') return;
   if (e.key === 'Escape') { e.target.blur(); return; }
   if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'Enter' || e.key === "'")) {
     e.preventDefault();
-    if (judged(CODE_BY_ID[ui.cp.id])) judgeCode(e.key === 'Enter' ? 'submit' : 'run');
+    if (e.target.id === 'oa-code') oaJudge(e.key === 'Enter');
+    else if (judged(CODE_BY_ID[ui.cp.id])) judgeCode(e.key === 'Enter' ? 'submit' : 'run');
     return;
   }
   if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {   // keep the line's indentation
@@ -2597,12 +2698,14 @@ document.addEventListener('keydown', e => {
   e.target.setRangeText('  ', e.target.selectionStart, e.target.selectionEnd, 'end');
   e.target.dispatchEvent(new Event('input', {bubbles:true}));
 });
-document.addEventListener('scroll', e => { if (e.target.id === 'code-editor') syncScroll(); }, true);
+document.addEventListener('scroll', e => { if (e.target.id === 'code-editor') syncScroll(); else if (e.target.id === 'oa-code') syncScrollOf(e.target); }, true);
 document.addEventListener('submit', e => { if (e.target.id === 'authemail') { e.preventDefault(); authEmail(); } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && ui.auth) closeAuth(); });
 document.addEventListener('change', e => {
   if (e.target.id === 'import-file' && e.target.files[0]) importProgress(e.target.files[0]);
-  if (e.target.id === 'c-custom' && ui.cp && ui.cp.custom !== e.target.checked) { ui.cp.custom = e.target.checked; ui.cp.ctab = 'case'; showRun(); }
+  if (e.target.id === 'oa-custom') { const R = oaCurRun(); if (R) { R.custom = e.target.checked; oaShowRun(); } }
+  if (e.target.id === 'c-lang' && ui.cp) { saveEditorNow(); setCode(ui.cp.id, {lang:e.target.value === 'cpp' ? 'cpp' : undefined}); save(); ui.cp.run = null; render(); }
+  if (e.target.id === 'oa-lang' && state.oa) { oaSaveCode(); const it = state.oa.items[state.oa.i]; if (it) { state.oa.lang = state.oa.lang || {}; if (e.target.value === 'cpp') state.oa.lang[it.id] = 'cpp'; else delete state.oa.lang[it.id]; save(); render(); } }
 });
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;

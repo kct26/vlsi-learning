@@ -103,7 +103,7 @@ endmodule`,
 endmodule`,
  why:["A primitive polynomial gives the maximal period 2⁸ − 1 = 255. The all-zero state maps to itself, so it must never be loaded. LFSRs are used for pseudo-random test patterns, scramblers and CRCs."]},
 {id:'rtl-07', d:'M', lang:'verilog', area:'RTL design', title:'Divide-by-3 clock with 50% duty cycle',
- p:["Write `div3`: `clk_out` has one third of the frequency of `clk` and is high for exactly half of its period (1.5 input cycles). This is a reported NVIDIA interview question."],
+ p:["Write `div3`: `clk_out` has one third of the frequency of `clk` and is high for exactly half of its period (1.5 input cycles). Candidates reported a question like this in NVIDIA interviews."],
  starter:`module div3 (
   input  wire clk, rst_n,
   output wire clk_out
@@ -657,7 +657,7 @@ struct node *reverse(struct node *head) {
 }`,
  why:["O(n) time, O(1) extra space. Draw three boxes and trace the pointers once; interviewers often ask for the recursive version too."]},
 {id:'c-04', d:'E', lang:'c', area:'C and C++', title:'Same 4 KB page?',
- p:["Write `int same_page(uint32_t a, uint32_t b)` that returns 1 if both addresses lie in the same 4 KB page. This was reported as an Ignite coding question."],
+ p:["Write `int same_page(uint32_t a, uint32_t b)` that returns 1 if both addresses lie in the same 4 KB page. Candidates reported a problem like this in Ignite's coding section."],
  starter:`#include <stdint.h>
 
 int same_page(uint32_t a, uint32_t b) {
@@ -671,7 +671,7 @@ int same_page(uint32_t a, uint32_t b) {
 }`,
  why:["0x12345FFF and 0x12346000 differ by 1 but are on different pages. `(a ^ b) < 4096` is an equivalent test."]},
 {id:'c-05', d:'M', lang:'c', area:'C and C++', title:'Bit mask from lo to hi as hex',
- p:["Write `void mask_hex(int lo, int hi, char *out)` that writes a 32-bit mask with ones in bits lo..hi (inclusive, 0 ≤ lo ≤ hi ≤ 31) as `0x` plus 8 uppercase hex digits. Example: lo = 4, hi = 7 gives `0x000000F0`. Reported as an Ignite coding question."],
+ p:["Write `void mask_hex(int lo, int hi, char *out)` that writes a 32-bit mask with ones in bits lo..hi (inclusive, 0 ≤ lo ≤ hi ≤ 31) as `0x` plus 8 uppercase hex digits. Example: lo = 4, hi = 7 gives `0x000000F0`. Candidates reported a problem like this in Ignite's coding section."],
  starter:`#include <stdio.h>
 #include <stdint.h>
 
@@ -791,7 +791,7 @@ int is_little_endian(void) {
    struct C: b at 0..3, a at 4, c at 5, 2 bytes tail padding               -> 8
    Shrinking A: order members from largest to smallest alignment, which is
    exactly struct C (12 -> 8 bytes). */`,
- why:["The struct with a char and a pointer giving 16 was a reported assessment question. Padding matters in hardware register maps and packed network headers, where layout must match exactly."]},
+ why:["Candidates reported a struct-size question like this one (a char and a pointer giving 16) on an assessment. Padding matters in hardware register maps and packed network headers, where layout must match exactly."]},
 {id:'c-11', d:'M', lang:'c', area:'C and C++', title:'Read-modify-write a hardware register',
  p:["A control register lives at address 0x40000000. Bit 0 enables the block; bits 6..4 select a mode. Write `void enable_with_mode(uint32_t mode)` that sets the mode and the enable bit without disturbing any other bit, reading and writing the register once each."],
  starter:`#include <stdint.h>
@@ -1023,7 +1023,7 @@ def count_errors(lines):
  why:["Each value differs from the next in exactly one bit, the property that makes Gray-coded FIFO pointers safe to synchronize."],
  run:{fn:'gray_codes', tests:[[[1], [0, 1]], [[2], [0, 1, 3, 2]], [[3], [0, 1, 3, 2, 6, 7, 5, 4]], [[0], [0]]]}},
 {id:'py-05', d:'M', lang:'python', area:'Python and MATLAB', title:'Recover an array from its prefix XORs',
- p:["`p[i]` is the XOR of `a[0]` through `a[i]`. Write `from_prefix_xor(p)` that returns the original array `a`. (Reported Ignite coding pattern.)"],
+ p:["`p[i]` is the XOR of `a[0]` through `a[i]`. Write `from_prefix_xor(p)` that returns the original array `a`. (Candidates reported this pattern in Ignite's coding section.)"],
  ex:`from_prefix_xor([5, 7, 2]) -> [5, 2, 5]`,
  starter:`def from_prefix_xor(p):
     # your code

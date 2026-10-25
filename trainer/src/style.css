@@ -1111,3 +1111,60 @@ textarea.cin:focus { outline: 2px solid var(--accent-line); border-color: var(--
 .hrreveal { width: 100%; } .hrreveal summary { cursor: pointer; font-size: 0.84rem; color: var(--accent); margin-bottom: 8px; }
 .hrreveal[open] { display: flex; flex-direction: column; gap: 10px; }
 @media (max-width: 700px) { .hrres { grid-template-columns: 1fr; } .hrlist { flex-direction: row; overflow-x: auto; max-height: none; } .hrcase { width: auto; white-space: nowrap; border-bottom: 0; border-right: 1px solid var(--line); } }
+
+/* ---------- What the company labels mean ---------- */
+.tagnote { margin-top: 18px; padding: 0; }
+.tagnote summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 14px 18px; cursor: pointer; list-style: none; }
+.tagnote summary::-webkit-details-marker { display: none; }
+.tagnote summary::before { content: "+"; font: 600 1rem var(--font-mono); color: var(--accent); width: 12px; }
+.tagnote[open] summary::before { content: "−"; }
+.tagnote dl { display: grid; gap: 10px; margin: 0; padding: 0 18px 4px; }
+.tagnote dl > div { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; align-items: baseline; }
+.tagnote dt { font-weight: 600; font-size: 0.86rem; } .tagnote dd { margin: 0; font-size: 0.88rem; color: var(--muted); }
+.tagnote > p { padding: 8px 18px 16px; margin: 0; }
+.coline { margin: 4px 0 10px; }
+@media (max-width: 560px) { .tagnote dl > div { grid-template-columns: 1fr; gap: 4px; } }
+
+/* ---------- Problem page, LeetCode style: examples, case tabs, language picker ---------- */
+.etitle { font-weight: 600; font-size: 0.88rem; margin-right: 8px; }
+.langpick { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.langpick select { font: 500 0.85rem var(--font-body); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); padding: 3px 6px; }
+.lcex { display: flex; flex-direction: column; gap: 6px; }
+.lcex p { margin: 0; }
+.lcexbox { margin: 0; padding: 4px 0 4px 14px; border-left: 3px solid var(--line); background: none; font: 0.86rem/1.6 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); }
+.lcexbox b { font-weight: 700; }
+.casechip.add { font-weight: 600; min-width: 34px; }
+.casechip.locked { color: var(--muted); }
+.casechip.locked.fail { color: var(--bad); }
+.casechip svg { width: 11px; height: 11px; vertical-align: -1px; margin-right: 2px; }
+.customtoggle.solo { display: inline-flex; align-items: center; gap: 6px; font-size: 0.86rem; cursor: pointer; }
+.customtoggle.solo input { accent-color: var(--accent); }
+
+/* ---------- Online Assessment, HackerRank style: question rail, question list, split coding view ---------- */
+.oaexam { grid-template-columns: 64px minmax(0, 1fr); gap: 14px; }
+.oarail { position: sticky; top: 132px; display: flex; flex-direction: column; gap: 6px; background: var(--surface); border: 1px solid var(--line); padding: 8px; max-height: calc(100vh - 150px); overflow: auto; }
+.oarail .oaall-btn { border: 1px solid var(--line); background: var(--surface-2); font: 600 0.78rem var(--font-body); padding: 8px 0; cursor: pointer; color: var(--ink); }
+.oarail .oaall-btn.cur { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.oarail .oanums { grid-template-columns: 1fr; gap: 4px; }
+.oamain { min-width: 0; }
+.oaall h2 { font-size: 1.15rem; }
+.oalist { width: 100%; border-collapse: collapse; }
+.oalist th { text-align: left; font: 600 0.72rem var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.oalist td { padding: 14px; border-bottom: 1px solid var(--line); font-size: 0.9rem; vertical-align: middle; }
+.oalist td.oat { width: 55%; }
+.oalist .oaact { text-align: right; } .oalist .oaact .btn { min-width: 96px; }
+.oaflag { color: var(--bad); font-size: 0.8rem; }
+.oaq.oacodeq { padding: 10px; }
+.oacode { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 10px; height: calc(100vh - 230px); min-height: 600px; }
+.oastmt .body { display: flex; flex-direction: column; gap: 10px; }
+.hrh { font-size: 0.98rem; margin: 6px 0 0; }
+.oacodeq .oanavrow { margin-top: 10px; }
+@media (max-width: 900px) {
+  .oaexam { grid-template-columns: 1fr; }
+  .oarail { position: static; flex-direction: row; align-items: center; max-height: none; overflow-x: auto; }
+  .oarail .oanums { display: flex; } .oarail .oanums button { width: 36px; flex: none; } .oarail .oaall-btn { padding: 8px 12px; }
+  .oacode { grid-template-columns: 1fr; height: auto; } .oaide { height: 700px; }
+  .oalist td.oat { width: auto; }
+}
+/* inline icons inside sentences stay text-sized */
+.oastmt p svg, .cbody > p svg, .hrlocked p svg { width: 13px; height: 13px; vertical-align: -2px; }
