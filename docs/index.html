@@ -5710,7 +5710,7 @@ const HOME_FAQ = [
   ['I am new to hardware. Where do I start?', 'Start Quest 1. The quests follow the book from charge and current up to GPUs, each with short lessons, interactive widgets and a checkpoint.'],
   ['What topics does it cover?', 'Circuits, semiconductors and MOSFETs, CMOS gates, combinational and sequential logic, timing, power, PVT, wires and signal integrity, manufacturing and test, memory, Verilog and verification, computer architecture, GPUs, computer arithmetic, and programming with Linux and scripting.'],
   ['Which languages run in the browser?', 'Python (Pyodide), C and C++ (Clang compiled to WebAssembly) and Verilog (synthesized by Yosys and simulated gate by gate). Run tries the examples; Submit runs every hidden test.'],
-  ['Do I need an account?', 'No. Progress saves in your browser. Sign in to keep one record across all your devices.'],
+  ['Do I need an account?', 'Yes, a free one (Google or email). This page is open to everyone; practicing needs an account, so your progress, streak and code follow you to every device.'],
 ];
 function homeVis(kind){
   if (kind === 'wave') return `<svg viewBox="0 0 300 150" class="wavesvg" aria-hidden="true"><g class="wl"><text x="0" y="22">clk</text><text x="0" y="62">en</text><text x="0" y="102">q</text></g>
@@ -5818,7 +5818,7 @@ function renderAuth(){
         <label><span class="row between">Password${create ? '' : '<button type="button" class="linkbtn small" data-act="auth-forgot">Forgot password?</button>'}</span><input type="password" id="au-pw" autocomplete="${create ? 'new-password' : 'current-password'}" placeholder="${create ? 'At least 6 characters' : 'Enter your password'}" required></label>
         ${A.err ? `<p class="autherr" role="alert">${esc(A.err)}</p>` : ''}${A.info ? `<p class="authinfo" role="status">${esc(A.info)}</p>` : ''}
         <button type="submit" class="btn primary authsubmit"${A.busy ? ' disabled' : ''}>${A.busy ? 'Please wait…' : create ? 'Create account' : 'Sign in'}</button></form>
-      <p class="muted small authfine">Your progress syncs to your account on every device. Without an account it stays in this browser. <a href="#privacy" data-act="auth-privacy">Privacy</a></p></div></div>
+      <p class="muted small authfine">Sign in to practice. Your progress, streak and code sync to your account on every device. <a href="#privacy" data-act="auth-privacy">Privacy</a></p></div></div>
     <div class="authr" aria-hidden="true"><canvas id="authcanvas"></canvas><div class="authquote"><b>${BANK.length + CODING.length} problems.</b><span>From one transistor to a GPU.</span></div></div>`;
   authAnim();
 }
@@ -6351,7 +6351,7 @@ function viewPrivacy(){
   return `<section class="pagehead"><p class="eyebrow">Privacy</p><h1>Your data, <em>plainly</em></h1>
     <p class="muted">What this site keeps, where it keeps it, and how to remove it. No analytics, no ads, no tracking cookies, and nothing is sold or shared.</p></section>
     <div class="privgrid">
-    <section class="card"><h2>Without an account</h2><p>Everything stays ${claude ? 'in the storage of the Claude page you are using' : 'in this browser (local storage)'}: your answers, the code you write, your submissions and streak history, and your light or dark theme choice. Nothing is sent anywhere. Clearing this site's data in your browser, or <b>Reset progress</b> on your profile, removes it.</p></section>
+    <section class="card"><h2>In your browser</h2><p>A copy of your progress is kept ${claude ? 'in the storage of the Claude page you are using' : 'in this browser (local storage)'}: your answers, the code you write, your submissions and streak history, and your light or dark theme choice. Clearing this site's data in your browser, or <b>Reset progress</b> on your profile, removes that copy.</p></section>
     <section class="card"><h2>With an account</h2><ul class="privlist">
       <li><b>Login</b> (Firebase Authentication, run by Google): your email address, and if you use Google sign-in, your name and profile photo link. Email sign-in stores your password only as a salted hash; nobody can read it.</li>
       <li><b>Progress</b> (Cloud Firestore, run by Google): one record holding the same progress listed above, plus your name and email, so it can follow you across devices.</li>
