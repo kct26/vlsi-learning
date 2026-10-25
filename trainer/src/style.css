@@ -1006,3 +1006,10 @@ h1, h2, h3, .hh2 { letter-spacing: -0.02em; }
 .qgrid small { font-size: 0.86rem; }
 .qst { font-size: 0.8rem; }
 .sgoal { font-size: 0.92rem; }
+
+/* Company logos: brand marks on a white tile in both themes */
+.coav.logo { background: #FFFFFF; border: 1px solid var(--line); padding: 7px; }
+.coav.logo svg, .coav.logo img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.coav.logo.wide { width: 76px; padding: 6px 8px; }
+.coav.lg.logo { padding: 12px; } .coav.lg.logo.wide { width: 140px; padding: 12px 14px; }
+.oapool .coav.logo { padding: 4px; } .oapool .coav.logo.wide { width: 52px; }

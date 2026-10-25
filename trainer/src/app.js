@@ -1256,7 +1256,13 @@ const coCoding = co => CODING.filter(p => CO_TAGS[p.id].some(t => t.co === co)).
 const coReported = co => BANK.filter(Q => CO_TAGS[Q.id].some(t => t.co === co && t.rep)).map(Q => Q.id);
 const coReportedCode = co => CODING.filter(p => CO_TAGS[p.id].some(t => t.co === co && t.rep)).map(p => p.id);
 const coHas = (id, co) => co === 'all' || CO_TAGS[id].some(t => t.co === co);
-const coAvatar = (c, size) => `<span class="coav${size ? ' ' + size : ''}" aria-hidden="true">${esc(c.short || c.name.slice(0, 2).toUpperCase())}</span>`;
+// A company's logo on a white tile (logos.js), or its short letters when there is no logo.
+function coAvatar(c, size){
+  const L = typeof LOGOS !== 'undefined' && LOGOS[c.id], cls = 'coav' + (size ? ' ' + size : '');
+  if (L && L.kind === 'path') return `<span class="${cls} logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="#${L.hex}" d="${L.d}"/></svg></span>`;
+  if (L) return `<span class="${cls} logo${L.wide ? ' wide' : ''}" aria-hidden="true"><img src="${L.src}" alt=""></span>`;
+  return `<span class="${cls}" aria-hidden="true">${esc(c.short || c.name.slice(0, 2).toUpperCase())}</span>`;
+}
 // Compact tags for list rows: the first two companies, then +n.
 function coMini(id){
   const l = CO_TAGS[id] || [];

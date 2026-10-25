@@ -3,7 +3,7 @@
 //   node build.js --fragment out.html -> page body only (for hosts that add their own <html>/<head>, such as Claude artifacts)
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const src = path.join(__dirname, 'src'), read = f => fs.readFileSync(path.join(src, f), 'utf8');
-const SCRIPTS = ['questions.js', 'lessons.js', 'widgets.js', 'coding.js', 'hidden-tests.js', 'judge.js', 'companies.js', 'assessments.js', 'app.js'];
+const SCRIPTS = ['questions.js', 'lessons.js', 'widgets.js', 'coding.js', 'hidden-tests.js', 'judge.js', 'companies.js', 'assessments.js', 'logos.js', 'app.js'];
 
 // Load the data files and widget table into one sandbox to check them.
 const ctx = {};
