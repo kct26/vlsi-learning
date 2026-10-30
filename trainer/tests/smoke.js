@@ -7,7 +7,7 @@ const $ = (s, r) => (r || document).querySelector(s), $$ = (s, r) => Array.from(
 const ok = (c, m) => log.push((c ? 'PASS ' : 'FAIL ') + m);
 const st = () => JSON.parse(localStorage.getItem('ground-up-trainer-v1') || 'null');
 const click = sel => { const el = typeof sel === 'string' ? $(sel) : sel; if (!el) { log.push('FAIL missing ' + sel); return false; } el.click(); return true; };
-const tab = t => t === 'profile' ? click('#acct .avatar') : click(`.navlinks button[data-tab="${t}"]`);
+const tab = t => t === 'profile' ? click('#acct .avatar') : t === 'quest' ? (click('.navlinks button[data-tab="learn"]'), click('.learnseg [data-v="quest"]')) : click(`.navlinks button[data-tab="${t}"]`);
 const h1 = () => ($('#main h1') || {}).textContent || '';
 function rawIn(container){
   const lab = $$('.qmeta .mono', container).map(s => s.textContent).find(t => /^#\d+$/.test(t));
@@ -253,7 +253,7 @@ async function phase1(){
   tab('learn');
   click('[data-act="learn-open"][data-v="11"]');
   const nSec11 = window.BOOK_LESSONS.find(c => c.n === 11).sections.length;
-  ok($('.lx') && $$('.litem').length === nSec11 + 1 && /Practice problems/.test($('.litem.prac').textContent), 'a chapter shows its lessons and a Practice page in the sidebar');
+  ok($('.lx') && $$('.litem:not(.lquest)').length === nSec11 + 1 && /Practice problems/.test($('.litem.prac').textContent) && $('.litem.lquest'), 'a chapter shows its lessons, a Practice page and its quest in the sidebar');
   click('[data-act="learn-go"][data-v="11-1"]');
   ok(/Synchronous design/.test($('.ltitle').textContent) && $('.lart img[src="book/fig-11-1.png"]') && /Figure 11\.1/.test($('.lart figcaption').textContent), 'a lesson shows its text and the figure from the book');
   click('[data-act="learn-next"]');
@@ -269,6 +269,17 @@ async function phase1(){
   ok(/Practice:/.test($('.lmain h1').textContent), 'back returns to the chapter');
   tab('learn');
   ok(/2/.test($('.lstats').textContent) && $('.lcard .cobar i').style.width !== '0%' || true, 'progress shows on the chapter cards');
+  // Roadmap lives inside Learn, and chapters link to their quests both ways
+  ok(!$('.navlinks button[data-tab="quest"]') && $('.learnseg [data-v="quest"]'), 'Roadmap is a view inside Learn, not its own tab');
+  click('.learnseg [data-v="quest"]');
+  ok($('.navlinks button[data-tab="learn"]').getAttribute('aria-current') === 'page' && $$('.node').length === 23 && $$('.node .qbook').length === 23, 'the roadmap keeps Learn highlighted and links every quest to its chapter');
+  click('.node .qbook[data-v="5"]');
+  ok($('.lx') && /Chapter 5/.test($('.lside-h').textContent) && $('.litem.lquest'), 'a chapter shows its interactive quest in the sidebar');
+  click('.litem.lquest');
+  ok($('.unitv') && /Back to the lesson/.test($('.unitv .crumbs').textContent) && /Read Chapter 5 in full/.test($('.unitv .crumbs').textContent), 'the quest links back to the lesson and to the full chapter');
+  click('.unitv .crumbs [data-act="learn-go"]');
+  ok($('.lx') && /Chapter 5/.test($('.lside-h').textContent), 'Back to the lesson returns to the chapter');
+
   // Account pages have a Back button to where you came from
   tab('theory'); click('.premiumbtn');
   ok($('.setback') && /Back to Theory/.test($('.setback').textContent), 'Premium has a Back button');

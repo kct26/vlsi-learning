@@ -1336,6 +1336,16 @@ body.dragging .ed-area textarea { pointer-events: none; }
 :root[data-theme="dark"] .ivq.rev, :root[data-theme="dark"] .ivm.rv, :root[data-theme="dark"] .ivans .btn.on { border-left-color: #FACC15; color: #FACC15; }
 :root[data-theme="dark"] .ivq.rev { color: inherit; }
 
+/* ---------- Learn: chapters and roadmap together ---------- */
+.learnseg { align-self: flex-start; margin-bottom: 2px; }
+.litem.lquest { margin: 4px 10px 2px; padding: 10px 12px; border: 1px solid var(--accent-line); background: var(--accent-soft); color: var(--ink); }
+.litem.lquest span { display: flex; flex-direction: column; gap: 2px; font-weight: 600; }
+.litem.lquest small { font-weight: 400; color: var(--muted); font-size: 0.76rem; }
+.litem.lquest .lchk { border-color: var(--accent); color: var(--accent); }
+.litem.lquest.done .lchk { color: var(--accent-ink); }
+.node .qbook { display: block; margin: 6px 0 0 4px; }
+.unitv .crumbs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
 </style>
 </head>
 <body>
@@ -1348,7 +1358,6 @@ body.dragging .ed-area textarea { pointer-events: none; }
       <button type="button" data-tab="learn">Learn</button>
       <button type="button" data-tab="theory">Theory</button>
       <button type="button" data-tab="coding">Coding</button>
-      <button type="button" data-tab="quest">Roadmap</button>
       <button type="button" data-tab="oa">Online Assessment</button>
       <button type="button" data-tab="companies">Companies</button>
       <button type="button" data-tab="roles">Roles</button>
@@ -5191,7 +5200,8 @@ function renderHeader(){
   const cs = codeSolvedIn(CODING);
   $('#solved').innerHTML = ring(solved / BANK.length, 22, 3.5, `${solved} of ${BANK.length} solved`) + `<span><b>${solved}</b><span class="muted">/${BANK.length}</span> solved</span>` +
     `<span class="codecount"><b>${cs}</b><span class="muted">/${CODING.length}</span> code</span>`;
-  document.querySelectorAll('.navlinks button').forEach(b => b.setAttribute('aria-current', b.dataset.tab === ui.tab && ui.view === 'tab' ? 'page' : 'false'));
+  const navTab = ui.tab === 'quest' || ui.view === 'unit' || ui.view === 'lesson' ? 'learn' : ui.tab, navOn = ui.view === 'tab' || ui.view === 'unit' || ui.view === 'lesson';
+  document.querySelectorAll('.navlinks button').forEach(b => b.setAttribute('aria-current', b.dataset.tab === navTab && navOn ? 'page' : 'false'));
 }
 function statusCell(id){
   const s = statusOf(id);
@@ -5286,10 +5296,12 @@ function render(){
 }
 
 // ---------- Quest map ----------
+// Learn has two views: the book's chapters as lessons, and the roadmap of interactive quests.
+const learnSeg = on => `<div class="seg learnseg" role="tablist"><button type="button" role="tab" aria-selected="${on === 'learn'}" data-act="go" data-v="learn">Chapters</button><button type="button" role="tab" aria-selected="${on === 'quest'}" data-act="go" data-v="quest">Roadmap</button></div>`;
 function viewQuest(){
   const done = UNITS.filter(U => unitPassed(U.id)).length, nu = nextUnit();
   if (!ui.rm) ui.rm = {sel:'u' + (nu ? nu.id : 1), z:1, tx:60, ty:24, fit:true};
-  let html = `<section class="pagehead"><p class="eyebrow">VLSI roadmap</p><h1>The <em>VLSI</em> roadmap</h1>
+  let html = `${learnSeg('quest')}<section class="pagehead"><p class="eyebrow">Learn · Roadmap</p><h1>The <em>VLSI</em> roadmap</h1>
     ${nu ? `<div class="row"><button type="button" class="btn primary" data-act="open-unit" data-u="${nu.id}">${cardsDone(nu) ? 'Continue' : 'Start'}: Quest ${nu.id} · ${esc(nu.title)}</button></div>` : '<p><b>Every stage is complete.</b> Keep practicing in Theory and Coding.</p>'}</section>
     <h2 class="hh2 left stagesh">Stages in detail</h2>`;
   PARTS.forEach(p => {
@@ -5307,7 +5319,7 @@ function viewQuest(){
         <b class="qtitle">${esc(U.title)}</b>
         <span class="qbar"><i style="width:${passed ? 100 : pct(cd, U.cards.length + 1)}%"></i></span>
         <small>Lessons ${cd}/${U.cards.length} · ${sv}/${ids.length} solved${passed ? '' : ` · checkpoint ${open ? 'open' : 'locked'}`}</small>
-        ${cur ? `<span class="qgo">${cd ? 'Continue' : 'Start'} →</span>` : ''}</button></li>`;
+        ${cur ? `<span class="qgo">${cd ? 'Continue' : 'Start'} →</span>` : ''}</button>${bookCh(uid) ? `<button type="button" class="linkbtn small qbook" data-act="learn-open" data-v="${uid}">Read Chapter ${uid} →</button>` : ''}</li>`;
     });
     html += '</ol></div></section>';
   });
@@ -5326,7 +5338,9 @@ function viewUnit(){
   const U = UNITS[ui.unit.id - 1], step = ui.unit.step, n = U.cards.length, open = unitUnlocked(U.id);
   const part = PARTS.find(p => p.units.includes(U.id)), ms = maxStep(U), best = state.learn.units[U.id] && state.learn.units[U.id].best;
   const ids = CH_IDS[U.id], sv = solvedIn(ids);
-  let html = `<div class="unitv"><nav class="crumbs" aria-label="Breadcrumb"><button type="button" class="linkbtn" data-act="to-quest">Quest map</button><span>/</span><span>Part ${ROMAN[part.n - 1]}</span><span>/</span><span>Quest ${U.id}</span></nav>
+  const uf = ui.unitFrom && ui.unitFrom.ch === U.id ? ui.unitFrom : null;
+  let html = `<div class="unitv"><nav class="crumbs" aria-label="Breadcrumb"><button type="button" class="linkbtn" data-act="learn-home">Learn</button><span>/</span><button type="button" class="linkbtn" data-act="to-quest">Roadmap</button><span>/</span><span>Part ${ROMAN[part.n - 1]}</span><span>/</span><span>Quest ${U.id}</span>
+      <span class="spacer"></span>${uf ? `<button type="button" class="btn small ghost" data-act="learn-go" data-v="${uf.ch}-${uf.sec}">← Back to the lesson</button>` : ''}${bookCh(U.id) ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${U.id}">Read Chapter ${U.id} in full →</button>` : ''}</nav>
     <header class="unithead"><div><p class="eyebrow">Quest ${String(U.id).padStart(2, '0')} · Chapter ${U.id}</p><h1>${esc(U.title)}</h1><p class="muted">${esc(U.goal)}</p></div>
     <dl class="ustats"><div><dt>Lessons</dt><dd>${cardsDone(U)}/${n}</dd></div><div><dt>Checkpoint</dt><dd>${unitPassed(U.id) ? 'Passed' : (best !== undefined ? `Best ${best}/${UNIT_N}` : 'Not yet')}</dd></div><div><dt>Solved</dt><dd>${sv}/${ids.length}</dd></div></dl></header>`;
   if (!open) {
@@ -6455,8 +6469,8 @@ function viewLearn(){
   const next = B.filter(c => c.n <= 23).find(c => { const P = chapterProgress(c.n); return P.read < P.lessons; });
   const card = c => { const P = chapterProgress(c.n); return `<button type="button" class="lcard${P.done && P.done === P.total ? ' complete' : ''}" data-act="learn-open" data-v="${c.n}"><span class="lnum${String(c.badge || c.n).length > 2 ? ' wide' : ''}">${esc(c.badge || c.n)}</span>
       <span class="lbody"><b>${esc(c.title)}</b><small>${c.label ? esc(c.label) + ' · ' : ''}${P.lessons} ${P.lessons === 1 ? 'page' : 'lessons'}${P.probs ? ` · ${P.probs} problems` : ''}</small><span class="cobar"><i style="width:${pct(P.done, P.total)}%"></i></span>
-      <small class="mono">${P.done}/${P.total} done${P.done && P.done === P.total ? ' ✓' : ''}</small></span></button>`; };
-  return `<section class="card lhero"><div><p class="eyebrow">Learn</p><h1>Hardware from the <em>Ground Up</em></h1>
+      <small class="mono">${P.done}/${P.total} done${P.done && P.done === P.total ? ' ✓' : ''}${UNITS[c.n - 1] && c.n <= 23 ? ` · quest ${unitPassed(c.n) ? '✓' : cardsDone(UNITS[c.n - 1]) + '/' + UNITS[c.n - 1].cards.length}` : ''}</small></span></button>`; };
+  return `${learnSeg('learn')}<section class="card lhero"><div><p class="eyebrow">Learn · Chapters</p><h1>Hardware from the <em>Ground Up</em></h1>
       <p class="muted">The whole book, chapter by chapter, as short lessons. Read a topic, then practice the problems on it right after. Lessons you finish and problems you solve both count.</p>
       <div class="lstats"><span><b>${read}</b>/${lessons} lessons read</span><span><b>${solved}</b>/${probs} problems solved</span></div>
       ${next ? `<div class="row"><button type="button" class="btn primary" data-act="learn-open" data-v="${next.n}">${read ? 'Continue' : 'Start'} with Chapter ${next.n} →</button></div>` : ''}</div>
@@ -6475,6 +6489,7 @@ function viewLesson(){
   const short = x => x.badge && isNaN(+x.badge) ? x.badge : 'Ch ' + x.n;
   const side = `<aside class="lside panel"><div class="lside-h"><button type="button" class="linkbtn small" data-act="learn-home">← All chapters</button>
       <p class="eyebrow">${esc(chLabel(c))}</p><b>${esc(c.title)}</b><span class="cobar"><i style="width:${pct(P.done, P.total)}%"></i></span><small class="muted">${P.read}/${P.lessons} ${P.lessons === 1 ? 'page' : 'lessons'}${P.probs ? ` · ${P.solved}/${P.probs} problems` : ''}</small></div>
+    ${UNITS[c.n - 1] && c.n <= 23 ? (() => { const U = UNITS[c.n - 1], ok = unitPassed(c.n); return `<button type="button" class="litem lquest${ok ? ' done' : ''}" data-act="learn-quest" data-v="${c.n}"><i class="lchk">${ok ? '✓' : '⚡'}</i><span>Interactive quest<small>${U.cards.length} lessons with widgets · checkpoint</small></span><em>${ok ? 'passed' : cardsDone(U) + '/' + U.cards.length}</em></button>`; })() : ''}
     <nav class="litems" aria-label="Lessons">${items}</nav>
     <div class="lside-f">${prevCh ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${prevCh.n}">‹ ${esc(short(prevCh))}</button>` : '<span></span>'}${nextCh ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${nextCh.n}">${esc(short(nextCh))} ›</button>` : ''}</div></aside>`;
   const step = lessonStep(1), back = lessonStep(-1);
@@ -7421,7 +7436,8 @@ document.addEventListener('click', e => {
 function act(a){
   const S = ui.session, P = ui.pv;
   switch (a.dataset.act) {
-    case 'open-unit': openUnit(+a.dataset.u); break;
+    case 'open-unit': ui.unitFrom = null; openUnit(+a.dataset.u); break;
+    case 'learn-quest': ui.unitFrom = ui.lesson ? {ch:ui.lesson.ch, sec:ui.lesson.sec} : null; openUnit(+a.dataset.v); break;
     case 'go': goTab(a.dataset.v); break;
     case 'settings-back': settingsBack(); break;
     case 'learn-home': goTab('learn'); break;

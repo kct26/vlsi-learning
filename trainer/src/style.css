@@ -1320,3 +1320,13 @@ body.dragging .ed-area textarea { pointer-events: none; }
 .ivans .btn.on { color: #A16207; }
 :root[data-theme="dark"] .ivq.rev, :root[data-theme="dark"] .ivm.rv, :root[data-theme="dark"] .ivans .btn.on { border-left-color: #FACC15; color: #FACC15; }
 :root[data-theme="dark"] .ivq.rev { color: inherit; }
+
+/* ---------- Learn: chapters and roadmap together ---------- */
+.learnseg { align-self: flex-start; margin-bottom: 2px; }
+.litem.lquest { margin: 4px 10px 2px; padding: 10px 12px; border: 1px solid var(--accent-line); background: var(--accent-soft); color: var(--ink); }
+.litem.lquest span { display: flex; flex-direction: column; gap: 2px; font-weight: 600; }
+.litem.lquest small { font-weight: 400; color: var(--muted); font-size: 0.76rem; }
+.litem.lquest .lchk { border-color: var(--accent); color: var(--accent); }
+.litem.lquest.done .lchk { color: var(--accent-ink); }
+.node .qbook { display: block; margin: 6px 0 0 4px; }
+.unitv .crumbs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
