@@ -317,6 +317,9 @@ async function phase1(){
   click('[data-act="pos-level"][data-v="Intern"]');
   ok($$('.poscard').length > 10 && $$('.poscard .lvl').every(l => l.textContent === 'Intern'), 'level chips filter to internships');
   click('[data-act="pos-level"][data-v="all"]');
+  const ivSets = Object.values(window.INTERVIEWS_INLINE).reduce((n, l) => n + l.length, 0);
+  ok(ivSets >= 60 && $$('.poscard').filter(c => /· 20 interview/.test(c.textContent)).length === ivSets, 'all ' + ivSets + ' interview sets appear on their position cards');
+  ok(['intel', 'qualcomm', 'google'].every(co => (window.INTERVIEWS_INLINE[co] || []).length === 10), 'Intel, Qualcomm and Google each have 10 interview sets');
   click('.poscard.prog');
   ok(/NVIDIA Ignite Hardware Engineering/.test(h1()) && $$('#posrows tr').length === 35 && $$('.ctable tbody tr[data-copen]').length === 5, 'Ignite: 35 theory and 5 coding problems');
   ok($('[data-act="go"][data-v="oa"]'), 'Ignite links to the timed OA');
