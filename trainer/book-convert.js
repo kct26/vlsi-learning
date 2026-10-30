@@ -144,10 +144,15 @@ function blocks(s, keep, labels){
       body = body.replace(/^\s*\[[^\]]*\]/, '');
       const items = body.split(/\\item\b/).slice(1);
       const tag = env === 'enumerate' ? 'ol' : 'ul';
+      let n = 0, renumber = false;
       html = `<${tag}${env === 'description' ? ' class="desc"' : ''}>` + items.map(it => {
-        let head = '';
-        const t = it.replace(/^\s*\[([^\]]*)\]/, (_, h) => { head = `<b>${inline(h, keep, labels)}</b> `; return ''; });
-        return `<li>${head}${paras(t, keep, labels, true)}</li>`;
+        let head = '', labeled = false;
+        const t = it.replace(/^\s*\[([^\]]*)\]/, (_, h) => { labeled = true; if (h.trim()) head = `<b>${inline(h, keep, labels)}</b> `; return ''; });
+        // In a numbered list, a labeled item (such as \item[Challenge.]) is a heading row: it takes no number.
+        if (labeled && tag === 'ol') { renumber = true; return `<li class="olabel">${head}${paras(t, keep, labels, true)}</li>`; }
+        const v = renumber ? ` value="${n + 1}"` : '';
+        n++; renumber = false;
+        return `<li${v}>${head}${paras(t, keep, labels, true)}</li>`;
       }).join('') + `</${tag}>`;
     } else if (BOXES[env]) {
       let label = BOXES[env];

@@ -1258,9 +1258,10 @@ body.dragging .ed-area textarea { pointer-events: none; }
 .lart h3 { font-size: 1.15rem; margin: 10px 0 0; } .lart h4 { font-size: 1rem; margin: 6px 0 0; }
 .lart ul, .lart ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
 .lart li > p { margin: 6px 0 0; }
+.lart li.olabel { list-style: none; margin: 10px 0 0 -22px; }   /* a labeled heading row inside a numbered list */
 .lart .runin { margin-right: 4px; }
 .lart pre.code { white-space: pre; overflow-x: auto; font-size: 0.84rem; line-height: 1.55; }
-.lart .mathd { overflow-x: auto; text-align: center; padding: 4px 0; font-size: 1.08em; }
+.lart .mathd { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; text-align: center; padding: 8px 2px; font-size: 1.08em; }   /* only wide formulas scroll, sideways; never an empty vertical bar */
 .lart .math { white-space: nowrap; }
 .lart math { font-size: 1.08em; }
 .lart .fn { color: var(--muted); font-size: 0.9em; }

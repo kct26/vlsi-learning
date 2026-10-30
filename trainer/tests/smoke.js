@@ -250,10 +250,17 @@ async function phase1(){
   tab('learn');
   click('[data-act="learn-open"][data-v="25"]');
   ok(/Practice Assessment/.test($('.lside-h').textContent) && $$('.litem').some(b => /Answer key/.test(b.textContent)), 'the practice assessment includes its answer key');
+  click('[data-act="learn-go"][data-v="25-1"]');
+  const chal = $('.lart li.olabel');
+  ok(chal && /Challenge/.test(chal.textContent) && getComputedStyle(chal).listStyleType === 'none' && chal.nextElementSibling.value === 41 && $$('.lart ol li:not(.olabel)').length === 46, 'the exam\'s Challenge heading takes no number, so the challenge questions are 41 to 46');
   tab('learn');
   click('[data-act="learn-open"][data-v="11"]');
   const nSec11 = window.BOOK_LESSONS.find(c => c.n === 11).sections.length;
   ok($('.lx') && $$('.litem:not(.lquest)').length === nSec11 + 1 && /Practice problems/.test($('.litem.prac').textContent) && $('.litem.lquest'), 'a chapter shows its lessons, a Practice page and its quest in the sidebar');
+  click('[data-act="learn-go"][data-v="11-1"]');
+  const mathSec = window.BOOK_LESSONS.find(c => c.n === 11).sections.find(x => x.html.includes('class="mathd"')).id;
+  click(`[data-act="learn-go"][data-v="${mathSec}"]`);
+  ok($$('.lart .mathd').length && $$('.lart .mathd').every(m => getComputedStyle(m).overflowY === 'hidden'), 'display formulas never get an empty vertical scrollbar');
   click('[data-act="learn-go"][data-v="11-1"]');
   ok(/Synchronous design/.test($('.ltitle').textContent) && $('.lart img[src="book/fig-11-1.png"]') && /Figure 11\.1/.test($('.lart figcaption').textContent), 'a lesson shows its text and the figure from the book');
   click('[data-act="learn-next"]');
