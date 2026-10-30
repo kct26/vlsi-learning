@@ -1293,3 +1293,30 @@ body.dragging .ed-area textarea { pointer-events: none; }
 .lnum.wide { width: auto; min-width: 40px; padding: 0 8px; font-size: 0.85rem; }
 .lart .opts { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 6px; font-size: 0.95em; }
 .lart .blank { letter-spacing: 1px; }
+
+/* ---------- Interview questions on position pages ---------- */
+.postabs { margin: 4px 0 2px; }
+.ivhead { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; flex-direction: row; }
+.ivhl { flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 8px; }
+.ivhl h2 { font-size: 1.25rem; margin: 0; }
+.ivfh { margin-top: 6px; }
+.ivfocus { display: flex; flex-wrap: wrap; gap: 6px; }
+.ivstats { display: flex; gap: 18px; }
+.ivstats div { display: flex; flex-direction: column; align-items: center; min-width: 64px; }
+.ivstats b { font: 700 1.6rem var(--font-mono); }
+.ivstats span { font-size: 0.78rem; color: var(--muted); }
+.ivlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.ivq { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--line); padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; transition: box-shadow .3s; }
+.ivq.got { border-left-color: var(--ok); } .ivq.rev { border-left-color: #A16207; }
+.ivq.flash { box-shadow: 0 0 0 3px var(--accent-line); }
+.ivqh { display: flex; align-items: center; gap: 10px; }
+.ivn { font-weight: 700; color: var(--muted); min-width: 22px; }
+.ivm { margin-left: auto; font-size: 0.8rem; font-weight: 600; } .ivm.ok { color: var(--ok); } .ivm.rv { color: #A16207; }
+.ivtext { margin: 0; font-size: 1.02rem; line-height: 1.55; font-weight: 500; }
+.ivshow { align-self: flex-start; }
+.ivans { border-top: 1px dashed var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.ivans p { margin: 0; line-height: 1.6; }
+.ivans ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 3px; }
+.ivans .btn.on { color: #A16207; }
+:root[data-theme="dark"] .ivq.rev, :root[data-theme="dark"] .ivm.rv, :root[data-theme="dark"] .ivans .btn.on { border-left-color: #FACC15; color: #FACC15; }
+:root[data-theme="dark"] .ivq.rev { color: inherit; }

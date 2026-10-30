@@ -185,7 +185,7 @@ function ring(frac, size, stroke, label){
 
 // ---------- state and saving ----------
 const LS_KEY = 'ground-up-trainer-v1';
-const emptyState = () => ({v:2, updatedAt:0, q:{}, weeks:{}, hist:[], learn:{cards:{}, units:{}, mux:{}}, code:{}, codeWeek:null, log:[], oa:null, oaHist:[], read:{}});
+const emptyState = () => ({v:2, updatedAt:0, q:{}, weeks:{}, hist:[], learn:{cards:{}, units:{}, mux:{}}, code:{}, codeWeek:null, log:[], oa:null, oaHist:[], read:{}, iv:{}});
 const LOG_MAX = 5000;   // submissions kept for the profile's heatmap, streaks and recent list
 // Rebuilds a submission log from older saves that predate it: one entry per answered problem and per code submission.
 function backfillLog(e){
@@ -218,6 +218,7 @@ function normalize(s){
     if (Array.isArray(x.subs)) e.code[id].subs = x.subs.filter(u => u && VERDICTS.includes(u.v)).slice(-20).map(u => ({at:num(u.at), v:u.v, p:num(u.p), t:num(u.t)}));
   });
   if (s.codeWeek && s.codeWeek.wk) e.codeWeek = s.codeWeek;
+  if (s.iv && typeof s.iv === 'object') Object.keys(s.iv).forEach(k => { if (/^[a-z0-9-]{1,120}#\d{1,2}$/.test(k) && (s.iv[k] === 1 || s.iv[k] === 2)) e.iv[k] = s.iv[k]; });
   if (s.read && typeof s.read === 'object') Object.keys(s.read).forEach(k => { if (/^\d{1,2}-\d{1,2}$/.test(k) && num(s.read[k])) e.read[k] = num(s.read[k]); });
   if (Array.isArray(s.oaHist)) e.oaHist = s.oaHist.filter(h => h && typeof h === 'object' && CO_BY_ID[h.co]).slice(0, 30)
     .map(h => ({at:num(h.at), co:h.co, right:num(h.right), wrong:num(h.wrong), n:num(h.n), codeDone:num(h.codeDone), codeN:num(h.codeN), score:num(h.score), total:num(h.total), pct:Math.min(100, num(h.pct)), used:num(h.used), neg:!!h.neg}));
@@ -316,6 +317,7 @@ function mergeStates(a, b){
   m.oaHist = Object.values(hk).sort((x, y) => y.at - x.at).slice(0, 30);
   if (o.oa && (!m.oa || o.oa.start > m.oa.start)) m.oa = o.oa;
   m.read = Object.assign({}, o.read || {}, m.read || {});
+  m.iv = Object.assign({}, o.iv || {}, m.iv || {});
   m.updatedAt = Math.max(m.updatedAt, o.updatedAt);
   return m;
 }
@@ -1427,6 +1429,7 @@ function applyPremium(data){
 function clearPremium(){
   COMPANIES.forEach(c => PREMIUM_KEYS.forEach(k => { delete c[k]; }));
   ASSESSMENTS = []; OA_BY_CO = {}; POSITIONS = []; POS_BY_ID = {}; buildCompanyTags(); premium.loaded = false;
+  if (typeof IV !== 'undefined' && !window.INTERVIEWS_INLINE) { IV.data = {}; IV.status = {}; }
 }
 const hasPremium = () => premium.loaded;
 buildCompanyTags();
@@ -1486,6 +1489,41 @@ function buildPositions(src){
   }));
   POSITIONS.sort((a, b) => POS_LEVELS.indexOf(a.level) === 0 ? (POS_LEVELS.indexOf(b.level) === 0 ? 0 : -1) : POS_LEVELS.indexOf(b.level) === 0 ? 1 : 0);
 }
+// Interview questions for positions (Premium): written by HardCode from each role's job posting, one Firestore
+// document per company (premium_content/interviews-<company>), loaded the first time a position of it opens.
+const IV = {data:{}, status:{}};
+if (window.INTERVIEWS_INLINE && !(STANDALONE && window.FIREBASE_CONFIG)) IV.data = window.INTERVIEWS_INLINE;
+const ivFor = p => (IV.data[p.co] || []).find(r => r.title === p.title) || null;
+function ivLoad(co){
+  if (IV.data[co] || IV.status[co] || !hasPremium() || !window.firebase || !acct.user) return;
+  IV.status[co] = 'loading';
+  firebase.firestore().collection('premium_content').doc('interviews-' + co).get().then(d => {
+    const t = d.exists && d.data().data;
+    if (t) { IV.data[co] = JSON.parse(t); IV.status[co] = 'done'; } else IV.status[co] = 'none';
+    render();
+  }, () => { IV.status[co] = 'error'; render(); });
+}
+const ivKey = (p, i) => `${p.id}#${i}`;
+function ivHTML(p, set){
+  const c = CO_BY_ID[p.co], st = state.iv || {}, n = set.questions.length, P = ui.pos, open = P.ivOpen || {}, f = P.ivf || 'all';
+  const got = set.questions.filter((_, i) => st[ivKey(p, i)] === 1).length, rev = set.questions.filter((_, i) => st[ivKey(p, i)] === 2).length;
+  const shown = set.questions.map((q, i) => ({q, i})).filter(x => f === 'all' || (f === 'review' ? st[ivKey(p, x.i)] === 2 : !st[ivKey(p, x.i)]));
+  const card = ({q, i}) => {
+    const m = st[ivKey(p, i)];
+    return `<li class="ivq${m === 1 ? ' got' : m === 2 ? ' rev' : ''}" id="ivq-${i}"><div class="ivqh"><span class="ivn mono">${i + 1}</span><span class="tag">${esc(q[0])}</span>${m === 1 ? '<span class="ivm ok">✓ Got it</span>' : m === 2 ? '<span class="ivm rv">↻ Review</span>' : ''}</div>
+      <p class="ivtext">${esc(q[1])}</p>
+      ${open[i] ? `<div class="ivans"><p class="eyebrow">Model answer</p><p>${esc(q[2])}</p><p class="eyebrow">A strong answer covers</p><ul>${q[3].map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+        <div class="row"><button type="button" class="btn small${m === 1 ? ' primary' : ''}" data-act="iv-mark" data-v="${i}" data-m="1">✓ Got it</button><button type="button" class="btn small ghost${m === 2 ? ' on' : ''}" data-act="iv-mark" data-v="${i}" data-m="2">↻ Review again</button><button type="button" class="linkbtn small" data-act="iv-open" data-v="${i}">Hide answer</button></div></div>`
+        : `<button type="button" class="btn small ghost ivshow" data-act="iv-open" data-v="${i}">Answer it out loud, then show the model answer</button>`}</li>`;
+  };
+  return `<section class="card ivhead"><div class="ivhl"><p class="eyebrow">Interview practice</p><h2>${n} questions for this role</h2>
+      <p class="muted small">Written by HardCode from the role's public job posting${set.asked ? ` (posted as ${esc(set.asked)})` : ''}: <a href="${esc(set.source.url)}" target="_blank" rel="noopener">${esc(set.source.label)}</a>. These are practice questions, not questions ${esc(c.name)} is known to ask.</p>
+      <p class="eyebrow ivfh">What the posting asks for</p><div class="ivfocus">${set.focus.map(x => `<span class="tag">${esc(x)}</span>`).join('')}</div></div>
+      <div class="ivstats"><div><b>${got}</b><span>got it</span></div><div><b>${rev}</b><span>to review</span></div><div><b>${n - got - rev}</b><span>not tried</span></div></div></section>
+    <div class="cotabs"><div class="chiprow">${[['all', `All (${n})`], ['new', `Not tried (${n - got - rev})`], ['review', `To review (${rev})`]].map(([v, l]) => `<button type="button" class="tchip${f === v ? ' on' : ''}" data-act="iv-filter" data-v="${v}">${l}</button>`).join('')}</div>
+      <button type="button" class="btn small" data-act="iv-random">Ask me a random one</button></div>
+    ${shown.length ? `<ol class="ivlist">${shown.map(card).join('')}</ol>` : '<p class="muted">Nothing here yet.</p>'}`;
+}
 // A position's problems: the company's reported problems first, then its tagged ones, then the rest of the role's
 // topics, spread across the role's chapters. Seeded by the position id, so everyone gets the same set.
 function posSet(p){
@@ -1513,7 +1551,7 @@ function posCardsHTML(list){
     const c = CO_BY_ID[p.co], G = posProgress(p);
     return `<button type="button" class="poscard${p.level === 'Program' ? ' prog' : ''}" data-act="pos-open" data-v="${p.id}"><span class="postile">${coAvatar(c, 'xl')}</span>
       <span class="posbody"><b>${esc(posName(p))}</b><span class="posmeta"><span class="lvl${p.level === 'Program' ? ' prog' : ''}">${esc(p.level)}</span><span>${esc(POS_ROLES[p.role].label)}</span></span>
-      <span class="posfoot"><span class="muted">${G.total} Questions${G.solved ? ` · ${G.solved} solved` : ''}</span><span class="posgo">${G.solved ? (G.solved === G.total ? 'Review' : 'Continue') : 'Start'} ›</span></span>
+      <span class="posfoot"><span class="muted">${G.total} Questions${ivFor(p) ? ` · ${ivFor(p).questions.length} interview` : ''}${G.solved ? ` · ${G.solved} solved` : ''}</span><span class="posgo">${G.solved ? (G.solved === G.total ? 'Review' : 'Continue') : 'Start'} ›</span></span>
       <span class="cobar"><i style="width:${pct(G.solved, G.total)}%"></i></span></span></button>`;
   }).join('') : '<p class="muted">No positions match.</p>';
 }
@@ -1537,14 +1575,20 @@ function viewPosition(){
   if (!p) return `<div class="pvbar"><button type="button" class="btn ghost small" data-act="co-back">← Companies</button></div><section class="pagehead"><h1>${premium.status === 'checking' ? 'Loading…' : 'Position not found'}</h1></section>`;
   const c = CO_BY_ID[p.co], R = POS_ROLES[p.role], S = posSet(p), G = posProgress(p), d = ui.pos.d;
   const dOk = id => d === 'all' || (BY_ID[id] || CODE_BY_ID[id]).d === d;
+  ivLoad(p.co);
+  const iv = ivFor(p), ivWait = !iv && IV.status[p.co] === 'loading';
+  if (!ui.pos.tab) ui.pos.tab = iv ? 'iv' : 'probs';
+  const tab = ui.pos.tab === 'iv' && (iv || ivWait) ? 'iv' : 'probs';
+  const tabs = iv || ivWait ? `<div class="seg postabs" role="tablist"><button type="button" role="tab" aria-selected="${tab === 'iv'}" data-act="pos-tab" data-v="iv">Interview questions${iv ? ` (${iv.questions.length})` : ''}</button><button type="button" role="tab" aria-selected="${tab === 'probs'}" data-act="pos-tab" data-v="probs">Practice problems (${G.total})</button></div>` : '';
+  const probs = `<div class="cotabs"><div class="chiprow">${[['all', 'All'], ['E', 'Easy'], ['M', 'Medium'], ['H', 'Hard']].map(([v, l]) => `<button type="button" class="tchip${d === v ? ' on' : ''}" data-act="pos-d" data-v="${v}">${l}</button>`).join('')}</div></div>
+    <h3 class="subh">Theory</h3>${tableHTML(S.theory.filter(dOk), 'full', 'posrows', 'position')}
+    ${S.code.length ? `<h3 class="subh">Coding</h3>${codeTableHTML(S.code.filter(dOk), 'position')}` : ''}`;
   return `<div class="pvbar"><button type="button" class="btn ghost small" data-act="co-back">← Positions</button></div>
     <section class="card cohead">${coAvatar(c, 'lg')}<div class="cohtext"><p class="posmeta"><span class="lvl${p.level === 'Program' ? ' prog' : ''}">${esc(p.level)}</span><span>${esc(R.label)}</span></p><h1>${esc(posName(p))}</h1>
       <p class="muted">${G.total} questions: ${S.theory.length} theory and ${S.code.length} coding${R.tags ? ', led by the questions from a real Ignite OA, then topics candidates reported' : ' on the topics this kind of role is usually tested on' + (coReported(c.id).length ? ', with topics reported for ' + esc(c.name) + ' first' : '')}. ${p.level === 'Program' ? '' : 'This is a typical role at ' + esc(c.name) + ', not a live job posting.'}</p>
       <div class="row"><button type="button" class="btn primary" data-act="pos-start">${G.solved ? (G.solved === G.total ? 'Review' : 'Continue') : 'Start'} →</button>${OA_BY_CO[p.co] && OA_BY_CO[p.co].ready && p.level === 'Program' ? '<button type="button" class="btn" data-act="go" data-v="oa">Take the timed OA</button>' : ''}<button type="button" class="btn ghost" data-act="co-open" data-v="${c.id}">All ${esc(c.name)} problems</button></div></div>
       <div class="herostat">${ring(G.total ? G.solved / G.total : 0, 76, 7, `${G.solved} of ${G.total} solved`)}<div><b>${G.solved}<span class="muted">/${G.total}</span></b><span>solved</span></div></div></section>
-    <div class="cotabs"><div class="chiprow">${[['all', 'All'], ['E', 'Easy'], ['M', 'Medium'], ['H', 'Hard']].map(([v, l]) => `<button type="button" class="tchip${d === v ? ' on' : ''}" data-act="pos-d" data-v="${v}">${l}</button>`).join('')}</div></div>
-    <h3 class="subh">Theory</h3>${tableHTML(S.theory.filter(dOk), 'full', 'posrows', 'position')}
-    ${S.code.length ? `<h3 class="subh">Coding</h3>${codeTableHTML(S.code.filter(dOk), 'position')}` : ''}`;
+    ${tabs}${tab === 'iv' ? (iv ? ivHTML(p, iv) : '<p class="muted">Loading interview questions…</p>') : probs}`;
 }
 
 function viewCompanies(){
@@ -2251,7 +2295,12 @@ async function adminSetPremium(uid, patch){
 // Uploads the Premium company data (private/premium-content.json from the build) to Firestore.
 async function adminUploadContent(file){
   try {
-    const text = await file.text(), data = JSON.parse(text);
+    const text = await file.text(), data = JSON.parse(text), iv = /^interviews-([a-z0-9-]+)\.json$/.exec(file.name);
+    if (iv) {
+      if (!CO_BY_ID[iv[1]] || !Array.isArray(data) || !data.every(r => r && r.title && Array.isArray(r.questions))) throw new Error(file.name + ' is not an interview file for a known company.');
+      await firebase.firestore().collection('premium_content').doc('interviews-' + iv[1]).set({data:text, updatedAt:Date.now()});
+      IV.data[iv[1]] = data; toast(`Interview questions for ${CO_BY_ID[iv[1]].name} uploaded`); return;
+    }
     if (!data || !data.companies || !Array.isArray(data.assessments)) throw new Error('This is not a Premium content file (it needs companies and assessments).');
     await firebase.firestore().collection('premium_content').doc('main').set({data:text, updatedAt:Date.now()});
     applyPremium(data); toast('Premium content uploaded'); loadAdmin();
@@ -2309,9 +2358,9 @@ function adminSubsHTML(rows, date){
         <td><input type="date" id="adm-until-${id}" value="${x.p.until ? new Date(x.p.until).toISOString().slice(0, 10) : ''}"></td>
         <td><input type="text" id="adm-note-${id}" maxlength="200" value="${esc(x.p.note || '')}" placeholder="e.g. Stripe receipt"></td>
         <td><div class="row"><button type="button" class="btn small primary" data-act="adm-prem-save" data-v="${id}">Save</button>${on ? `<button type="button" class="btn small ghost" data-act="adm-prem" data-v="${id}" data-on="0">Revoke</button>` : `<button type="button" class="btn small" data-act="adm-prem" data-v="${id}" data-on="1">Reactivate</button>`}</div></td></tr>`; }).join('')}</tbody></table></div>` : '<p class="muted">No subscribers yet.</p>'}</section>
-    <section class="card"><h2>Premium content</h2><p class="muted small">The company lists and assessment formats Premium accounts receive. Build the site, then upload <code>trainer/private/premium-content.json</code>. It never goes into the public page or the repository.</p>
+    <section class="card"><h2>Premium content</h2><p class="muted small">The company lists, assessment formats and interview questions Premium accounts receive. Build the site, then upload <code>trainer/private/premium-content.json</code> and the <code>interviews-*.json</code> files next to it (you can pick several at once). It never goes into the public page or the repository.</p>
       <p>${C ? `Uploaded ${ago(C.at)} · ${(C.size / 1024).toFixed(1)} KB` : '<b>Not uploaded yet.</b> Premium accounts see a "coming soon" note until you upload it.'}</p>
-      <div class="row"><input type="file" id="adm-content-file" accept="application/json,.json"><button type="button" class="btn small primary" data-act="adm-content-up">Upload</button></div></section>`;
+      <div class="row"><input type="file" id="adm-content-file" accept="application/json,.json" multiple><button type="button" class="btn small primary" data-act="adm-content-up">Upload</button></div></section>`;
 }
 function adminCSV(){
   const head = ['uid', 'name', 'email', 'premium', 'plan', 'premium_since', 'premium_until', 'sign_in', 'account_created', 'last_sign_in', 'joined', 'last_active', 'theory_solved', 'coding_solved', 'quests_passed', 'streak', 'best_streak', 'submissions', 'accuracy'];
@@ -2674,6 +2723,16 @@ function act(a){
     case 'co-view': ui.cov = a.dataset.v; render(); break;
     case 'pos-open': openPosition(a.dataset.v); break;
     case 'pos-start': posStart(); break;
+    case 'pos-tab': ui.pos.tab = a.dataset.v; render(); break;
+    case 'iv-open': { const o = ui.pos.ivOpen = ui.pos.ivOpen || {}; o[a.dataset.v] = !o[a.dataset.v]; render(); break; }
+    case 'iv-mark': { const p = POS_BY_ID[ui.pos.id]; if (p) { const k = ivKey(p, a.dataset.v), m = +a.dataset.m; if (state.iv[k] === m) delete state.iv[k]; else state.iv[k] = m; save(); render(); } break; }
+    case 'iv-filter': ui.pos.ivf = a.dataset.v; render(); break;
+    case 'iv-random': {
+      const p = POS_BY_ID[ui.pos.id], set = p && ivFor(p); if (!set) break;
+      const pool = set.questions.map((_, i) => i).filter(i => state.iv[ivKey(p, i)] !== 1), pick = (pool.length ? pool : set.questions.map((_, i) => i))[Math.floor(Math.random() * (pool.length || set.questions.length))];
+      ui.pos.ivf = 'all'; render(); const el = document.getElementById('ivq-' + pick); if (el) { el.scrollIntoView({block:'center'}); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1200); }
+      break;
+    }
     case 'pos-d': ui.pos.d = a.dataset.v; render(); break;
     case 'pos-level': posFilters().level = a.dataset.v; render(); break;
     case 'home-tab': ui.home.tab = +a.dataset.v; render(); break;
@@ -2735,7 +2794,7 @@ function act(a){
     case 'adm-csv': adminCSV(); break;
     case 'adm-prem': adminSetPremium(a.dataset.v, a.dataset.on === '1' ? {active:true, since:((ui.adm.prem || {})[a.dataset.v] || {}).active ? undefined : Date.now()} : {active:false}); break;
     case 'adm-prem-save': { const id = a.dataset.v, u = $('#adm-until-' + CSS.escape(id)).value; adminSetPremium(id, {plan:$('#adm-plan-' + CSS.escape(id)).value, until:u ? Date.parse(u + 'T23:59:59') : null, note:$('#adm-note-' + CSS.escape(id)).value.slice(0, 200)}); break; }
-    case 'adm-content-up': { const fi = $('#adm-content-file'); if (fi && fi.files[0]) adminUploadContent(fi.files[0]); else toast('Choose premium-content.json first.'); break; }
+    case 'adm-content-up': { const fi = $('#adm-content-file'); if (fi && fi.files.length) [...fi.files].reduce((pr, f) => pr.then(() => adminUploadContent(f)), Promise.resolve()); else toast('Choose premium-content.json (and any interviews-*.json) first.'); break; }
     case 'pf-recent': ui.prof.recent = a.dataset.v; render(); break;
     case 'mock': startSession('mock', shuffle(BANK.map(q => q.id)).slice(0, MOCK_N), {title:'Timed mock assessment', from:{view:'tab', tab:'theory'}}); break;
     case 'review-attempted': startSession('practice', shuffle(BANK.filter(Q => statusOf(Q.id) === 'attempted').map(Q => Q.id)).slice(0, 25), {title:'Attempted, not solved', from:{view:'tab', tab:'theory'}}); break;

@@ -325,6 +325,17 @@ async function phase1(){
   click('[data-act="co-back"]');
   const asic = $$('.poscard').find(c => /NVIDIA ASIC Design Engineer$/.test(c.querySelector('b').textContent));
   click(asic);
+  ok($('.postabs') && /Interview questions \(20\)/.test($('.postabs [aria-selected="true"]').textContent) && $$('.ivq').length === 20, 'a position with interview questions opens on its 20 interview questions');
+  ok(/Written by HardCode from the role\'s public job posting/.test($('.ivhead').textContent) && $('.ivhead a[href^="https://"]') && $$('.ivfocus .tag').length >= 3, 'interview questions name the job posting they were written from and its focus areas');
+  ok(!$('.ivans'), 'answers stay hidden until asked');
+  click('[data-act="iv-open"][data-v="0"]');
+  ok($('.ivans') && /Model answer/.test($('.ivans').textContent) && $$('.ivans li').length >= 2, 'Show answer reveals the model answer and what a strong answer covers');
+  click('[data-act="iv-mark"][data-v="0"][data-m="2"]');
+  ok(Object.values(st().iv).includes(2) && $('#ivq-0.rev'), 'Review again is saved');
+  click('[data-act="iv-filter"][data-v="review"]');
+  ok($$('.ivq').length === 1 && $('#ivq-0'), 'the To review filter shows it');
+  click('[data-act="iv-filter"][data-v="all"]');
+  click('[data-act="pos-tab"][data-v="probs"]');
   ok($$('#posrows tr').length === 16 && $$('.ctable tbody tr[data-copen]').length === 4 && $$('.ctable tbody .c-tp').every(c => /RTL design/.test(c.textContent)), 'ASIC position: 16 theory and 4 RTL coding problems');
   click('[data-act="co-back"]');
   click('[data-act="co-view"][data-v="co"]');
@@ -335,7 +346,8 @@ async function phase1(){
   ok($$('.cocard').length === 1 && /Micron/.test($('.cocard').textContent), 'company search finds Micron');
   cq.value = ''; cq.dispatchEvent(new Event('input', {bubbles:true}));
   click('[data-act="co-open"][data-v="nvidia"]');
-  ok(/NVIDIA/.test(h1()) && /Positions \(18\)/.test($('.seg [aria-selected="true"]').textContent) && $$('.poscard').length === 18, 'NVIDIA opens on its 18 positions');
+  const nNv = window.PREMIUM_INLINE.positions.nvidia.length;
+  ok(/NVIDIA/.test(h1()) && new RegExp('Positions \\(' + nNv + '\\)').test($('.seg [aria-selected="true"]').textContent) && $$('.poscard').length === nNv, 'NVIDIA opens on its ' + nNv + ' positions');
   click('[data-act="co-tab"][data-v="rep"]');
   ok(/Real OA and reported/.test($('.seg [aria-selected="true"]').textContent) && /not the exact problems/.test($('.coline').textContent), 'NVIDIA reported tab says what is real and what is written by HardCode');
   ok(!$$('#corows tr').some(r => /OA variant/.test(r.textContent) && !/Real OA|Reported topic/.test(r.textContent)), 'OA variants are not listed as reported');

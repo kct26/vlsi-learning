@@ -14,6 +14,10 @@ vm.createContext(ctx);
 const PRIV = path.join(__dirname, 'private', 'premium-data.js'), hasPremium = fs.existsSync(PRIV);
 vm.runInContext(SCRIPTS.slice(0, 7).map(read).join('\n') + (hasPremium ? '\n' + fs.readFileSync(PRIV, 'utf8') : '\nconst PREMIUM_DATA = {companies:{}, assessments:[]};') + '\n;this.PREMIUM_DATA = PREMIUM_DATA; this.COMPANY_NAMES = COMPANY_NAMES; this.POS_ROLES = POS_ROLES; this.POS_LEVELS = POS_LEVELS; this.HIDDEN = HIDDEN; this.V_CHECKS = V_CHECKS; this.RAW = RAW; this.PARTS = PARTS; this.UNITS = UNITS; this.WIDGETS = WIDGETS; this.CODING = CODING; this.LANGS = LANGS; this.CODE_AREAS = CODE_AREAS;', ctx);
 const {RAW, PARTS, UNITS, WIDGETS, CODING, LANGS, CODE_AREAS, HIDDEN, V_CHECKS, COMPANY_NAMES, POS_ROLES, POS_LEVELS, PREMIUM_DATA} = ctx;
+// Premium interview questions, one file per company in private/interviews/ (written from each role's job posting).
+const IV_DIR = path.join(__dirname, 'private', 'interviews');
+const INTERVIEWS = {};
+if (fs.existsSync(IV_DIR)) fs.readdirSync(IV_DIR).filter(f => f.endsWith('.js')).sort().forEach(f => vm.runInNewContext(fs.readFileSync(path.join(IV_DIR, f), 'utf8'), {INTERVIEWS}));
 const COMPANIES = COMPANY_NAMES.map(c => Object.assign({}, c, PREMIUM_DATA.companies[c.id] || {})), ASSESSMENTS = PREMIUM_DATA.assessments;
 const errs = [], ids = new Set(), perCh = {}, texts = new Set();
 RAW.forEach((r, i) => {
@@ -70,6 +74,21 @@ Object.entries(POS_ROLES).forEach(([k, R]) => {
 Object.entries(PREMIUM_DATA.positions || {}).forEach(([co, list]) => {
   if (!COMPANY_NAMES.some(c => c.id === co)) errs.push('positions for unknown company ' + co);
   (Array.isArray(list) ? list : []).forEach((e, i) => { if (!Array.isArray(e) || typeof e[0] !== 'string' || !e[0] || !POS_ROLES[e[1]] || !POS_LEVELS.includes(e[2])) errs.push(`positions ${co}[${i}]: needs [title, role, level] with a known role and level`); });
+});
+// Interview sets: each belongs to an existing position, with 20 well-formed questions and a source posting.
+Object.entries(INTERVIEWS).forEach(([co, list]) => {
+  const titles = ((PREMIUM_DATA.positions || {})[co] || []).map(e => e[0]);
+  if (!COMPANY_NAMES.some(c => c.id === co)) errs.push('interviews for unknown company ' + co);
+  const seen = new Set();
+  list.forEach((r, i) => {
+    const where = `interviews ${co}[${i}] ${r.title}`;
+    if (!titles.includes(r.title)) errs.push(where + ': no position with this title');
+    if (seen.has(r.title)) errs.push(where + ': duplicate'); seen.add(r.title);
+    if (!r.source || !/^https:\/\//.test(r.source.url || '') || !r.source.label) errs.push(where + ': needs a source label and https url');
+    if (!Array.isArray(r.focus) || !r.focus.length) errs.push(where + ': needs focus');
+    if (!Array.isArray(r.questions) || r.questions.length < 10) errs.push(where + ': needs at least 10 questions');
+    (r.questions || []).forEach((q, k) => { if (!Array.isArray(q) || q.length !== 4 || q.slice(0, 3).some(x => typeof x !== 'string' || !x.trim()) || !Array.isArray(q[3]) || !q[3].length) errs.push(`${where} q${k + 1}: needs [area, question, answer, [points]]`); });
+  });
 });
 // Company tags: every id must exist, chapters must be quests, areas must be Coding areas.
 const coIds = new Set();
@@ -132,7 +151,7 @@ const bookJSON = JSON.stringify(BOOK_LESSONS).replace(/<\/(script)/gi, '<\\/$1')
 let out, html;
 if (fragment) {
   out = path.resolve(args[1] || 'trainer-fragment.html');
-  html = (withPremium && hasPremium ? body.replace('<script>', () => '<script>window.PREMIUM_INLINE = ' + JSON.stringify(PREMIUM_DATA) + ';</script>\n<script>') : body)
+  html = (withPremium && hasPremium ? body.replace('<script>', () => '<script>window.PREMIUM_INLINE = ' + JSON.stringify(PREMIUM_DATA) + ';\nwindow.INTERVIEWS_INLINE = ' + JSON.stringify(INTERVIEWS).replace(/<\/(script)/gi, '<\\/$1') + ';</script>\n<script>') : body)
     .replace('<script>', () => '<script>window.BOOK_LESSONS = ' + bookJSON + ';</script>\n<script>');
 } else {
   out = path.resolve(args[0] || path.join(__dirname, '..', 'docs', 'index.html'));
@@ -160,5 +179,8 @@ window.FIREBASE_CONFIG = null;
 `);
 // The upload file for the admin dashboard (private, never served).
 if (hasPremium) fs.writeFileSync(path.join(__dirname, 'private', 'premium-content.json'), JSON.stringify(PREMIUM_DATA));
+// One upload per company for Firestore (premium_content/interviews-<company>), so each stays well under 1 MB and
+// a Premium page only downloads the company it shows.
+Object.entries(INTERVIEWS).forEach(([co, list]) => fs.writeFileSync(path.join(__dirname, 'private', `interviews-${co}.json`), JSON.stringify(list)));
 if (!hasPremium) console.log('note: private/premium-data.js not found; building without Premium data checks');
 console.log('wrote ' + path.relative(process.cwd(), out) + ' (' + Math.round(html.length / 1024) + ' KB)');
