@@ -102,6 +102,13 @@ COMPANIES.forEach(c => {
   if (c.tags && !/^[ovrba]+$/.test(c.tags)) errs.push(where + ': unknown source tag in ' + c.tags);
   (c.ids || []).concat(c.reported || []).forEach(id => { if (!ids.has(id) && !codeIds.has(id)) errs.push(where + ': unknown problem id ' + id); });
   (c.reported || []).forEach(id => { if (!(c.ids || []).includes(id)) errs.push(where + ': reported id ' + id + ' must also be in ids'); });
+  // Interview reports: each needs https sources, and each topic a name and a list of real problem ids.
+  const R = c.reports;
+  if (R) {
+    if (!Array.isArray(R.sources) || !R.sources.length || R.sources.some(s => !Array.isArray(s) || typeof s[0] !== 'string' || !s[0] || !/^https:\/\/[^\s"<>]+$/.test(s[1] || ''))) errs.push(where + ': reports need [label, https url] sources');
+    if (!Array.isArray(R.topics) || !R.topics.length || R.topics.some(t => !Array.isArray(t) || typeof t[0] !== 'string' || !t[0] || !Array.isArray(t[1]))) errs.push(where + ': report topics need [name, [ids]]');
+    (R.topics || []).forEach(t => (t[1] || []).forEach(id => { if (!ids.has(id) && !codeIds.has(id)) errs.push(where + ': report topic "' + t[0] + '": unknown problem id ' + id); }));
+  }
 });
 // Online assessments: one per company; ready ones need a timer and sections whose coding ids exist.
 ASSESSMENTS.forEach(a => {

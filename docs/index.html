@@ -1345,6 +1345,8 @@ body.dragging .ed-area textarea { pointer-events: none; }
 .litem.lquest.done .lchk { color: var(--accent-ink); }
 .node .qbook { display: block; margin: 6px 0 0 4px; }
 .unitv .crumbs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.coreports .srcline { margin: 12px 0 0; line-height: 1.8; }
+.coreports .srcline a { white-space: nowrap; }
 
 </style>
 </head>
@@ -1398,6 +1400,7 @@ const RAW = [
 ["01-19","H","64 output pins switch at once, each pushing a 20 mA step in 1 ns through a shared ground connection with 0.5 nH of inductance. About how much does the chip's internal ground bounce?",["0.64 V","0.01 V","1.28 V","0.32 V"],"The total di/dt is 64 × 20 mA / 1 ns = 1.28 A/ns, and V = L·di/dt = 0.5 nH × 1.28 A/ns = 0.64 V. This is simultaneous switching noise; more ground pins and decoupling reduce it.","r"],
 ["01-20","M","At high frequency, the return current of a signal on a circuit board flows mainly:",["In the ground plane directly underneath the signal trace, where the loop inductance is smallest","Along the shortest straight line from the load back to the source","Through whichever path has the lowest DC resistance, wherever it lies","Spread evenly across the whole ground plane, regardless of the trace"],"Current returns where the loop area is smallest. A gap in the plane under a trace forces a large loop and causes noise.","r"],
 ["01-21","E","A 3.3 V output drives an LED through a 220 Ω resistor, and the LED drops 2.0 V. The current is about:",["5.9 mA","15 mA","9.1 mA","2.0 mA"],"(3.3 − 2.0)/220 ≈ 5.9 mA."],
+["01-22","M","An EV inverter carries 300 A DC on a 400 V bus. To measure that current while keeping the measuring circuit isolated from the high-voltage bus, engineers usually use:",["A Hall-effect or fluxgate sensor around the conductor","A current transformer, since it works at DC","A shunt resistor read by an ADC on the low-voltage ground","An ammeter placed in parallel with the bus"],"A Hall or fluxgate sensor measures the magnetic field the current makes, so it reads DC and stays galvanically isolated. A current transformer needs a changing current, so it cannot see DC. A shunt is accurate, but a 100 µΩ shunt at 300 A drops 30 mV and burns 9 W, and its signal sits at the bus voltage, so it needs an isolated amplifier.","b"],
 // 2 Capacitors, inductors and signals
 ["02-01","M","A transistor that acts like a 2 kΩ resistor drives a 50 fF load. About how long until the load reaches 50% of its final voltage?",["69 ps","100 ps","35 ps","220 ps"],"τ = RC = 100 ps, and 50% is reached at 0.69τ ≈ 69 ps."],
 ["02-02","E","The voltage across a capacitor can change instantly.",false,"I = C·dV/dt, so an instant change would need infinite current. Capacitor voltage always changes smoothly."],
@@ -1422,6 +1425,7 @@ const RAW = [
 ["02-21","E","An inductor opposes:",["Changes in current","Changes in voltage","Steady DC current","Any current at all"],"V = L·di/dt. A constant current produces no voltage, and a fast change produces a large one."],
 ["02-22","M","The equivalent series resistance (ESR) of a decoupling capacitor:",["Causes an I·ESR voltage drop during current steps, but also damps resonance","Increases its effective capacitance at high frequency","Has no effect, because it is in series with a capacitor","Lets it store more energy, at the cost of slower charging"],"A little ESR helps damp ringing between capacitors; too much weakens the decoupling."],
 ["02-23","E","Capacitors connected in parallel:",["Add their capacitances","Combine like parallel resistors","Keep only the largest value","Cancel out"],"C_total = C1 + C2 + … Series capacitors combine like parallel resistors."],
+["02-24","E","A 5 V step is applied to a 1 kΩ resistor in series with an uncharged 1 µF capacitor. The current just after the step, and long after it, is:",["5 mA, then 0","0, then 5 mA","5 mA the whole time","2.5 mA, then 5 mA"],"An uncharged capacitor cannot change its voltage instantly, so at first it acts like a short and the full 5 V sits across the resistor: 5 V / 1 kΩ = 5 mA. The current then decays as e^(−t/RC), with RC = 1 ms. Once the capacitor has charged to 5 V it acts like an open circuit, and no current flows."],
 // 3 Heat
 ["03-01","M","A 250 W chip has 0.2 °C/W of total thermal resistance to 25 °C air. What is its junction temperature?",["75 °C","50 °C","125 °C","62.5 °C"],"Tj = 25 + 250 × 0.2 = 75 °C."],
 ["03-02","H","A 400 W chip must stay below 95 °C in 40 °C air. What is the maximum total thermal resistance?",["0.1375 °C/W","0.2375 °C/W","0.1 °C/W","7.3 °C/W"],"(95 − 40)/400 = 0.1375 °C/W."],
@@ -1463,6 +1467,7 @@ const RAW = [
 ["04-19","M","The band gap of silicon is about:",["1.12 eV","0.026 eV","3.4 eV","0.7 eV"],"It is the energy needed to free an electron from a bond, and it shrinks slightly as temperature rises."],
 ["04-20","E","When silicon gets hotter, the loss of mobility affects:",["Both electrons and holes, so both NMOS and PMOS get weaker","Only electrons, so only NMOS gets weaker","Only holes, so only PMOS gets weaker","Neither carrier; only the wires get slower"],"Phonon scattering affects every carrier.","v"],
 ["04-21","M","At a nominal (high) supply voltage, how does a CMOS chip respond to rising temperature?",["Transistors drive less current and wires gain resistance, so it gets slower","Transistors speed up while wires slow down, so it barely changes","Both transistors and wires speed up, so it gets faster","Nothing changes until the chip reaches its thermal limit"],"Mobility loss dominates when the overdrive is large, and wire resistance always rises.","v"],
+["04-22","M","When an IGBT turns off, its current falls quickly at first and then slowly, in a tail. The tail comes from:",["Minority carriers stored in its drift region, which must recombine","The gate capacitance discharging through the driver","The freewheeling diode's forward voltage","Thermal runaway in the package"],"An IGBT conducts by injecting holes into a lightly doped drift region, which gives it a low on-voltage at high current. At turn-off those stored carriers can only leave by recombining, so the current trails off while the voltage is already high. The tail adds turn-off loss and limits the switching frequency. A MOSFET carries only majority carriers, so it has no tail.","b"],
 // 5 MOSFETs
 ["05-01","E","An NMOS transistor turns on when:",["VGS > Vtn (gate high relative to the source)","VGS < 0","The drain is grounded","Gate current exceeds a threshold"],"A positive gate attracts electrons and forms an inversion channel."],
 ["05-02","M","A PMOS has its source at 1.0 V, its gate at 0 V, and |Vtp| = 0.3 V. It is:",["On","Off","Reverse biased","Broken down"],"VSG = 1.0 V > 0.3 V. A PMOS turns on when its gate is pulled below its source."],
@@ -1514,6 +1519,8 @@ const RAW = [
 ["06-16","H","A bandgap reference produces a temperature-stable voltage by adding:",["A voltage that falls with temperature and one that rises with it","Two voltages that both rise with temperature, scaled by resistors","A resistor and a capacitor whose drifts cancel at room temperature","The supply voltage and ground, divided down by matched resistors"],"The opposite slopes cancel to first order, giving about 1.2 V.","b"],
 ["06-17","M","A PLL multiplies a 100 MHz reference with a divide-by-N counter in its feedback path. With N = 20, its output is:",["2 GHz","5 MHz","100 MHz","120 MHz"],"The loop adjusts the oscillator until f_out/N = f_ref."],
 ["06-18","M","A PLL's output jitter matters to a digital designer because:",["It reduces the timing margin left in every cycle","It raises the chip's supply voltage","It changes the logic function computed","It only matters for analog blocks"],"Timing analysis subtracts clock uncertainty (jitter plus margin) from the period."],
+["06-19","M","An op-amp with a 2 mV input offset voltage is used as a non-inverting amplifier with a gain of 101. With its input grounded, the output sits at about:",["0.2 V","2 mV","0 V","20 mV"],"An ideal op-amp has zero offset. A real one acts like an ideal op-amp with a small voltage source in series with one input, and that source is amplified by the noise gain, 1 + Rf/Rg = 101 here: 2 mV × 101 ≈ 0.2 V. Precision circuits use low-offset or chopper op-amps, or trim the offset out.","b"],
+["06-20","H","An op-amp's input stage is a single NMOS differential pair. To let its inputs work all the way from ground to the supply (rail to rail), designers:",["Add a PMOS differential pair in parallel, so one pair is always on","Raise the gain of the output stage","Remove the negative feedback","Make the tail current source larger"],"The input common-mode range is the span of input voltages over which the op-amp keeps working. An NMOS pair turns off when its inputs come within about a VGS of ground, and a PMOS pair turns off near the supply. Putting both in parallel covers the whole range, with care where one pair hands over to the other.","b"],
 // 7 Binary, Boolean and number formats
 ["07-01","E","Decimal 45 in hexadecimal is:",["0x2D","0x45","0x2B","0x3D"],"45 = 101101₂ = 0010 1101 = 0x2D.","a"],
 ["07-02","E","0xB7 in decimal is:",["183","187","173","117"],"11 × 16 + 7 = 183.","a"],
@@ -1622,6 +1629,9 @@ const RAW = [
 ["09-41","M","10 XOR gates are chained. Gate 1 has inputs 0 and X; every later gate takes the previous output and X. Gate 10 outputs:",["0","X","1","X′"],"Gate 1 gives X, gate 2 gives X ⊕ X = 0, gate 3 gives X again: odd gates X, even gates 0.","r"],
 ["09-42","M","Y = NOT(A·B) comes from a NAND with a rise delay of 2 ns and a fall delay of 1 ns. B = 1 and A = 0, so Y = 1. A rises at t = 0. When does Y fall?",["1 ns","2 ns","3 ns","0 ns"],"Y's falling transition takes the fall delay: 1 ns.","r"],
 ["09-43","H","Three inverters are in series, each with a rise delay of 3 ns and a fall delay of 2 ns. The input rises at t = 0. When does the final output change, and how?",["It falls at 7 ns","It rises at 8 ns","It falls at 6 ns","It rises at 9 ns"],"Inverter 1 falls at 2 ns, inverter 2 rises at 2 + 3 = 5 ns, inverter 3 falls at 5 + 2 = 7 ns. Track the direction at every stage.","r"],
+["09-44","E","Which tie-offs make each gate pass B unchanged?",["AND with A = 1, OR with A = 0, XOR with A = 0","AND with A = 0, OR with A = 1, XOR with A = 1","AND with A = 1, OR with A = 1, XOR with A = 1","AND with A = 0, OR with A = 0, XOR with A = 0"],"1 is the identity for AND (1·B = B) and 0 is the identity for OR (0 + B = B). XOR with 0 passes B and XOR with 1 inverts it, which makes XOR a controlled inverter. The other tie-offs force the output: AND with 0 always gives 0, and OR with 1 always gives 1."],
+["09-45","H","Counting the 1s in a 7-bit input gives a 3-bit result. Using only full adders, how many does it take?",["4","7","3","6"],"A full adder counts three bits of the same weight into a sum (weight 1) and a carry (weight 2). Two adders take six of the inputs. A third adds their two sums and the seventh input, giving bit 0. A fourth adds the three carries, giving bits 1 and 2. With 8 inputs the count can reach 8, which needs a 4-bit result and more adders.","b"],
+["09-46","H","A sorting network orders 4 values with compare-and-swap units, each of which outputs the smaller and the larger of its two inputs. The smallest such network uses:",["5 units in 3 levels","6 units in 6 levels","4 units in 2 levels","3 units in 3 levels"],"Compare (0,1) and (2,3), then (0,2) and (1,3), which puts the minimum and maximum in place, then (1,2). That is 5 units in 3 levels, and no 4-input network uses fewer. Sorting networks suit hardware because the comparisons are fixed in advance: the network is pure combinational logic and can be pipelined one level per stage.","b"],
 // 10 Latches and flip-flops
 ["10-01","M","One advantage of a flip-flop over a latch is that a flip-flop:",["Captures its input only at the clock edge, so data cannot race through","Uses fewer transistors, so it is smaller and cheaper","Allows time borrowing between pipeline stages","Has a lower clock load, so it saves clock power"],"It is never transparent, so glitches are ignored and timing is predictable. The other options are latch advantages.","o"],
 ["10-02","M","An advantage of a latch over a flip-flop is that a latch:",["Is smaller and allows time borrowing","Ignores glitches on its input while it is enabled","Is edge-triggered, so its timing is predictable","Can never go metastable, since it is level-sensitive"],"It is about half the size, uses less power, and lets a slow stage borrow time while it is transparent.","v"],
@@ -1775,6 +1785,8 @@ const RAW = [
 ["14-35","M","Which statement about power and energy is correct?",["Halving frequency halves power, but a fixed task's energy stays about the same","Halving frequency halves the energy a fixed task needs","Power and energy are the same thing, measured differently","Lowering voltage raises the energy of each operation"],"Energy per operation is αCV²; only the voltage changes it (ignoring leakage over the longer run time).","v"],
 ["14-36","H","A process shrink scales C to 0.7×, V to 0.7× and f to 1/0.7×. Dynamic power per circuit becomes about:",["0.49×","0.7×","1×","0.34×"],"0.7 × 0.7² / 0.7 = 0.49. The circuit also occupies half the area, so power density stays constant: Dennard scaling."],
 ["14-37","E","A block leaks 10 W. It is power gated with 95% efficiency. How much leakage remains while it is gated?",["0.5 W","9.5 W","0 W","5 W"],"Gating removes 95% of the leakage, leaving 5% of 10 W.","r"],
+["14-38","H","A level shifter from a 0.8 V domain to 1.8 V uses two cross-coupled PMOS on the 1.8 V supply and two NMOS pull-downs driven by the input and its complement. Why are the NMOS made much stronger than the PMOS?",["Their gates see only 0.8 V, yet they must overpower PMOS driven by the full 1.8 V","So the circuit works without a 1.8 V supply","To make the output switch at 0.4 V","Because PMOS transistors cannot be made small"],"A plain inverter on 1.8 V cannot take a 0.8 V input: a 0.8 V high leaves its PMOS partly on, so it burns static current and may not switch. In the cross-coupled shifter, the NMOS on the side going low must pull its node down against a PMOS that is still fully on, with only 0.8 V of gate drive. Once that node falls, the other PMOS turns on, the latch completes, and no static current flows.","b"],
+["14-39","H","In a dual active bridge converter, zero-voltage switching (ZVS) means a switch turns on:",["After current in the transformer's leakage inductance has discharged its output capacitance to 0 V","Only when the load current is zero","Only when the input voltage is zero","With its gate driven at 0 V"],"During the dead time, the inductor current flows into the switch's output capacitance, pulls its voltage to zero and then flows through its body diode. Turning the switch on then wastes none of the ½CV² energy that hard switching dumps into the channel. A DAB gets this from its leakage inductance when the load is heavy enough to store enough energy there; at light load it can lose ZVS.","b"],
 // 15 PVT and temperature
 ["15-01","M","As temperature increases, carrier mobility ___ and metal wire resistance ___.",["decreases; increases","increases; increases","increases; decreases","decreases; decreases"],"Both come from more lattice scattering, and both slow the circuit down.","o"],
 ["15-02","M","As temperature rises, a MOSFET's threshold voltage:",["Decreases","Increases","Stays fixed","Becomes negative"],"Roughly on the order of 1 mV per °C. This pushes transistors toward being faster.","v"],
@@ -1897,6 +1909,8 @@ const RAW = [
 ["18-18","E","Which is denser: SRAM (6 transistors per bit) or DRAM (1 transistor and 1 capacitor per bit)?",["DRAM","SRAM","They are equal","Neither stores bits"],"DRAM is denser and cheaper per bit, but slower, and it needs refresh."],
 ["18-19","M","A Hamming SECDED code on a 64-bit word can:",["Correct single-bit errors and detect double-bit errors","Correct any double-bit error in the word","Only detect errors, never correct them","Correct any number of errors per word"],"Single-error correct, double-error detect."],
 ["18-20","M","SRAM characterization across PVT corners checks:",["Read/write margins, speed and leakage at every corner","Only the nominal corner, at room temperature","Only the package and its bond wires","The RTL code coverage of the memory array"],"A memory must work at the worst process, lowest voltage and both temperature extremes, which sets Vmin.","b"],
+["18-21","M","Memory test finds a few failing cells in a large SRAM. Repair saves the die by:",["Mapping the failing rows or columns to spare ones, set by fuses","Lowering the supply voltage until the cells pass","Marking those addresses read-only","Running the memory at a slower clock"],"Large memories include spare rows and columns. BIST finds the failing cells, redundancy analysis (BIRA, often on chip) picks the spares that cover them, and fuses, or a repair register loaded at boot, steer those addresses to the spares. Without repair, one bad cell among billions would scrap the die, so repair is a large part of memory yield.","b"],
+["18-22","H","A synchronous FIFO stores its data in a single-port SRAM. Can it accept a write and a read in the same clock cycle?",["Not directly; it needs two banks, a wider word, or a dual-port SRAM","Yes; a single port does one read and one write every cycle","Yes, as long as the read and write addresses differ","Only when the FIFO is empty"],"A single port does one access, a read or a write, per cycle, whatever the addresses. To sustain a write and a read every cycle, designs split the storage into two banks (even and odd entries) so the two go to different banks, or store two entries per wider word and alternate, or pay the area for a two-port SRAM.","b"],
 // 19 RTL, CDC, FIFOs and verification
 ["19-01","M","a = 3 and b = 7. After one clock edge of: always @(posedge clk) begin a = b; b = a; end (blocking), a and b are:",["7 and 7","7 and 3","3 and 7","3 and 3"],"The second statement reads the new value of a.","r"],
 ["19-02","M","a = 3 and b = 7. After one edge of a <= b; b <= a; (nonblocking), a and b are:",["7 and 3","7 and 7","3 and 3","3 and 7"],"All the right-hand sides use the old values, so the registers swap.","r"],
@@ -1948,6 +1962,9 @@ const RAW = [
 ["19-48","M","A CDC (clock domain crossing) checking tool is used to:",["Find unsynchronized clock domain crossings","Measure each clock's frequency","Generate the clock trees","Replace static timing analysis"],"Simulation rarely catches CDC bugs because metastability is not modeled; structural CDC tools do.","b"],
 ["19-49","M","A regression's pass rate is 100%, but functional coverage is 60%. The right conclusion is:",["40% of the planned scenarios are untested","The design is now fully verified","The coverage tool must be broken","The passing tests should be removed"],"Passing only says nothing failed in what ran. Coverage closure needs new or better-steered tests."],
 ["19-50","M","A lint tool (for example Verilator --lint-only or Spyglass) on RTL finds:",["Width mismatches, latches and undriven signals","Timing violations found after routing","Manufacturing defects on the wafer","Thermal hotspots in the floorplan"],"Lint is fast static checking, run on every change before simulation.","b"],
+["19-51","M","In Verilog, casez treats ___ as don't-care, while casex treats ___ as don't-care.",["z (and ?) only; both x and z","x only; z only","both x and z; z only","nothing; everything"],"casex also matches an x on the case expression, so an unknown input can silently pick a branch in simulation and hide a bug that the synthesized logic will not share. Most style guides use casez, with ? for the don't-care bits, or SystemVerilog's case inside.","b"],
+["19-52","M","In SystemVerilog, logic [7:0] mem [0:255]; declares:",["256 unpacked elements, each an 8-bit packed vector","8 unpacked elements, each a 256-bit packed vector","One 2048-bit packed vector","A 256-bit vector of 8 unpacked bits"],"Dimensions before the name are packed: they form one contiguous vector that can be sliced and used in arithmetic. Dimensions after the name are unpacked: an array of separate elements, like the words of a memory. mem[3] is one byte, and mem[3][0] is its low bit.","b"],
+["19-53","E","Compared with building the same design as an ASIC, putting it on an FPGA usually:",["Runs at a lower clock and uses more power, but can be changed after it is built, with no mask cost","Runs faster and uses less power, but cannot be changed once built","Gives the same speed and power at a lower cost per chip in high volume","Needs no synthesis or timing closure"],"An FPGA builds logic from lookup tables and programmable routing, so the same design is slower, larger and more power-hungry than custom cells. But it needs no masks, so a fix is a new bitstream instead of a new tapeout. FPGAs suit prototypes, low volumes and changing standards; ASICs win in high volume, where the mask cost is spread over millions of chips.","b"],
 // 20 Architecture
 ["20-01","E","The stages of the classic 5-stage pipeline, in order, are:",["IF, ID, EX, MEM, WB","ID, IF, EX, WB, MEM","IF, EX, ID, MEM, WB","IF, ID, MEM, EX, WB"],"Fetch, decode and read registers, execute, access memory, write back.","r"],
 ["20-02","M","A load followed immediately by an instruction that uses its result needs:",["A one-cycle stall, even with forwarding","No stall, thanks to forwarding","A pipeline flush","Two cycles of branch delay"],"The loaded data arrives at the end of MEM, too late for the next instruction's EX."],
@@ -1979,6 +1996,7 @@ const RAW = [
 ["20-28","M","A cycle-accurate performance model differs from an analytical model in that it:",["Simulates cycle by cycle, catching contention, but runs slowly","Uses only a formula, so it is instant but approximate","Runs on the real chip to measure performance","Ignores the memory system entirely"],"Architects use fast analytical models to explore and cycle-accurate models to confirm.","b"],
 ["20-29","M","IPC (instructions per cycle) and CPI are related by:",["IPC = 1 / CPI","IPC = CPI","IPC = CPI × clock frequency","IPC = CPI − 1"],"A processor finishing 2 instructions per cycle has CPI 0.5."],
 ["20-30","M","A CPI stack breaks the cycles per instruction into:",["Base cycles plus stalls from each cause","A list of the separate instructions","The pipeline stages and nothing else","The clock domains on the chip"],"It shows which bottleneck to attack first.","b"],
+["20-31","E","On an AMBA AXI bus, the masters (managers) are:",["The components that start transactions, such as CPU cores and DMA engines","The memories and peripherals that answer requests","The interconnect's clock and reset generators","Whichever component has the fastest clock"],"A master issues reads and writes; a slave (subordinate), such as a memory controller or a UART, responds. The interconnect routes each request by address and arbitrates when several masters want the same slave. A DMA engine is a master on the bus it copies over, even though the CPU programs it through its slave registers.","b"],
 // 21 GPUs and number formats
 ["21-01","E","How many threads are in an NVIDIA warp?",["32","16","64","1024"],"All 32 execute the same instruction together (SIMT)."],
 ["21-02","E","Which best contrasts CPUs with GPUs?",["CPUs cut latency; GPUs maximize throughput","GPUs have bigger caches per thread","CPUs have thousands of simple cores","GPUs predict branches much better"],"GPUs spend their transistors on many arithmetic units."],
@@ -6132,9 +6150,10 @@ async function judgeCode(mode){
 const COMPANIES = COMPANY_NAMES.map(c => Object.assign({}, c));
 const CO_BY_ID = Object.fromEntries(COMPANIES.map(c => [c.id, c]));
 const CO_TAGS = {};   // problem id -> [{co, rank, rep}], best first
-const PREMIUM_KEYS = ['chapters', 'areas', 'tags', 'ids', 'reported', 'note'];
+const PREMIUM_KEYS = ['chapters', 'areas', 'tags', 'ids', 'reported', 'note', 'reports'];
 let ASSESSMENTS = [], OA_BY_CO = {}, POSITIONS = [], POS_BY_ID = {};
 const premium = {loaded:false, status:'none'};   // status: none, checking, active, inactive, nocontent, error
+const repTopics = c => (c.reports && Array.isArray(c.reports.topics) ? c.reports.topics : []).filter(t => Array.isArray(t) && Array.isArray(t[1]));
 function buildCompanyTags(){
   BANK.forEach(Q => { CO_TAGS[Q.id] = []; });
   CODING.forEach(p => { CO_TAGS[p.id] = []; });
@@ -6151,6 +6170,7 @@ function buildCompanyTags(){
     });
     CODING.forEach(p => { const k = (c.areas || []).indexOf(p.area); if (k >= 0) add(p.id, 10 + k, false); });
     (c.ids || []).forEach(id => add(id, 1, (c.reported || []).includes(id)));
+    repTopics(c).forEach(([, l]) => l.forEach(id => add(id, 1, true)));   // topics candidates reported from its interviews
   });
   Object.values(CO_TAGS).forEach(l => l.sort((a, b) => (b.rep - a.rep) || (a.rank - b.rank) || (a.ci - b.ci)));
 }
@@ -6203,7 +6223,7 @@ const coOpts = () => [['all', 'Company'], ...COMPANIES.map(c => [c.id, c.name])]
 function tagNoteHTML(){
   return `<details class="card tagnote"><summary><b>What the company labels mean</b><span class="muted small">Only "Real OA" questions were actually asked.</span></summary><dl>
     <div><dt><span class="tag">Tested topic</span></dt><dd>The topic appears in this company's public hardware job postings or is commonly covered in its interviews. It is not a claim that the company asked this question.</dd></div>
-    <div><dt><span class="tag t-rep">Reported topic</span></dt><dd>Candidates reported this topic or problem type from a real assessment. The question itself is written by HardCode.</dd></div>
+    <div><dt><span class="tag t-rep">Reported topic</span></dt><dd>Candidates reported this topic or problem type from a real interview or assessment, in the public reviews listed on the company's page. The question itself is written by HardCode.</dd></div>
     <div><dt><span class="tag t-oa">Real OA</span></dt><dd>The question as it appeared on a real NVIDIA Ignite online assessment. These are the only questions confirmed as asked.</dd></div>
     <div><dt><span class="tag t-var">OA variant</span></dt><dd>Written by HardCode to test the same idea as a real OA question.</dd></div>
     <div><dt>Positions</dt><dd>Typical hardware roles at each company, not live job postings. Each set is picked from the topics that kind of role is usually tested on.</dd></div></dl>
@@ -6358,13 +6378,13 @@ function coCardsHTML(list){
       <span class="cobar"><i style="width:${pct(solved, total)}%"></i></span><small class="mono">${solved}/${total} solved</small></span></button>`;
   }).join('') : '<p class="muted">No companies match.</p>';
 }
-function openCompany(id){ ui.co = {id, tab:POSITIONS.some(p => p.co === id) ? 'pos' : CO_BY_ID[id].tags || (CO_BY_ID[id].reported || []).length ? 'rep' : 'theory', d:'all'}; ui.view = 'company'; setHash('company-' + id); render(); window.scrollTo(0, 0); }
+function openCompany(id){ ui.co = {id, tab:POSITIONS.some(p => p.co === id) ? 'pos' : coReported(id).length || coReportedCode(id).length ? 'rep' : 'theory', d:'all'}; ui.view = 'company'; setHash('company-' + id); render(); window.scrollTo(0, 0); }
 function viewCompany(){
   if (!hasPremium()) return premiumLock('Companies');
   const C = ui.co, c = CO_BY_ID[C.id], t = coTheory(c.id), k = coCoding(c.id), rt = coReported(c.id), rk = coReportedCode(c.id);
   const solved = solvedIn(t) + codeSolvedIn(k.map(id => CODE_BY_ID[id])), total = t.length + k.length;
   const cps = POSITIONS.filter(p => p.co === c.id);
-  const tabs = [...(cps.length ? [['pos', `Positions (${cps.length})`]] : []), ...(rt.length || rk.length ? [['rep', `Real OA and reported (${rt.length + rk.length})`]] : []), ['theory', `Tested topics: theory (${t.length})`], ['coding', `Tested topics: coding (${k.length})`]];
+  const tabs = [...(cps.length ? [['pos', `Positions (${cps.length})`]] : []), ...(rt.length || rk.length ? [['rep', `${c.tags ? 'Real OA and reported' : 'Reported'} (${rt.length + rk.length})`]] : []), ['theory', `Tested topics: theory (${t.length})`], ['coding', `Tested topics: coding (${k.length})`]];
   const dOk = id => C.d === 'all' || (BY_ID[id] || CODE_BY_ID[id]).d === C.d;
   let body = '';
   const topicLine = `<p class="muted small coline">Problems on the topics ${esc(c.name)}'s public hardware job postings ask for. They are not questions ${esc(c.name)} is known to have asked.</p>`;
@@ -6372,8 +6392,9 @@ function viewCompany(){
   else if (C.tab === 'coding') body = topicLine + codeTableHTML(k.filter(dOk), 'company');
   else if (C.tab === 'theory') body = topicLine + tableHTML(t.filter(dOk), 'full', 'corows', 'company');
   else {
-    body = `<p class="muted small coline">Theory: the questions from a real ${esc(c.name)} OA, and HardCode questions on topics candidates reported. Coding: HardCode problems of the types candidates reported, not the exact problems.</p>` + (rk.length ? `<h3 class="subh">Coding</h3>${codeTableHTML(rk.filter(dOk), 'company')}` : '') + (rt.length ? `<h3 class="subh">Theory</h3>${tableHTML(rt.filter(dOk), 'full', 'corows', 'company')}` : '');
+    body = `<p class="muted small coline">${c.tags ? `Theory: the questions from a real ${esc(c.name)} OA, and HardCode questions on topics candidates reported.` : `Theory: HardCode questions on the topics candidates reported from ${esc(c.name)} interviews, not the questions they were asked.`} Coding: HardCode problems of the types candidates reported, not the exact problems.</p>` + (rk.length ? `<h3 class="subh">Coding</h3>${codeTableHTML(rk.filter(dOk), 'company')}` : '') + (rt.length ? `<h3 class="subh">Theory</h3>${tableHTML(rt.filter(dOk), 'full', 'corows', 'company')}` : '');
     if (c.id === 'nvidia') body += nvidiaReportHTML();
+    body += reportsHTML(c);
   }
   return `<div class="pvbar"><button type="button" class="btn ghost small" data-act="co-back">← Companies</button></div>
     <section class="card cohead">${coAvatar(c, 'lg')}<div class="cohtext"><h1>${esc(c.name)}</h1><p class="muted">${esc(c.focus)}</p>${c.note ? `<p class="small">${esc(c.note)}</p>` : ''}</div>
@@ -6384,6 +6405,20 @@ function viewCompany(){
 }
 function codeTableHTML(ids, from){
   return `<div class="tablewrap"><table class="ptable ctable"><thead><tr><th class="c-st">Status</th><th class="c-ti">Problem</th><th class="c-tp">Area</th><th class="c-ty">Language</th><th class="c-co">Companies</th><th class="c-df">Difficulty</th></tr></thead><tbody>${codeRowsHTML(ids.map(id => CODE_BY_ID[id]), from)}</tbody></table></div>`;
+}
+// What candidates said they were asked in a company's interviews, each topic with its practice and the reviews it came from.
+function reportsHTML(c){
+  const T = repTopics(c), S = (c.reports && Array.isArray(c.reports.sources) ? c.reports.sources : []).filter(s => Array.isArray(s) && /^https:\/\//.test(s[1] || ''));
+  if (!T.length) return '';
+  const btn = (i, k, n, word) => `<button type="button" class="linkbtn" data-act="rep-go" data-v="${i}" data-k="${k}">${n} ${word}${n === 1 ? '' : 's'}</button>`;
+  const rows = T.map(([name, l], i) => {
+    const t = l.filter(id => BY_ID[id]), k = l.filter(id => CODE_BY_ID[id]), done = solvedIn(t) + codeSolvedIn(k.map(id => CODE_BY_ID[id]));
+    const cell = t.length || k.length ? [t.length ? btn(i, 't', t.length, 'question') : '', k.length ? btn(i, 'c', k.length, 'coding problem') : ''].filter(Boolean).join('<span class="muted"> · </span>') + `<span class="muted"> · ${done} solved</span>` : '<span class="muted">Not in this trainer</span>';
+    return `<tr><td>${esc(name)}</td><td>${cell}</td></tr>`;
+  }).join('');
+  return `<section class="card coreports"><h2>Reported in ${esc(c.name)} interviews</h2><p class="muted">Topics candidates said they were asked, from public interview reviews. The reviews are anonymous and self-reported, and span several years and teams.${c.reports.note ? ' ' + esc(c.reports.note) : ''} Every question here is written by HardCode.</p>
+    <div class="tablewrap"><table class="rtable"><thead><tr><th>Reported topic</th><th>Practice</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${S.length ? `<p class="small muted srcline">Sources: ${S.map(([label, url]) => `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>`).join(' · ')}</p>` : ''}</section>`;
 }
 // The real OA's topics and what other candidates reported, shown on NVIDIA's page.
 function nvidiaReportHTML(){
@@ -7415,7 +7450,7 @@ document.addEventListener('click', e => {
     e.preventDefault();
     const cfrom = (co.closest('[data-from]') || {dataset:{}}).dataset.from;
     if (cfrom === 'profile') openCode(co.dataset.copen, CODING.map(p => p.id), {view:'tab', tab:'profile'});
-    else if (cfrom === 'company') openCode(co.dataset.copen, coCoding(ui.co.id), {view:'company', co:ui.co.id});
+    else if (cfrom === 'company') openCode(co.dataset.copen, ui.co.tab === 'rep' ? coReportedCode(ui.co.id) : coCoding(ui.co.id), {view:'company', co:ui.co.id});
     else if (cfrom === 'learn' && ui.lesson) openCode(co.dataset.copen, chapterCode(ui.lesson.ch), {view:'lesson'});
     else if (cfrom === 'position' && POS_BY_ID[ui.pos.id]) openCode(co.dataset.copen, posSet(POS_BY_ID[ui.pos.id]).code, {view:'position', pos:ui.pos.id});
     else openCode(co.dataset.copen, codeFiltered().map(p => p.id), {view:'tab', tab:'coding'});
@@ -7459,6 +7494,13 @@ function act(a){
     case 'co-back': goTab('companies'); break;
     case 'co-tab': ui.co.tab = a.dataset.v; render(); break;
     case 'co-d': ui.co.d = a.dataset.v; render(); break;
+    case 'rep-go': {
+      const T = repTopics(CO_BY_ID[ui.co.id])[+a.dataset.v], back = {view:'company', co:ui.co.id};
+      if (!T) break;
+      if (a.dataset.k === 'c') { const k = T[1].filter(id => CODE_BY_ID[id]); if (k.length) openCode(k[0], k, back); }
+      else { const t = T[1].filter(id => BY_ID[id]); if (t.length) openProblem(t[0], t, back); }
+      break;
+    }
     case 'co-view': ui.cov = a.dataset.v; render(); break;
     case 'pos-open': openPosition(a.dataset.v); break;
     case 'pos-start': posStart(); break;

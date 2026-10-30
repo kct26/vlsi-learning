@@ -1330,3 +1330,5 @@ body.dragging .ed-area textarea { pointer-events: none; }
 .litem.lquest.done .lchk { color: var(--accent-ink); }
 .node .qbook { display: block; margin: 6px 0 0 4px; }
 .unitv .crumbs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.coreports .srcline { margin: 12px 0 0; line-height: 1.8; }
+.coreports .srcline a { white-space: nowrap; }

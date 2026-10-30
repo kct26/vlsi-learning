@@ -1401,9 +1401,10 @@ async function judgeCode(mode){
 const COMPANIES = COMPANY_NAMES.map(c => Object.assign({}, c));
 const CO_BY_ID = Object.fromEntries(COMPANIES.map(c => [c.id, c]));
 const CO_TAGS = {};   // problem id -> [{co, rank, rep}], best first
-const PREMIUM_KEYS = ['chapters', 'areas', 'tags', 'ids', 'reported', 'note'];
+const PREMIUM_KEYS = ['chapters', 'areas', 'tags', 'ids', 'reported', 'note', 'reports'];
 let ASSESSMENTS = [], OA_BY_CO = {}, POSITIONS = [], POS_BY_ID = {};
 const premium = {loaded:false, status:'none'};   // status: none, checking, active, inactive, nocontent, error
+const repTopics = c => (c.reports && Array.isArray(c.reports.topics) ? c.reports.topics : []).filter(t => Array.isArray(t) && Array.isArray(t[1]));
 function buildCompanyTags(){
   BANK.forEach(Q => { CO_TAGS[Q.id] = []; });
   CODING.forEach(p => { CO_TAGS[p.id] = []; });
@@ -1420,6 +1421,7 @@ function buildCompanyTags(){
     });
     CODING.forEach(p => { const k = (c.areas || []).indexOf(p.area); if (k >= 0) add(p.id, 10 + k, false); });
     (c.ids || []).forEach(id => add(id, 1, (c.reported || []).includes(id)));
+    repTopics(c).forEach(([, l]) => l.forEach(id => add(id, 1, true)));   // topics candidates reported from its interviews
   });
   Object.values(CO_TAGS).forEach(l => l.sort((a, b) => (b.rep - a.rep) || (a.rank - b.rank) || (a.ci - b.ci)));
 }
@@ -1472,7 +1474,7 @@ const coOpts = () => [['all', 'Company'], ...COMPANIES.map(c => [c.id, c.name])]
 function tagNoteHTML(){
   return `<details class="card tagnote"><summary><b>What the company labels mean</b><span class="muted small">Only "Real OA" questions were actually asked.</span></summary><dl>
     <div><dt><span class="tag">Tested topic</span></dt><dd>The topic appears in this company's public hardware job postings or is commonly covered in its interviews. It is not a claim that the company asked this question.</dd></div>
-    <div><dt><span class="tag t-rep">Reported topic</span></dt><dd>Candidates reported this topic or problem type from a real assessment. The question itself is written by HardCode.</dd></div>
+    <div><dt><span class="tag t-rep">Reported topic</span></dt><dd>Candidates reported this topic or problem type from a real interview or assessment, in the public reviews listed on the company's page. The question itself is written by HardCode.</dd></div>
     <div><dt><span class="tag t-oa">Real OA</span></dt><dd>The question as it appeared on a real NVIDIA Ignite online assessment. These are the only questions confirmed as asked.</dd></div>
     <div><dt><span class="tag t-var">OA variant</span></dt><dd>Written by HardCode to test the same idea as a real OA question.</dd></div>
     <div><dt>Positions</dt><dd>Typical hardware roles at each company, not live job postings. Each set is picked from the topics that kind of role is usually tested on.</dd></div></dl>
@@ -1627,13 +1629,13 @@ function coCardsHTML(list){
       <span class="cobar"><i style="width:${pct(solved, total)}%"></i></span><small class="mono">${solved}/${total} solved</small></span></button>`;
   }).join('') : '<p class="muted">No companies match.</p>';
 }
-function openCompany(id){ ui.co = {id, tab:POSITIONS.some(p => p.co === id) ? 'pos' : CO_BY_ID[id].tags || (CO_BY_ID[id].reported || []).length ? 'rep' : 'theory', d:'all'}; ui.view = 'company'; setHash('company-' + id); render(); window.scrollTo(0, 0); }
+function openCompany(id){ ui.co = {id, tab:POSITIONS.some(p => p.co === id) ? 'pos' : coReported(id).length || coReportedCode(id).length ? 'rep' : 'theory', d:'all'}; ui.view = 'company'; setHash('company-' + id); render(); window.scrollTo(0, 0); }
 function viewCompany(){
   if (!hasPremium()) return premiumLock('Companies');
   const C = ui.co, c = CO_BY_ID[C.id], t = coTheory(c.id), k = coCoding(c.id), rt = coReported(c.id), rk = coReportedCode(c.id);
   const solved = solvedIn(t) + codeSolvedIn(k.map(id => CODE_BY_ID[id])), total = t.length + k.length;
   const cps = POSITIONS.filter(p => p.co === c.id);
-  const tabs = [...(cps.length ? [['pos', `Positions (${cps.length})`]] : []), ...(rt.length || rk.length ? [['rep', `Real OA and reported (${rt.length + rk.length})`]] : []), ['theory', `Tested topics: theory (${t.length})`], ['coding', `Tested topics: coding (${k.length})`]];
+  const tabs = [...(cps.length ? [['pos', `Positions (${cps.length})`]] : []), ...(rt.length || rk.length ? [['rep', `${c.tags ? 'Real OA and reported' : 'Reported'} (${rt.length + rk.length})`]] : []), ['theory', `Tested topics: theory (${t.length})`], ['coding', `Tested topics: coding (${k.length})`]];
   const dOk = id => C.d === 'all' || (BY_ID[id] || CODE_BY_ID[id]).d === C.d;
   let body = '';
   const topicLine = `<p class="muted small coline">Problems on the topics ${esc(c.name)}'s public hardware job postings ask for. They are not questions ${esc(c.name)} is known to have asked.</p>`;
@@ -1641,8 +1643,9 @@ function viewCompany(){
   else if (C.tab === 'coding') body = topicLine + codeTableHTML(k.filter(dOk), 'company');
   else if (C.tab === 'theory') body = topicLine + tableHTML(t.filter(dOk), 'full', 'corows', 'company');
   else {
-    body = `<p class="muted small coline">Theory: the questions from a real ${esc(c.name)} OA, and HardCode questions on topics candidates reported. Coding: HardCode problems of the types candidates reported, not the exact problems.</p>` + (rk.length ? `<h3 class="subh">Coding</h3>${codeTableHTML(rk.filter(dOk), 'company')}` : '') + (rt.length ? `<h3 class="subh">Theory</h3>${tableHTML(rt.filter(dOk), 'full', 'corows', 'company')}` : '');
+    body = `<p class="muted small coline">${c.tags ? `Theory: the questions from a real ${esc(c.name)} OA, and HardCode questions on topics candidates reported.` : `Theory: HardCode questions on the topics candidates reported from ${esc(c.name)} interviews, not the questions they were asked.`} Coding: HardCode problems of the types candidates reported, not the exact problems.</p>` + (rk.length ? `<h3 class="subh">Coding</h3>${codeTableHTML(rk.filter(dOk), 'company')}` : '') + (rt.length ? `<h3 class="subh">Theory</h3>${tableHTML(rt.filter(dOk), 'full', 'corows', 'company')}` : '');
     if (c.id === 'nvidia') body += nvidiaReportHTML();
+    body += reportsHTML(c);
   }
   return `<div class="pvbar"><button type="button" class="btn ghost small" data-act="co-back">← Companies</button></div>
     <section class="card cohead">${coAvatar(c, 'lg')}<div class="cohtext"><h1>${esc(c.name)}</h1><p class="muted">${esc(c.focus)}</p>${c.note ? `<p class="small">${esc(c.note)}</p>` : ''}</div>
@@ -1653,6 +1656,20 @@ function viewCompany(){
 }
 function codeTableHTML(ids, from){
   return `<div class="tablewrap"><table class="ptable ctable"><thead><tr><th class="c-st">Status</th><th class="c-ti">Problem</th><th class="c-tp">Area</th><th class="c-ty">Language</th><th class="c-co">Companies</th><th class="c-df">Difficulty</th></tr></thead><tbody>${codeRowsHTML(ids.map(id => CODE_BY_ID[id]), from)}</tbody></table></div>`;
+}
+// What candidates said they were asked in a company's interviews, each topic with its practice and the reviews it came from.
+function reportsHTML(c){
+  const T = repTopics(c), S = (c.reports && Array.isArray(c.reports.sources) ? c.reports.sources : []).filter(s => Array.isArray(s) && /^https:\/\//.test(s[1] || ''));
+  if (!T.length) return '';
+  const btn = (i, k, n, word) => `<button type="button" class="linkbtn" data-act="rep-go" data-v="${i}" data-k="${k}">${n} ${word}${n === 1 ? '' : 's'}</button>`;
+  const rows = T.map(([name, l], i) => {
+    const t = l.filter(id => BY_ID[id]), k = l.filter(id => CODE_BY_ID[id]), done = solvedIn(t) + codeSolvedIn(k.map(id => CODE_BY_ID[id]));
+    const cell = t.length || k.length ? [t.length ? btn(i, 't', t.length, 'question') : '', k.length ? btn(i, 'c', k.length, 'coding problem') : ''].filter(Boolean).join('<span class="muted"> · </span>') + `<span class="muted"> · ${done} solved</span>` : '<span class="muted">Not in this trainer</span>';
+    return `<tr><td>${esc(name)}</td><td>${cell}</td></tr>`;
+  }).join('');
+  return `<section class="card coreports"><h2>Reported in ${esc(c.name)} interviews</h2><p class="muted">Topics candidates said they were asked, from public interview reviews. The reviews are anonymous and self-reported, and span several years and teams.${c.reports.note ? ' ' + esc(c.reports.note) : ''} Every question here is written by HardCode.</p>
+    <div class="tablewrap"><table class="rtable"><thead><tr><th>Reported topic</th><th>Practice</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${S.length ? `<p class="small muted srcline">Sources: ${S.map(([label, url]) => `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>`).join(' · ')}</p>` : ''}</section>`;
 }
 // The real OA's topics and what other candidates reported, shown on NVIDIA's page.
 function nvidiaReportHTML(){
@@ -2684,7 +2701,7 @@ document.addEventListener('click', e => {
     e.preventDefault();
     const cfrom = (co.closest('[data-from]') || {dataset:{}}).dataset.from;
     if (cfrom === 'profile') openCode(co.dataset.copen, CODING.map(p => p.id), {view:'tab', tab:'profile'});
-    else if (cfrom === 'company') openCode(co.dataset.copen, coCoding(ui.co.id), {view:'company', co:ui.co.id});
+    else if (cfrom === 'company') openCode(co.dataset.copen, ui.co.tab === 'rep' ? coReportedCode(ui.co.id) : coCoding(ui.co.id), {view:'company', co:ui.co.id});
     else if (cfrom === 'learn' && ui.lesson) openCode(co.dataset.copen, chapterCode(ui.lesson.ch), {view:'lesson'});
     else if (cfrom === 'position' && POS_BY_ID[ui.pos.id]) openCode(co.dataset.copen, posSet(POS_BY_ID[ui.pos.id]).code, {view:'position', pos:ui.pos.id});
     else openCode(co.dataset.copen, codeFiltered().map(p => p.id), {view:'tab', tab:'coding'});
@@ -2728,6 +2745,13 @@ function act(a){
     case 'co-back': goTab('companies'); break;
     case 'co-tab': ui.co.tab = a.dataset.v; render(); break;
     case 'co-d': ui.co.d = a.dataset.v; render(); break;
+    case 'rep-go': {
+      const T = repTopics(CO_BY_ID[ui.co.id])[+a.dataset.v], back = {view:'company', co:ui.co.id};
+      if (!T) break;
+      if (a.dataset.k === 'c') { const k = T[1].filter(id => CODE_BY_ID[id]); if (k.length) openCode(k[0], k, back); }
+      else { const t = T[1].filter(id => BY_ID[id]); if (t.length) openProblem(t[0], t, back); }
+      break;
+    }
     case 'co-view': ui.cov = a.dataset.v; render(); break;
     case 'pos-open': openPosition(a.dataset.v); break;
     case 'pos-start': posStart(); break;

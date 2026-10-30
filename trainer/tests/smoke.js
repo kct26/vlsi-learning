@@ -365,7 +365,9 @@ async function phase1(){
   ok($$('.rtable')[0].tBodies[0].rows.length === 6, 'NVIDIA page: your 6 OA topics');
   ok($$('.rtable')[1].tBodies[0].rows.length === 21, 'NVIDIA page: 21 reported topics');
   ok($$('.rtable')[1].textContent.match(/\d+ problems/g).every(t => parseInt(t, 10) >= 4), 'every reported topic has at least 4 problems');
-  ok($$('.ctable tbody tr[data-copen]').length === 5, '5 reported NVIDIA coding problems');
+  const nvRepCode = new Set((window.PREMIUM_INLINE.companies.nvidia.reported || []).concat(...window.PREMIUM_INLINE.companies.nvidia.reports.topics.map(t => t[1])).filter(id => CODING.some(p => p.id === id)));
+  ok($$('.ctable tbody tr[data-copen]').length === nvRepCode.size && nvRepCode.size > 5, nvRepCode.size + ' reported NVIDIA coding problems (the OA plus interview reports)');
+  ok($('.coreports') && /Reported in NVIDIA interviews/.test($('.coreports h2').textContent) && /on top of the real Ignite OA/.test($('.coreports').textContent), 'NVIDIA also lists what candidates reported from its interviews');
   click('[data-act="co-tab"][data-v="theory"]');
   const nvN = $$('#corows tr').length;
   click('[data-act="co-d"][data-v="H"]');
@@ -379,6 +381,30 @@ async function phase1(){
   const mN = $$('#prows tr').length;
   ok(mN > 20 && mN < RAW.length && $$('#prows .c-co').every(c => /Micron/.test(c.querySelector('.comini').title)), 'theory list filters by company (' + mN + ' Micron)');
   click('[data-act="f-reset"]');
+  // Every other company: topics candidates reported from its interviews, with the reviews they came from
+  tab('companies'); click('[data-act="co-view"][data-v="co"]');
+  const withReports = COMPANY_NAMES.filter(c => window.PREMIUM_INLINE.companies[c.id] && window.PREMIUM_INLINE.companies[c.id].reports);
+  ok(withReports.length === COMPANY_NAMES.length && withReports.every(c => /[1-9]\d* reported/.test($(`.cocard[data-v="${c.id}"]`).textContent)), 'every company card shows how many reported problems it has');
+  click('[data-act="co-open"][data-v="amd"]');
+  click('[data-act="co-tab"][data-v="rep"]');
+  const amdR = window.PREMIUM_INLINE.companies.amd.reports;
+  ok(/^Reported \(\d+\)/.test($('.seg [aria-selected="true"]').textContent) && /not the questions they were asked/.test($('.coline').textContent), 'AMD has a Reported tab that says the questions are written by HardCode');
+  ok($('.coreports') && /Reported in AMD interviews/.test($('.coreports h2').textContent) && $$('.coreports tbody tr').length === amdR.topics.length, 'AMD lists its ' + amdR.topics.length + ' reported topics');
+  const srcs = $$('.coreports .srcline a');
+  ok(srcs.length === amdR.sources.length && srcs.every(a => /^https:\/\//.test(a.getAttribute('href')) && a.target === '_blank' && /noopener/.test(a.rel)), 'each source review is an https link that opens safely in a new tab');
+  const tieRow = $$('.coreports tbody tr').find(r => /Tie one input/.test(r.textContent));
+  click(tieRow.querySelector('[data-act="rep-go"][data-k="t"]'));
+  ok(/Back to AMD/.test($('[data-act="pv-back"]').textContent) && /1 \/ 1/.test($('.pvbar .mono').textContent) && /tie-offs/.test($('#main').textContent), 'a reported topic opens its questions, including ones written for it');
+  click('[data-act="pv-back"]');
+  const cntRow = $$('.coreports tbody tr').find(r => /counter that wraps/.test(r.textContent));
+  click(cntRow.querySelector('[data-act="rep-go"][data-k="c"]'));
+  ok($('.cpv-wrap') && /counter/i.test($('#main h1, #main .cpv-wrap').textContent) && /Back to AMD/.test($('.cpv-wrap .pvbar').textContent), 'a reported coding topic opens its coding problem');
+  tab('companies'); click('[data-act="co-view"][data-v="co"]');
+  click('[data-act="co-open"][data-v="apple"]'); click('[data-act="co-tab"][data-v="rep"]');
+  ok($$('.coreports tbody tr').some(r => /cantilevers/.test(r.textContent) && /Not in this trainer/.test(r.textContent)), 'topics the trainer does not cover say so');
+  click('[data-act="co-back"]'); click('[data-act="co-view"][data-v="co"]');
+  click('[data-act="co-open"][data-v="amazon"]'); click('[data-act="co-tab"][data-v="rep"]');
+  ok(/Lab126/.test($('.coreports').textContent) && /no public reports for Annapurna/.test($('.coreports').textContent), 'Amazon says its reports are from Lab126, not Annapurna');
 
   // Test out of a locked quest
   tab('quest');
