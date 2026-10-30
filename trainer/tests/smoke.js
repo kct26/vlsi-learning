@@ -606,6 +606,10 @@ async function phase5(){
   await wait(300);
   tab('companies');
   ok($$('.poscard').length > 100 && !$('.cogrid.locked') && !document.body.classList.contains('noprem'), 'admin account: Companies and positions unlocked from the database');
+  click($$('.poscard').find(c => /NVIDIA Signal Integrity Engineer/.test(c.textContent)));
+  for (let k = 0; k < 20 && !$$('.ivq').length; k++) await wait(100);
+  ok($$('.ivq').length === 20 && /Interview questions \(20\)/.test($('.postabs [aria-selected="true"]').textContent), 'interview questions load from the database and the position opens on them');
+  click('[data-act="co-back"]');
   ok(window.__fb.users.u1.provider === 'google.com' && window.__fb.users.u1.created > 0 && window.__fb.users.u1.lastLogin > 0, 'record carries sign-in method, creation and last sign-in');
   click('.premiumbtn');
   ok(/Practice for the/.test(h1()) && /You have Premium/.test($('#main').textContent), 'Premium page shows the subscription is active');

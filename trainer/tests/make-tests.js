@@ -28,7 +28,7 @@ const fakeFirebase = `localStorage.clear();
       firestore: () => ({ collection: name => {
         const store = () => window.__fb[name] || (window.__fb[name] = {}), me = () => cur && cur.uid, admin = () => (window.FIREBASE_ADMINS || []).includes(me());
         const denied = () => Promise.reject(Object.assign(new Error('Missing or insufficient permissions.'), {code:'permission-denied'}));
-        if (name === 'premium_content' && !window.__fb.premium_content) window.__fb.premium_content = {main:{data:JSON.stringify(window.PREMIUM_INLINE), updatedAt:1}};
+        if (name === 'premium_content' && !window.__fb.premium_content) { window.__fb.premium_content = {main:{data:JSON.stringify(window.PREMIUM_INLINE), updatedAt:1}}; Object.entries(window.INTERVIEWS_INLINE || {}).forEach(([co, l]) => { window.__fb.premium_content['interviews-' + co] = {data:JSON.stringify(l), updatedAt:1}; }); }
         return { get: () => Promise.resolve({docs:Object.keys(store()).map(id => ({id, data: () => store()[id]}))}),
           doc: id => ({ get: () => {
               if (name === 'premium_content' && !admin() && !((window.__fb.premium || {})[me()] || {}).active) return denied();

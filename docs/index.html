@@ -6299,8 +6299,9 @@ function viewPosition(){
   const dOk = id => d === 'all' || (BY_ID[id] || CODE_BY_ID[id]).d === d;
   ivLoad(p.co);
   const iv = ivFor(p), ivWait = !iv && IV.status[p.co] === 'loading';
-  if (!ui.pos.tab) ui.pos.tab = iv ? 'iv' : 'probs';
-  const tab = ui.pos.tab === 'iv' && (iv || ivWait) ? 'iv' : 'probs';
+  // Interview questions first when the role has them; ui.pos.tab is only set when the reader picks a tab, so the
+  // default still applies once the questions finish downloading.
+  const tab = (ui.pos.tab || (iv || ivWait ? 'iv' : 'probs')) === 'iv' && (iv || ivWait) ? 'iv' : 'probs';
   const tabs = iv || ivWait ? `<div class="seg postabs" role="tablist"><button type="button" role="tab" aria-selected="${tab === 'iv'}" data-act="pos-tab" data-v="iv">Interview questions${iv ? ` (${iv.questions.length})` : ''}</button><button type="button" role="tab" aria-selected="${tab === 'probs'}" data-act="pos-tab" data-v="probs">Practice problems (${G.total})</button></div>` : '';
   const probs = `<div class="cotabs"><div class="chiprow">${[['all', 'All'], ['E', 'Easy'], ['M', 'Medium'], ['H', 'Hard']].map(([v, l]) => `<button type="button" class="tchip${d === v ? ' on' : ''}" data-act="pos-d" data-v="${v}">${l}</button>`).join('')}</div></div>
     <h3 class="subh">Theory</h3>${tableHTML(S.theory.filter(dOk), 'full', 'posrows', 'position')}
