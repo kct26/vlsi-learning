@@ -11,11 +11,28 @@ When a gate's output switches from 0 to 1, its PMOS pull-up network charges the 
   \item the capacitance of the wire;
   \item the gate's own drain (diffusion) capacitance, its \term{parasitic} capacitance.
 \end{itemize}
-The pull-up network acts like a resistor, $R$, so the output rises like an RC charging curve. It reaches 50\% after about $0.69\,RC$ (Section~\ref{sec:rc}):
+The pull-up network acts like a resistor, $R$, so the output rises like an RC charging curve (Figure~\ref{fig:rcgate}). It reaches 50\% after about $0.69\,RC$ (Section~\ref{sec:rc}):
 \[
   \boxed{t_{pd} \approx 0.69\,R\,C_{load}}
 \]
 The same applies to a falling output through the pull-down network.
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (0,3.2) node[vdd]{$\VDD$} to[R, l=$R$ (pull-up on)] (0,1.4) to[C, l=$C_{load}$, *-] (0,0) node[ground]{};
+  \draw (0,1.4) to[short,-o] (1.4,1.4) node[right]{out};
+  \node[font=\small,align=center] at (0,-1.0) {$C_{load}$ = fan-out + wire\\+ parasitic};
+  \begin{scope}[xshift=4.4cm]
+    \draw[->] (0,0) -- (5.2,0) node[right]{$t$}; \draw[->] (0,0) -- (0,3.0) node[above]{$V_{out}$};
+    \draw[dashed,gray] (0,2.4) node[left,black]{$\VDD$} -- (5,2.4);
+    \draw[thick,blue!60!black,domain=0:5,samples=80] plot (\x,{2.4*(1-exp(-\x/1.1))});
+    \draw[dotted] (0,1.2) node[left]{50\%} -- (0.76,1.2) -- (0.76,0) node[below]{$0.69\,RC$};
+  \end{scope}
+\end{circuitikz}
+\caption{The RC model of a gate. While the output rises, the conducting pull-up network acts as a resistor $R$ charging everything on the output node, $C_{load}$. The output crosses 50\% after about $0.69\,RC$.}
+\label{fig:rcgate}
+\end{figure}
 
 \begin{worked}{an inverter driving four others}
 A unit inverter has an effective resistance of 10\,k$\Omega$, an input capacitance of 1\,fF and a parasitic output capacitance of 1\,fF. It drives four identical inverters (a \term{fan-out of 4}).
@@ -27,12 +44,34 @@ The delay of an inverter driving four copies of itself, the \term{FO4 delay}, is
 
 \section{Rise, fall and propagation}
 
-Precise definitions, all measured on waveforms:
+Precise definitions, all measured on waveforms (Figure~\ref{fig:riseprop}):
 \begin{itemize}
   \item $t_{pLH}$, $t_{pHL}$: from the input crossing 50\% to the output crossing 50\%, for a rising or falling output. The propagation delay is often quoted as their average.
   \item \term{Rise time} and \term{fall time}: how long the output takes to go from 10\% to 90\% of its swing (or the reverse). For an RC curve that is $2.2\,RC$.
   \item The \term{slew} or transition time of a signal is its rise or fall time. A slowly rising input makes the next gate slower and wastes power, because both of its transistors are partly on for longer.
 \end{itemize}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \node[left] at (0,2.9) {input};
+  \draw[thick] (0,2.2) -- (1,2.2) -- (2,3.6) -- (7,3.6);
+  \node[left] at (0,0.7) {output};
+  \draw[thick] (0,1.4) -- (1.5,1.4);
+  \draw[thick,blue!60!black,domain=1.5:7,samples=80] plot (\x,{1.4*exp(-(\x-1.5)/0.9)});
+  \draw[dashed,gray] (1.5,3.9) -- (1.5,-0.9); \draw[dashed,gray] (2.124,1.2) -- (2.124,-0.9);
+  \fill (1.5,2.9) circle (1.5pt); \fill (2.124,0.7) circle (1.5pt);
+  \node[right,font=\scriptsize] at (1.55,2.9) {50\%};
+  \node[right,font=\scriptsize] at (2.124,0.82) {50\%};
+  \draw[<->] (1.5,-0.7) -- node[below,font=\small]{$t_{pHL}$} (2.124,-0.7);
+  \draw[dotted] (1.595,1.26) -- (1.595,-1.7); \draw[dotted] (3.572,0.14) -- (3.572,-1.7);
+  \node[right,font=\scriptsize] at (3.572,0.3) {10\%};
+  \node[above,font=\scriptsize] at (1.595,1.4) {90\%};
+  \draw[<->] (1.595,-1.5) -- node[below,font=\small]{fall time (90\% to 10\%)} (3.572,-1.5);
+\end{tikzpicture}
+\caption{Measuring an inverter's delay. The propagation delay runs from the input crossing 50\% to the output crossing 50\%. The fall time runs from 90\% to 10\% of the output swing.}
+\label{fig:riseprop}
+\end{figure}
 
 \section{How sizing changes delay}
 
@@ -45,6 +84,23 @@ Making a gate $k$ times wider makes it $k$ times stronger (its own delay falls),
 \section{Driving a big load: buffer chains}
 
 Suppose a small gate must drive a huge capacitance: a long bus, a clock net, an output pin. Driving it directly is very slow, and making the small gate huge just loads \emph{its} driver. The solution is a chain of inverters, each bigger than the last by a constant factor, a \term{tapered buffer}.
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (-0.8,0) node[left]{in} -- (0,0);
+  \foreach \x/\s/\l [count=\i] in {0/0.3/1, 1.3/0.42/4, 2.9/0.56/16, 4.8/0.72/64, 7.0/0.9/256} {
+    \draw[thick] (\x,-\s) -- (\x,\s) -- (\x+1.5*\s,0) -- cycle;
+    \draw[thick] (\x+1.5*\s+0.07,0) circle (0.07);
+    \node[below,font=\small] at (\x+0.6*\s,-\s) {\l};
+  }
+  \draw (0.59,0) -- (1.3,0); \draw (2.07,0) -- (2.9,0); \draw (3.88,0) -- (4.8,0); \draw (6.02,0) -- (7.0,0);
+  \draw (8.49,0) -- (9.6,0) to[C, l=load: 1024] (9.6,-1.6) node[ground]{};
+  \node[font=\small] at (4.5,-1.6) {each stage 4 times the one before};
+\end{circuitikz}
+\caption{A tapered buffer: five inverters, each four times larger than the one before (sizes in units of the first), driving a load 1024 times the first inverter's input capacitance. Every stage sees a fan-out of 4.}
+\label{fig:bufchain}
+\end{figure}
 
 If the load is $F$ times the input capacitance of the first inverter and you use $N$ stages, each stage should be $F^{1/N}$ times bigger than the one before. Analysis (and practice) shows the best ratio per stage is around \textbf{4}, so
 \[

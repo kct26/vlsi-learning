@@ -76,8 +76,11 @@ function convertChapter(file, labels, figMeta, extra){
   tex = tex.replace(/\\begin\{(align\*?|equation\*?|gather\*?)\}([\s\S]*?)\\end\{\1\}/g, (_, env, t) => mathBlock(/align/.test(env) ? `\\begin{aligned}${t}\\end{aligned}` : t));
   tex = tex.replace(/\\\[([\s\S]*?)\\\]/g, (_, t) => mathBlock(t));
   tex = tex.replace(/\$\$([\s\S]*?)\$\$/g, (_, t) => mathBlock(t));
-  tex = tex.replace(/(^|[^\\])\$((?:\\.|[^$\\])+)\$/g, (_, pre, t) => pre + K(`<span class="math" data-tex="${esc(t.trim())}">${esc(t.trim())}</span>`));
-  tex = tex.replace(/\\\(([\s\S]*?)\\\)/g, (_, t) => K(`<span class="math" data-tex="${esc(t.trim())}">${esc(t.trim())}</span>`));
+  // A piece that starts with an operator gets an empty term in front ({}), so the operator keeps its spacing.
+  const inlineMath = t => mathPieces(t.trim()).map((p, i) => `<span class="math" data-tex="${esc(i && /^(=|\+|\\approx|\\le|\\ge)/.test(p) ? '{}' + p : p)}">${esc(p)}</span>`).join('<wbr>');
+  // A $ right after \\ (a line break) opens math; only a single backslash escapes it.
+  tex = tex.replace(/(^|[^\\]|\\\\)\$((?:\\.|[^$\\])+)\$/g, (_, pre, t) => pre + K(inlineMath(t)));
+  tex = tex.replace(/\\\(([\s\S]*?)\\\)/g, (_, t) => K(inlineMath(t)));
 
   // Figures: the drawing from the PDF, a table, or just the caption.
   let fig = 0;
@@ -99,8 +102,14 @@ function convertChapter(file, labels, figMeta, extra){
     return K(`<figure class="btab">${tables(body, keep, labels)}${cap ? `<figcaption>${inline(cap, keep, labels)}</figcaption>` : ''}</figure>`, true);
   });
   tex = tex.replace(/\\begin\{(tabularx?)\}[\s\S]*?\\end\{\1\}/g, m => K(tables(m, keep, labels), true));
-  // Drawings that are not in a figure: the PDF has them; the page says so.
-  DROP_ENVS.forEach(env => { tex = tex.replace(new RegExp(`\\\\begin\\{${env}\\}[\\s\\S]*?\\\\end\\{${env}\\}`, 'g'), () => K('<p class="muted small bdraw">(A drawing here is in the PDF book.)</p>', true)); });
+  // Drawings that are not in a figure, in order: the PNG tools/book-figures.py cut for it (dN.K), or a note that
+  // the PDF has it.
+  let draw = 0;
+  tex = tex.replace(new RegExp(`\\\\begin\\{(${DROP_ENVS.join('|')})\\}[\\s\\S]*?\\\\end\\{\\1\\}`, 'g'), () => {
+    const meta = figMeta[`d${n}.${++draw}`];
+    if (!meta) return K('<p class="muted small bdraw">(A drawing here is in the PDF book.)</p>', true);
+    return K(`<figure class="bfig"><img src="book/draw-${n}-${draw}.png" width="${Math.round(meta.w * 0.6)}" height="${Math.round(meta.h * 0.6)}" loading="lazy" alt="${esc(meta.alt)}"></figure>`, true);
+  });
 
   // Split into the chapter title, its introduction, and sections.
   const cm = /\\chapter\*?\{/.exec(tex);
@@ -123,6 +132,44 @@ function convertChapter(file, labels, figMeta, extra){
     sections.push({id:`${n}-${i}`, title:plain(p.title), html});
   });
   return Object.assign({n, title:plain(title), sections}, extra ? {label:extra.label, badge:extra.badge} : {});
+}
+
+// A long inline formula, such as a worked calculation, is cut before each top-level relation (=, \approx, \le,
+// \ge) and wide space (\;, \quad), so on a phone the line can wrap there instead of running off the screen.
+const BREAKS = ['\\approx', '\\le', '\\ge', '\\;', '\\quad', '\\qquad'];
+function mathPieces(t){
+  if (t.length < 20) return [t];
+  const out = [];
+  let depth = 0, start = 0;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (c === '{') depth++;
+    else if (c === '}') depth--;
+    else if (c === '\\') {
+      const name = /^\\([a-zA-Z]+|.)/.exec(t.slice(i))[1];
+      if (name === 'left' || name === 'begin') depth++; else if (name === 'right' || name === 'end') depth--;
+      else if (depth === 0 && i > start && BREAKS.includes('\\' + name)) { out.push(t.slice(start, i)); start = i; }
+      i += name.length;
+    }
+    else if (c === '=' && depth === 0 && i > start) { out.push(t.slice(start, i)); start = i; }
+  }
+  out.push(t.slice(start));
+  const parts = out.map(p => p.trim()).filter(Boolean);
+  if (depth !== 0) return [t];
+  // A piece that is still long, such as a sum of products, may also break before a top-level +.
+  return parts.flatMap(p => p.length > 40 ? splitAt(p, '+') : [p]);
+}
+function splitAt(t, ch){
+  const out = []; let depth = 0, start = 0;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (c === '{') depth++;
+    else if (c === '}') depth--;
+    else if (c === '\\') { const name = /^\\([a-zA-Z]+|.)/.exec(t.slice(i))[1]; if (name === 'left' || name === 'begin') depth++; else if (name === 'right' || name === 'end') depth--; i += name.length; }
+    else if (c === ch && depth === 0 && i > start) { out.push(t.slice(start, i)); start = i; }
+  }
+  out.push(t.slice(start));
+  return out.map(p => p.trim()).filter(Boolean);
 }
 
 function dedent(code){

@@ -56,11 +56,30 @@ An NMOS transistor is on when its gate is higher than its source by more than th
 
 \section{The PMOS transistor}
 
-A \term{PMOS} transistor is the mirror image. It is built in n-type silicon (an \term{n-well}), with p+ source and drain regions. A channel of \emph{holes} forms when the gate is pulled sufficiently \emph{below} the source:
+A \term{PMOS} transistor is the mirror image. It is built in n-type silicon (an \term{n-well}), with p+ source and drain regions (Figure~\ref{fig:cmoswell}). A channel of \emph{holes} forms when the gate is pulled sufficiently \emph{below} the source:
 \[
   V_{SG} > |\Vtp| \quad \text{(gate lower than source by more than the threshold magnitude)}.
 \]
 The source of a PMOS is whichever end is at the \emph{higher} voltage, usually the supply $\VDD$. The n-well is tied to $\VDD$, the highest voltage, to keep its junctions reverse biased.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=0.85]
+  \fill[blue!8] (0,0) rectangle (13.6,2.4);
+  \node at (3.4,0.45) {p-type substrate (tied to ground)};
+  \fill[red!20] (0.7,1.6) rectangle (2.3,2.4); \node at (1.5,2.0) {n+};
+  \fill[red!20] (4.5,1.6) rectangle (6.1,2.4); \node at (5.3,2.0) {n+};
+  \fill[yellow!70] (2.3,2.4) rectangle (4.5,2.56); \fill[gray!50] (2.3,2.56) rectangle (4.5,3.1); \node at (3.4,2.83) {gate};
+  \fill[red!8] (7.2,0.6) rectangle (13.0,2.4); \node at (10.1,0.95) {n-well (tied to $\VDD$)};
+  \fill[blue!25] (7.7,1.6) rectangle (9.3,2.4); \node at (8.5,2.0) {p+};
+  \fill[blue!25] (10.9,1.6) rectangle (12.5,2.4); \node at (11.7,2.0) {p+};
+  \fill[yellow!70] (9.3,2.4) rectangle (10.9,2.56); \fill[gray!50] (9.3,2.56) rectangle (10.9,3.1); \node at (10.1,2.83) {gate};
+  \node[font=\bfseries] at (3.4,3.55) {NMOS};
+  \node[font=\bfseries] at (10.1,3.55) {PMOS};
+\end{tikzpicture}
+\caption{NMOS and PMOS on one chip. The NMOS is built directly in the p-type substrate; the PMOS sits in an n-well, a region of n-type silicon, so both kinds of transistor share one wafer.}
+\label{fig:cmoswell}
+\end{figure}
 
 Because holes are about two to three times less mobile than electrons (Chapter~\ref{ch:semis}), a PMOS carries less current than an NMOS of the same size.
 
@@ -214,6 +233,30 @@ Questions often chain several pass transistors together. Two cases behave very d
 
 \paragraph{Case 2: one transistor's output drives the next transistor's gate.} Now the drops \emph{accumulate}. If node N1 is only at $\VDD - \Vt$ and it drives the gate of the next transistor, that transistor can pass only up to $(\VDD - \Vt) - \Vt$.
 
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (2,3) node[nmos, rotate=-90] (m1) {};
+  \draw (6,3) node[nmos, rotate=-90] (m4) {};
+  \draw (5.6,1.0) node[nmos, rotate=-90] (m2) {};
+  \draw (9.4,-1.0) node[nmos, rotate=-90] (m3) {};
+  \foreach \m/\t in {m1/M1, m4/M4, m2/M2, m3/M3} \node[font=\small] at ($(\m)+(0,-0.75)$) {\t};
+  \draw (0.6,3) node[left]{4\,V in} -- (m1.S);
+  \draw (m1.G) -- ++(0,0.35) node[above]{5\,V};
+  \draw (m4.G) -- ++(0,0.35) node[above]{5\,V};
+  \draw (m1.D) -- (3.9,3) node[circ]{} node[above,blue!70!black]{N1 $=$ 3\,V} -- (m4.S);
+  \draw (m4.D) -- (7.6,3) node[right,blue!70!black]{3\,V out};
+  \draw (3.9,3) -- (3.9,2.0) -| (m2.G);
+  \draw (3.4,1.0) node[left]{5\,V} -- (m2.S);
+  \draw (m2.D) -- (7.6,1.0) node[circ]{} node[above,blue!70!black]{N2 $=$ 1\,V};
+  \draw (7.6,1.0) -- (7.6,0.0) -| (m3.G);
+  \draw (7.4,-1.0) node[left]{5\,V} -- (m3.S);
+  \draw (m3.D) -- (11.0,-1.0) node[right,red!70!black]{M3 off};
+\end{circuitikz}
+\caption{The network in the worked example below ($\VDD = 5$\,V, $\Vt = 2$\,V). M1 and M4 are in series with their gates at 5\,V, so the threshold drop happens once. N1 drives M2's gate and N2 drives M3's gate, so there the drops accumulate.}
+\label{fig:passchain}
+\end{figure}
+
 \begin{worked}{node voltages in a pass-transistor network}
 All NMOS transistors are identical with $\Vt = 2$\,V; the supply is $\VDD = 5$\,V (an older, high-voltage process, used here to make the numbers easy to follow). Ignore the body effect.
 
@@ -270,12 +313,40 @@ Designers use fast low-$\Vt$ transistors only on the few paths that limit speed,
 
 \section{Modern transistor shapes}
 
-As $L$ shrank to tens of nanometers, a gate sitting only on top of the channel could no longer fully control it, and leakage grew. Two newer structures fix this by wrapping the gate around more of the channel:
+As $L$ shrank to tens of nanometers, a gate sitting only on top of the channel could no longer fully control it, and leakage grew. Two newer structures fix this by wrapping the gate around more of the channel (Figure~\ref{fig:finfet}):
 \begin{itemize}
   \item \term{FinFET}: the channel is a thin vertical fin, and the gate wraps over three sides.
   \item \term{Gate-all-around} (GAA) or \term{nanosheet}: the channel is a stack of thin horizontal sheets, each surrounded by the gate on all four sides.
 \end{itemize}
 More gate control means the transistor turns off more completely, which reduces leakage. The basic switch behavior in this chapter is unchanged.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=0.9]
+  \fill[blue!8] (0,0) rectangle (3,1.2);
+  \fill[blue!30] (0.6,0.92) rectangle (2.4,1.2);
+  \fill[yellow!70] (0.6,1.2) rectangle (2.4,1.34);
+  \fill[gray!55] (0.6,1.34) rectangle (2.4,2.1);
+  \node[font=\small,align=center] at (1.5,-0.55) {planar:\\gate on top only};
+  \begin{scope}[xshift=4.3cm]
+    \fill[blue!8] (0,0) rectangle (3,0.8);
+    \fill[gray!55] (0.7,0.8) rectangle (2.3,2.5);
+    \fill[yellow!70] (1.16,0.8) rectangle (1.84,2.14);
+    \fill[blue!30] (1.26,0.8) rectangle (1.74,2.04);
+    \node[font=\small,align=center] at (1.5,-0.55) {FinFET:\\gate on 3 sides};
+  \end{scope}
+  \begin{scope}[xshift=8.6cm]
+    \fill[blue!8] (0,0) rectangle (3,0.8);
+    \fill[gray!55] (0.6,0.8) rectangle (2.4,2.75);
+    \foreach \y in {1.05,1.6,2.15} { \fill[yellow!70] (0.88,\y) rectangle (2.12,\y+0.36); \fill[blue!30] (0.98,\y+0.1) rectangle (2.02,\y+0.26); }
+    \node[font=\small,align=center] at (1.5,-0.55) {gate-all-around:\\gate on all sides};
+  \end{scope}
+  \foreach \c/\t [count=\i] in {gray!55/gate, yellow!70/oxide, blue!30/channel (silicon)} {
+    \fill[\c] (2.2+2.6*\i,-1.7) rectangle ++(0.35,0.3); \node[right,font=\small] at (2.6+2.6*\i,-1.55) {\t}; }
+\end{tikzpicture}
+\caption{Three transistor shapes, seen end-on with current flowing into the page. The more of the channel the gate surrounds, the more completely it can turn the transistor off.}
+\label{fig:finfet}
+\end{figure}
 
 \section{Summary}
 

@@ -57,11 +57,31 @@ So a semiconductor has \emph{two} kinds of charge carriers: negative electrons a
 \section{Doping: controlling the carriers}
 \label{sec:doping}
 
-Pure silicon has too few carriers to be useful. \term{Doping} adds a tiny, carefully controlled amount of another element, typically a few atoms per million or less, and changes conductivity enormously.
+Pure silicon has too few carriers to be useful. \term{Doping} adds a tiny, carefully controlled amount of another element, typically a few atoms per million or less, and changes conductivity enormously (Figure~\ref{fig:doping}).
 
 \paragraph{n-type silicon.} Add atoms with \emph{five} valence electrons, such as phosphorus or arsenic. Four electrons bond with silicon neighbors; the fifth has nothing to bond with and is freed easily. The silicon now has many free electrons, which carry negative charge, so it is called \term{n-type}. Electrons are its \term{majority carriers}; holes are \term{minority carriers}.
 
 \paragraph{p-type silicon.} Add atoms with \emph{three} valence electrons, such as boron. One bond is left incomplete, creating a hole. The silicon now has many holes, which act as positive carriers, so it is called \term{p-type}. Holes are its majority carriers.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=0.8]
+  \foreach \ox in {0,6.6} {
+    \foreach \x in {0,1.6,3.2} \foreach \y in {0,1.6,3.2} {
+      \draw[thick,gray] (\ox+\x-0.8,\y) -- (\ox+\x+0.8,\y); \draw[thick,gray] (\ox+\x,\y-0.8) -- (\ox+\x,\y+0.8);
+      \fill[gray!25] (\ox+\x,\y) circle (0.38); \node at (\ox+\x,\y) {\small Si};}}
+  \fill[red!30] (1.6,1.6) circle (0.42); \node at (1.6,1.6) {\small P};
+  \fill[blue] (2.3,2.25) circle (0.1);
+  \fill[blue!25] (8.2,1.6) circle (0.42); \node at (8.2,1.6) {\small B};
+  \fill[white] (9.0,1.6) circle (0.13); \draw (9.0,1.6) circle (0.13);
+  \node[font=\small] at (1.6,-1.3) {n-type (phosphorus)};
+  \node[font=\small] at (8.2,-1.3) {p-type (boron)};
+  \node[font=\scriptsize,blue!70!black,anchor=west] at (2.45,2.25) {free};
+  \node[font=\scriptsize,anchor=north] at (9.0,1.4) {hole};
+\end{tikzpicture}
+\caption{Doping. A phosphorus atom (left) bonds with four silicon neighbors and has a fifth electron left over, free to move: n-type. A boron atom (right) has only three, so one bond is missing an electron, a hole: p-type.}
+\label{fig:doping}
+\end{figure}
 
 \begin{remember}
 \textbf{n}-type: extra \textbf{n}egative carriers (electrons), from 5-electron dopants like phosphorus.\\

@@ -49,13 +49,30 @@ At these tiny dimensions, copper's effective resistivity is also higher than in 
 
 \section{Wire capacitance and crosstalk}
 
-A wire has capacitance to the layers above and below (effectively to ground) and to its \emph{neighbors} on the same layer. In dense wiring, neighbor capacitance, called \term{coupling capacitance}, is often the largest part. Coupling causes \term{crosstalk}: a switching wire (the \term{aggressor}) disturbs a nearby wire (the \term{victim}).
+A wire has capacitance to the layers above and below (effectively to ground) and to its \emph{neighbors} on the same layer. In dense wiring, neighbor capacitance, called \term{coupling capacitance}, is often the largest part. Coupling causes \term{crosstalk}: a switching wire (the \term{aggressor}) disturbs a nearby wire (the \term{victim}), as in Figure~\ref{fig:crosstalk}.
 
 \paragraph{Noise on a quiet victim.} If the victim is supposed to hold steady, a switching aggressor pushes charge onto it through the coupling capacitance $C_c$. If the victim's driver did not fight back at all, the victim's voltage would jump by
 \[
   \Delta V \approx \VDD\,\frac{C_c}{C_c + C_g},
 \]
 where $C_g$ is the victim's capacitance to ground. A real driver pulls it back, so the result is a glitch. A large enough glitch can flip a latch or a dynamic node.
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw[thick] (0,2) node[left]{aggressor} -- (6,2);
+  \draw[thick] (0,0) node[left]{victim} -- (6,0);
+  \draw (2.6,2) to[C, l=$C_c$, *-*] (2.6,0);
+  \draw (4.4,0) to[C, l=$C_g$, *-] (4.4,-1.5) node[ground]{};
+  \draw[thick,red!70!black] (6.6,1.75) -- (7.1,1.75) -- (7.4,2.6) -- (8.6,2.6);
+  \node[font=\scriptsize,red!70!black] at (7.6,1.5) {switches 0 to 1};
+  \draw (6.5,-0.3) -- (8.7,-0.3);
+  \draw[thick,blue!70!black] (6.6,-0.3) -- (7.1,-0.3) .. controls (7.25,0.55) and (7.45,0.3) .. (7.7,0.0) .. controls (7.95,-0.25) .. (8.6,-0.3);
+  \node[font=\scriptsize,blue!70!black] at (7.6,-0.65) {glitch, then recovers};
+\end{circuitikz}
+\caption{Crosstalk. When the aggressor switches, charge couples through $C_c$ onto the quiet victim and makes a glitch; the victim's driver then pulls it back. The bigger $C_c$ is compared with $C_g$, the bigger the glitch.}
+\label{fig:crosstalk}
+\end{figure}
 
 \begin{worked}{size of a crosstalk glitch}
 $C_c = 10$\,fF, $C_g = 30$\,fF, $\VDD = 0.8$\,V. Worst case: $\Delta V \approx 0.8 \times 10/40 = 0.2$\,V, a quarter of the supply.

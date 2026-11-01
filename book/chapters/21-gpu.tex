@@ -9,6 +9,133 @@ A \textbf{CPU} is designed to finish \emph{one} thread of instructions as fast a
 
 A \textbf{GPU} is designed to finish a \emph{huge number} of similar, independent tasks at the greatest total rate. It spends its transistors on thousands of simple arithmetic units, and it tolerates slow memory not by avoiding waits but by always having other work ready.
 
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \draw[thick] (0,0) rectangle (4.2,4); \node[font=\small\bfseries] at (2.1,4.3) {CPU};
+  \foreach \x/\y in {0.2/2.5, 2.2/2.5, 0.2/1.3, 2.2/1.3} { \draw[fill=green!35] (\x,\y) rectangle ++(1.8,1.0); \node[font=\small] at (\x+0.9,\y+0.5) {core}; }
+  \draw[fill=blue!20] (0.2,0.2) rectangle (4.0,1.1); \node[font=\small] at (2.1,0.65) {large caches};
+  \draw[thick] (5.2,0) rectangle (9.0,4); \node[font=\small\bfseries] at (7.1,4.3) {GPU};
+  \fill[green!35] (5.35,1.15) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.35,1.47) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.35,1.79) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.35,2.11) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.35,2.43) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.35,2.75) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.35,3.07) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.35,3.39) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.60,1.15) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.60,1.47) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.60,1.79) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.60,2.11) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.60,2.43) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.60,2.75) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.60,3.07) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.60,3.39) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.85,1.15) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.85,1.47) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.85,1.79) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.85,2.11) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.85,2.43) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.85,2.75) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.85,3.07) rectangle ++(0.2,0.2);
+  \fill[green!35] (5.85,3.39) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.10,1.15) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.10,1.47) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.10,1.79) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.10,2.11) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.10,2.43) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.10,2.75) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.10,3.07) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.10,3.39) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.35,1.15) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.35,1.47) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.35,1.79) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.35,2.11) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.35,2.43) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.35,2.75) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.35,3.07) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.35,3.39) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.60,1.15) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.60,1.47) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.60,1.79) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.60,2.11) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.60,2.43) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.60,2.75) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.60,3.07) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.60,3.39) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.85,1.15) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.85,1.47) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.85,1.79) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.85,2.11) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.85,2.43) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.85,2.75) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.85,3.07) rectangle ++(0.2,0.2);
+  \fill[green!35] (6.85,3.39) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.10,1.15) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.10,1.47) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.10,1.79) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.10,2.11) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.10,2.43) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.10,2.75) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.10,3.07) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.10,3.39) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.35,1.15) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.35,1.47) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.35,1.79) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.35,2.11) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.35,2.43) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.35,2.75) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.35,3.07) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.35,3.39) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.60,1.15) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.60,1.47) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.60,1.79) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.60,2.11) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.60,2.43) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.60,2.75) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.60,3.07) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.60,3.39) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.85,1.15) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.85,1.47) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.85,1.79) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.85,2.11) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.85,2.43) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.85,2.75) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.85,3.07) rectangle ++(0.2,0.2);
+  \fill[green!35] (7.85,3.39) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.10,1.15) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.10,1.47) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.10,1.79) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.10,2.11) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.10,2.43) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.10,2.75) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.10,3.07) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.10,3.39) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.35,1.15) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.35,1.47) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.35,1.79) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.35,2.11) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.35,2.43) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.35,2.75) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.35,3.07) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.35,3.39) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.60,1.15) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.60,1.47) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.60,1.79) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.60,2.11) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.60,2.43) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.60,2.75) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.60,3.07) rectangle ++(0.2,0.2);
+  \fill[green!35] (8.60,3.39) rectangle ++(0.2,0.2);
+  \draw[fill=blue!20] (5.35,0.2) rectangle (8.85,0.9); \node[font=\small] at (7.1,0.55) {L2 cache};
+  \node[font=\small,align=center] at (2.1,-0.6) {a few powerful cores};
+  \node[font=\small,align=center] at (7.1,-0.6) {thousands of simple units};
+\end{tikzpicture}
+\caption{Where the transistors go (schematic, not to scale). A CPU spends its area on a few powerful cores and large caches; a GPU spends it on thousands of simple arithmetic units (green).}
+\label{fig:cpugpu}
+\end{figure}
+
 \begin{everyday}
 A CPU is a few expert chefs who can cook any dish quickly. A GPU is a giant kitchen with thousands of line cooks, each doing the same simple step on a different plate. For one complicated dish, the expert wins. For ten thousand identical burgers, the kitchen wins by a mile.
 \end{everyday}
@@ -18,10 +145,32 @@ Graphics and AI are full of identical, independent work: every pixel on the scre
 \section{How a GPU is organized}
 
 \begin{itemize}
-  \item The chip contains many \term{streaming multiprocessors} (SMs). Each SM has many arithmetic units (``CUDA cores''), special units for matrix math (tensor cores), a very large \term{register file}, and a fast on-chip SRAM called \term{shared memory} (configurable together with the L1 cache).
+  \item The chip contains many \term{streaming multiprocessors} (SMs; Figure~\ref{fig:gpuorg}). Each SM has many arithmetic units (``CUDA cores''), special units for matrix math (tensor cores), a very large \term{register file}, and a fast on-chip SRAM called \term{shared memory} (configurable together with the L1 cache).
   \item All SMs share a large \term{L2 cache}, which connects to high-bandwidth DRAM (HBM or GDDR) through very wide memory interfaces.
   \item Threads are grouped into \term{warps} of 32 threads. All 32 threads of a warp execute the same instruction at the same time, each on its own data. NVIDIA calls this \term{SIMT}: single instruction, multiple threads.
 \end{itemize}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \draw[thick,rounded corners=3pt] (0,0) rectangle (6.4,4.6); \node[font=\small\bfseries,anchor=west] at (0.15,4.35) {GPU};
+  \foreach \i in {0,...,3} \foreach \j in {0,1} {
+    \draw[fill=green!25] (0.3+1.5*\i,1.75+1.15*\j) rectangle ++(1.3,0.95); \node[font=\small] at (0.95+1.5*\i,2.22+1.15*\j) {SM}; }
+  \draw[fill=blue!20] (0.3,0.5) rectangle (6.1,1.4); \node[font=\small] at (3.2,0.95) {L2 cache, shared by all SMs};
+  \draw[fill=gray!25] (0.3,-1.5) rectangle (6.1,-0.7); \node[font=\small] at (3.2,-1.1) {DRAM (HBM or GDDR)};
+  \foreach \x in {1.0,2.2,3.4,4.6,5.8} \draw[<->,thick] (\x,0.0) -- (\x,-0.7);
+  \draw[dashed] (6.1,3.85) -- (7.3,4.6); \draw[dashed] (6.1,2.9) -- (7.3,0.0);
+  \draw[thick,rounded corners=3pt,fill=green!8] (7.3,0) rectangle (12.8,4.6); \node[font=\small\bfseries,anchor=west] at (7.45,4.35) {one SM};
+  \foreach \i in {0,...,15} \foreach \j in {0,1} \fill[green!45] (7.55+0.19*\i,3.35+0.24*\j) rectangle ++(0.15,0.19);
+  \node[font=\scriptsize,anchor=west] at (10.6,3.6) {CUDA cores};
+  \draw[fill=orange!30] (7.55,2.6) rectangle (9.0,3.15); \draw[fill=orange!30] (9.1,2.6) rectangle (10.55,3.15); \node[font=\scriptsize,anchor=west] at (10.6,2.87) {tensor cores};
+  \draw[fill=red!20] (7.55,1.7) rectangle (12.55,2.4); \node[font=\small] at (10.05,2.05) {large register file};
+  \draw[fill=blue!20] (7.55,0.8) rectangle (12.55,1.5); \node[font=\small] at (10.05,1.15) {shared memory / L1};
+  \node[font=\scriptsize,align=center] at (10.05,0.38) {runs warps of 32 threads};
+\end{tikzpicture}
+\caption{How a GPU is organized (schematic). Many streaming multiprocessors (SMs) share an L2 cache and very wide DRAM interfaces. Each SM has its own arithmetic units, tensor cores, register file and shared memory.}
+\label{fig:gpuorg}
+\end{figure}
 
 \section{Hiding latency with many threads}
 
@@ -36,6 +185,72 @@ A memory access to DRAM takes hundreds of cycles. A CPU tries to avoid that wait
 \section{The CUDA programming model}
 
 In CUDA, the programmer writes a \term{kernel}: a function that one thread runs. The kernel is launched on a \term{grid} of \term{thread blocks}, each block containing many threads (up to 1024). Blocks are assigned to SMs; threads within a block can cooperate through shared memory and synchronize with \code{\_\_syncthreads()}. Each thread finds its own piece of work from its indices.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \draw[thick,rounded corners=2pt] (0.00,0) rectangle (2.70,1.2);
+  \node[font=\small] at (1.35,1.5) {\texttt{blockIdx.x = 0}};
+  \draw[fill=green!20] (0.15,0.25) rectangle ++(0.525,0.7);
+  \node[font=\small] at (0.41,0.6) {0};
+  \node[font=\small,gray] at (0.41,-0.3) {0};
+  \draw[fill=green!20] (0.78,0.25) rectangle ++(0.525,0.7);
+  \node[font=\small] at (1.04,0.6) {1};
+  \node[font=\small,gray] at (1.04,-0.3) {1};
+  \draw[fill=green!20] (1.40,0.25) rectangle ++(0.525,0.7);
+  \node[font=\small] at (1.66,0.6) {2};
+  \node[font=\small,gray] at (1.66,-0.3) {2};
+  \draw[fill=green!20] (2.02,0.25) rectangle ++(0.525,0.7);
+  \node[font=\small] at (2.29,0.6) {3};
+  \node[font=\small,gray] at (2.29,-0.3) {3};
+  \draw[thick,rounded corners=2pt] (3.00,0) rectangle (5.70,1.2);
+  \node[font=\small] at (4.35,1.5) {\texttt{blockIdx.x = 1}};
+  \draw[fill=green!20] (3.15,0.25) rectangle ++(0.525,0.7);
+  \node[font=\small] at (3.41,0.6) {0};
+  \node[font=\small,gray] at (3.41,-0.3) {4};
+  \draw[fill=green!20] (3.77,0.25) rectangle ++(0.525,0.7);
+  \node[font=\small] at (4.04,0.6) {1};
+  \node[font=\small,gray] at (4.04,-0.3) {5};
+  \draw[fill=green!20] (4.40,0.25) rectangle ++(0.525,0.7);
+  \node[font=\small] at (4.66,0.6) {2};
+  \node[font=\small,gray] at (4.66,-0.3) {6};
+  \draw[fill=green!20] (5.03,0.25) rectangle ++(0.525,0.7);
+  \node[font=\small] at (5.29,0.6) {3};
+  \node[font=\small,gray] at (5.29,-0.3) {7};
+  \draw[thick,rounded corners=2pt] (6.00,0) rectangle (8.70,1.2);
+  \node[font=\small] at (7.35,1.5) {\texttt{blockIdx.x = 2}};
+  \draw[fill=green!20] (6.15,0.25) rectangle ++(0.525,0.7);
+  \node[font=\small] at (6.41,0.6) {0};
+  \node[font=\small,gray] at (6.41,-0.3) {8};
+  \draw[fill=orange!40,thick] (6.78,0.25) rectangle ++(0.525,0.7);
+  \node[font=\small] at (7.04,0.6) {1};
+  \node[font=\small,orange!70!black] at (7.04,-0.3) {9};
+  \draw[fill=green!20] (7.40,0.25) rectangle ++(0.525,0.7);
+  \node[font=\small] at (7.66,0.6) {2};
+  \node[font=\small,gray] at (7.66,-0.3) {10};
+  \draw[fill=green!20] (8.03,0.25) rectangle ++(0.525,0.7);
+  \node[font=\small] at (8.29,0.6) {3};
+  \node[font=\small,gray] at (8.29,-0.3) {11};
+  \draw[thick,rounded corners=2pt] (9.00,0) rectangle (11.70,1.2);
+  \node[font=\small] at (10.35,1.5) {\texttt{blockIdx.x = 3}};
+  \draw[fill=green!20] (9.15,0.25) rectangle ++(0.525,0.7);
+  \node[font=\small] at (9.41,0.6) {0};
+  \node[font=\small,gray] at (9.41,-0.3) {12};
+  \draw[fill=green!20] (9.78,0.25) rectangle ++(0.525,0.7);
+  \node[font=\small] at (10.04,0.6) {1};
+  \node[font=\small,gray] at (10.04,-0.3) {13};
+  \draw[fill=green!20] (10.40,0.25) rectangle ++(0.525,0.7);
+  \node[font=\small] at (10.66,0.6) {2};
+  \node[font=\small,gray] at (10.66,-0.3) {14};
+  \draw[fill=green!20] (11.03,0.25) rectangle ++(0.525,0.7);
+  \node[font=\small] at (11.29,0.6) {3};
+  \node[font=\small,gray] at (11.29,-0.3) {15};
+  \node[font=\small,anchor=east] at (-0.15,0.6) {\texttt{threadIdx.x}}; \node[font=\small,anchor=east,gray] at (-0.15,-0.3) {global $i$};
+  \node[font=\small] at (5.85,-1.0) {\texttt{i = blockIdx.x * blockDim.x + threadIdx.x}};
+\end{tikzpicture}
+\caption{A grid of four thread blocks with four threads each (real blocks have up to 1024). The numbers in the boxes are \texttt{threadIdx.x}; each thread computes its own global index $i$. With \texttt{blockDim.x} $= 4$, thread 1 of block 2 gets $i = 2 \times 4 + 1 = 9$.}
+\label{fig:cudagrid}
+\end{figure}
 
 \begin{lstlisting}[language=C]
 // Each thread adds one pair of elements: c[i] = a[i] + b[i]
@@ -69,6 +284,55 @@ Multiplying two $4096 \times 4096$ matrices takes $2 \times 4096^3 \approx 1.37\
 \]
 For 32-bit IEEE floating point (FP32), the exponent has 8 bits with a bias of 127, and the fraction has 23 bits. The exponent sets the \emph{range} (how large or small a number can be); the fraction sets the \emph{precision} (how many significant digits).
 
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \draw[fill=red!25] (0.00,0) rectangle ++(0.38,0.55); \node[font=\small] at (0.19,0.275) {0};
+  \draw[fill=blue!20] (0.38,0) rectangle ++(0.38,0.55); \node[font=\small] at (0.57,0.275) {1};
+  \draw[fill=blue!20] (0.76,0) rectangle ++(0.38,0.55); \node[font=\small] at (0.95,0.275) {0};
+  \draw[fill=blue!20] (1.14,0) rectangle ++(0.38,0.55); \node[font=\small] at (1.33,0.275) {0};
+  \draw[fill=blue!20] (1.52,0) rectangle ++(0.38,0.55); \node[font=\small] at (1.71,0.275) {0};
+  \draw[fill=blue!20] (1.90,0) rectangle ++(0.38,0.55); \node[font=\small] at (2.09,0.275) {0};
+  \draw[fill=blue!20] (2.28,0) rectangle ++(0.38,0.55); \node[font=\small] at (2.47,0.275) {0};
+  \draw[fill=blue!20] (2.66,0) rectangle ++(0.38,0.55); \node[font=\small] at (2.85,0.275) {0};
+  \draw[fill=blue!20] (3.04,0) rectangle ++(0.38,0.55); \node[font=\small] at (3.23,0.275) {0};
+  \draw[fill=green!20] (3.42,0) rectangle ++(0.38,0.55); \node[font=\small] at (3.61,0.275) {1};
+  \draw[fill=green!20] (3.80,0) rectangle ++(0.38,0.55); \node[font=\small] at (3.99,0.275) {0};
+  \draw[fill=green!20] (4.18,0) rectangle ++(0.38,0.55); \node[font=\small] at (4.37,0.275) {0};
+  \draw[fill=green!20] (4.56,0) rectangle ++(0.38,0.55); \node[font=\small] at (4.75,0.275) {0};
+  \draw[fill=green!20] (4.94,0) rectangle ++(0.38,0.55); \node[font=\small] at (5.13,0.275) {0};
+  \draw[fill=green!20] (5.32,0) rectangle ++(0.38,0.55); \node[font=\small] at (5.51,0.275) {0};
+  \draw[fill=green!20] (5.70,0) rectangle ++(0.38,0.55); \node[font=\small] at (5.89,0.275) {0};
+  \draw[fill=green!20] (6.08,0) rectangle ++(0.38,0.55); \node[font=\small] at (6.27,0.275) {0};
+  \draw[fill=green!20] (6.46,0) rectangle ++(0.38,0.55); \node[font=\small] at (6.65,0.275) {0};
+  \draw[fill=green!20] (6.84,0) rectangle ++(0.38,0.55); \node[font=\small] at (7.03,0.275) {0};
+  \draw[fill=green!20] (7.22,0) rectangle ++(0.38,0.55); \node[font=\small] at (7.41,0.275) {0};
+  \draw[fill=green!20] (7.60,0) rectangle ++(0.38,0.55); \node[font=\small] at (7.79,0.275) {0};
+  \draw[fill=green!20] (7.98,0) rectangle ++(0.38,0.55); \node[font=\small] at (8.17,0.275) {0};
+  \draw[fill=green!20] (8.36,0) rectangle ++(0.38,0.55); \node[font=\small] at (8.55,0.275) {0};
+  \draw[fill=green!20] (8.74,0) rectangle ++(0.38,0.55); \node[font=\small] at (8.93,0.275) {0};
+  \draw[fill=green!20] (9.12,0) rectangle ++(0.38,0.55); \node[font=\small] at (9.31,0.275) {0};
+  \draw[fill=green!20] (9.50,0) rectangle ++(0.38,0.55); \node[font=\small] at (9.69,0.275) {0};
+  \draw[fill=green!20] (9.88,0) rectangle ++(0.38,0.55); \node[font=\small] at (10.07,0.275) {0};
+  \draw[fill=green!20] (10.26,0) rectangle ++(0.38,0.55); \node[font=\small] at (10.45,0.275) {0};
+  \draw[fill=green!20] (10.64,0) rectangle ++(0.38,0.55); \node[font=\small] at (10.83,0.275) {0};
+  \draw[fill=green!20] (11.02,0) rectangle ++(0.38,0.55); \node[font=\small] at (11.21,0.275) {0};
+  \draw[fill=green!20] (11.40,0) rectangle ++(0.38,0.55); \node[font=\small] at (11.59,0.275) {0};
+  \draw[fill=green!20] (11.78,0) rectangle ++(0.38,0.55); \node[font=\small] at (11.97,0.275) {0};
+  \node[font=\scriptsize,gray] at (0.19,0.8) {31};
+  \node[font=\scriptsize,gray] at (0.57,0.8) {30};
+  \node[font=\scriptsize,gray] at (3.23,0.8) {23};
+  \node[font=\scriptsize,gray] at (3.61,0.8) {22};
+  \node[font=\scriptsize,gray] at (11.97,0.8) {0};
+  \draw[decorate,decoration={brace,mirror,amplitude=4pt}] (0.00,-0.1) -- node[below=5pt,font=\small,align=center]{sign\\$s = 0$} (0.38,-0.1);
+  \draw[decorate,decoration={brace,mirror,amplitude=4pt}] (0.38,-0.1) -- node[below=5pt,font=\small,align=center]{exponent: 8 bits\\$e = 128$} (3.42,-0.1);
+  \draw[decorate,decoration={brace,mirror,amplitude=4pt}] (3.42,-0.1) -- node[below=5pt,font=\small,align=center]{fraction: 23 bits\\$.m = .1_2 = 0.5$} (12.16,-0.1);
+  \node[font=\small] at (6.08,-1.75) {value $= (-1)^0 \times 1.5 \times 2^{128 - 127} = 3.0$};
+\end{tikzpicture}
+\caption{The FP32 layout, filled in with \texttt{0x40400000} from the worked example: 1 sign bit, 8 exponent bits and 23 fraction bits.}
+\label{fig:fp32}
+\end{figure}
+
 \begin{worked}{decoding an FP32 number}
 \code{0x40400000} $= 0\;10000000\;10000000000000000000000_2$. Sign 0 (positive). Exponent $128 - 127 = 1$. Fraction $.1_2 = 0.5$, so $1.m = 1.5$. Value: $1.5 \times 2^1 = 3.0$. Likewise \code{0x3F800000} is $1.0$, and \code{0xC0000000} is $-2.0$.
 \end{worked}
@@ -100,6 +364,26 @@ Every computation needs both arithmetic and data. Its \term{arithmetic intensity
   \item above it, the program is \term{compute-bound}.
 \end{itemize}
 Plotting achievable performance against intensity gives the \term{roofline model}.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \draw[->] (0,0) -- (7.9,0);
+  \node[font=\small] at (3.75,-0.85) {arithmetic intensity (FLOP per byte, log scale)};
+  \draw[->] (0,0) -- (0,4.9) node[above,font=\small]{TFLOP/s (log scale)};
+  \foreach \v/\t in {0.01/0.01, 0.1/0.1, 1/1, 10/10, 100/100, 1000/1000} \draw ({1.5*(log10(\v)+2)},0) -- ++(0,-0.08) node[below,font=\scriptsize]{\t};
+  \foreach \v/\t in {0.01/0.01, 0.1/0.1, 1/1, 10/10, 100/100} \draw (0,{log10(\v)+2}) -- ++(-0.08,0) node[left,font=\scriptsize]{\t};
+  \draw[very thick,blue!70!black] (0.000,0.301) -- (5.548,4.000) -- (7.500,4.000);
+  \draw[dashed] (5.548,4.000) -- (5.548,0.000);
+  \node[font=\scriptsize,anchor=west] at (5.598,1.000) {ridge: 50 FLOP/byte};
+  \node[font=\small,blue!70!black,rotate=33.7,anchor=south] at (2.774,2.151) {memory roof: $2 \times$ intensity};
+  \node[font=\small,blue!70!black,anchor=south] at (5.348,4.000) {compute roof: 100};
+  \fill[red!70!black] (1.355,1.204) circle (2.5pt) node[below right,font=\small,align=left]{vector add,\\memory-bound};
+  \fill[green!40!black] (7.048,4.000) circle (2.5pt) node[below,font=\small,align=center]{large matrix multiply,\\compute-bound};
+\end{tikzpicture}
+\caption{The roofline for a GPU with 100\,TFLOP/s of compute and 2\,TB/s of memory bandwidth. Below 50 FLOP per byte, performance is capped by bandwidth (the slanted roof); above it, by compute.}
+\label{fig:roofline}
+\end{figure}
 
 \begin{worked}{is vector add compute-bound?}
 A GPU delivers 100 TFLOP/s and 2\,TB/s, so it balances at $100\times10^{12}/2\times10^{12} = 50$ FLOP per byte. Vector add (\code{c[i] = a[i] + b[i]} in FP32) does 1 FLOP per 12 bytes (two 4-byte loads and one 4-byte store): about 0.08 FLOP/byte, far below 50. It is heavily memory-bound; only bandwidth matters. A large matrix multiply reuses each loaded value many times, reaching high intensity, so it can use the full compute.

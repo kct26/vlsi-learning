@@ -27,6 +27,21 @@ SF & slow NMOS, fast PMOS \\
 \end{center}
 The skewed corners (FS and SF) matter for circuits that depend on a balance between pull-up and pull-down, such as an inverter's switching threshold or an SRAM cell's stability (Chapter~\ref{ch:memory}). Local variation is handled statistically, with \term{Monte Carlo} simulation (running many simulations with randomly varied transistors) and with timing margins called on-chip variation (OCV) derates.
 
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \draw[->] (0,0) -- (5.2,0) node[below left,font=\small]{NMOS: slow $\to$ fast};
+  \draw[->] (0,0) -- (0,5.0) node[above,font=\small]{PMOS: slow $\to$ fast};
+  \fill[gray!15,rotate around={45:(2.5,2.5)}] (2.5,2.5) ellipse (1.9 and 0.75);
+  \draw[dashed] (1,1) rectangle (4,4);
+  \foreach \p/\l/\a in {{(1,1)}/SS/below left, {(4,4)}/FF/above right, {(2.5,2.5)}/TT/right, {(4,1)}/FS/below right, {(1,4)}/SF/above left} {
+    \fill \p circle (2.2pt); \node[\a,font=\small\bfseries] at \p {\l}; }
+  \node[font=\scriptsize,gray!70!black,align=center] at (1.75,1.75) {most\\chips};
+\end{tikzpicture}
+\caption{Process corners. Most chips land near typical (TT), and whole-wafer effects tend to make NMOS and PMOS fast or slow together (the shaded band). Sign-off checks the extremes: SS, FF, and the skewed corners FS and SF.}
+\label{fig:corners}
+\end{figure}
+
 A practical consequence is \term{binning}: chips from the same wafer are tested and sorted by how fast they run, and faster chips are sold as higher-end products.
 
 \section{Voltage variation}
@@ -80,7 +95,7 @@ A 60\,\textdegree C rise adds about 23\% to the wire's resistance, and to its RC
 \section{Temperature inversion}
 \label{sec:tempinv}
 
-For a transistor, heat has two opposite effects: lower mobility (slower) and lower threshold (faster). Which wins depends on the supply voltage. Drive current is roughly
+For a transistor, heat has two opposite effects: lower mobility (slower) and lower threshold (faster). Which wins depends on the supply voltage (Figure~\ref{fig:tempinv}). Drive current is roughly
 \[
   I \propto \mu(T)\,\big(\VDD - \Vt(T)\big)^{\alpha}, \qquad \alpha \approx 1 \text{ to } 1.3.
 \]
@@ -94,6 +109,25 @@ Suppose heating a chip from 25\,\textdegree C to 100\,\textdegree C lowers mobil
 \end{worked}
 
 At high supply voltages the overdrive is large, so a small change in $\Vt$ hardly matters and the mobility loss dominates: hotter is slower. At low supply voltages, common in modern power-saving chips, the overdrive is small, so the $\Vt$ drop is a large fraction of it and wins: hotter is faster, and the worst-case speed is at the \emph{coldest} temperature. This is \term{temperature inversion}.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \draw[->] (0,0) -- (6.4,0) node[right]{$\VDD$};
+  \draw[->] (0,0) -- (0,3.8) node[above]{drive current};
+  \fill[orange!12] (0,0) rectangle (3.31,3.5); \fill[blue!8] (3.31,0) rectangle (6,3.5);
+  \draw[thick,blue!70!black,domain=0.352:1,samples=60] plot ({6*\x},{1*6*pow(max(\x-0.35,0),1.3)});
+  \draw[thick,red!70!black,domain=0.302:1,samples=60] plot ({6*\x},{0.75*6*pow(max(\x-0.3,0),1.3)});
+  \draw[dashed] (3.31,0) node[below]{0.55\,V} -- (3.31,3.5);
+  \node[below] at (6,0) {1.0\,V}; \draw (6,0.08) -- (6,-0.08);
+  \node[right,font=\small,blue!70!black] at (6.05,3.43) {25\,\textdegree C};
+  \node[right,font=\small,red!70!black] at (6.05,2.83) {100\,\textdegree C};
+  \node[font=\small,align=center] at (1.65,2.9) {low $\VDD$:\\hot is faster};
+  \node[font=\small,align=center] at (4.6,0.7) {high $\VDD$:\\cold is faster};
+\end{tikzpicture}
+\caption{Temperature inversion, with the numbers of the worked example. Heat lowers $\Vt$, so the hot curve starts earlier, but it also lowers mobility, so it rises more slowly. Below about 0.55\,V the hot transistor is stronger; above it, the cold one is.}
+\label{fig:tempinv}
+\end{figure}
 
 \begin{trap}
 True or false: ``A chip is always slowest at its highest temperature.'' False for modern low-voltage designs, because of temperature inversion. Wires, however, are always slower when hot.

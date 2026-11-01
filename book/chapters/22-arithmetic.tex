@@ -203,6 +203,26 @@ A 32-bit divide takes on the order of 32 steps. Faster dividers (SRT division) p
 
 Integer hardware is small and fast, and many signals, such as audio samples, filter coefficients and neural-network weights, have a known, limited range. \term{Fixed-point} numbers store fractions in ordinary integers by agreeing on where the binary point is.
 
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \draw[fill=blue!20] (0.00,0) rectangle ++(0.8,0.7); \node at (0.40,0.35) {0}; \node[font=\scriptsize,gray] at (0.40,1.0) {8};
+  \draw[fill=blue!20] (0.80,0) rectangle ++(0.8,0.7); \node at (1.20,0.35) {0}; \node[font=\scriptsize,gray] at (1.20,1.0) {4};
+  \draw[fill=blue!20] (1.60,0) rectangle ++(0.8,0.7); \node at (2.00,0.35) {1}; \node[font=\scriptsize,gray] at (2.00,1.0) {2};
+  \draw[fill=blue!20] (2.40,0) rectangle ++(0.8,0.7); \node at (2.80,0.35) {0}; \node[font=\scriptsize,gray] at (2.80,1.0) {1};
+  \draw[fill=green!20] (3.50,0) rectangle ++(0.8,0.7); \node at (3.90,0.35) {1}; \node[font=\scriptsize,gray] at (3.90,1.0) {$\tfrac12$};
+  \draw[fill=green!20] (4.30,0) rectangle ++(0.8,0.7); \node at (4.70,0.35) {1}; \node[font=\scriptsize,gray] at (4.70,1.0) {$\tfrac14$};
+  \draw[fill=green!20] (5.10,0) rectangle ++(0.8,0.7); \node at (5.50,0.35) {0}; \node[font=\scriptsize,gray] at (5.50,1.0) {$\tfrac18$};
+  \draw[fill=green!20] (5.90,0) rectangle ++(0.8,0.7); \node at (6.30,0.35) {0}; \node[font=\scriptsize,gray] at (6.30,1.0) {$\tfrac1{16}$};
+  \fill (3.35,0.05) circle (2.5pt); \node[font=\scriptsize] at (3.35,-0.3) {binary point};
+  \draw[decorate,decoration={brace,mirror,amplitude=4pt}] (0,-0.6) -- node[below=5pt,font=\small]{integer part: $0010 = 2$} (2.9,-0.6);
+  \draw[decorate,decoration={brace,mirror,amplitude=4pt}] (3.8,-0.6) -- node[below=5pt,font=\small]{fraction: $\tfrac12 + \tfrac14 = 0.75$} (6.7,-0.6);
+  \node[font=\small] at (3.35,-1.85) {unsigned Q4.4: $0010.1100 = 44/2^4 = 2.75$};
+\end{tikzpicture}
+\caption{A fixed-point number is an integer with an agreed binary point. In unsigned Q4.4, four bits weigh 8, 4, 2 and 1, and four weigh $\tfrac12$ down to $\tfrac1{16}$.}
+\label{fig:qformat}
+\end{figure}
+
 \begin{defn}{Q format}
 A \textbf{Q$m$.$n$} number has $m$ integer bits and $n$ fraction bits. Its value is the stored integer divided by $2^n$. The \textbf{resolution} (the step between neighbouring values) is $2^{-n}$. For signed numbers, the sign is counted in $m$, so signed Q1.7 is 8 bits covering $-1$ to $1 - 2^{-7}$.
 \end{defn}

@@ -15,7 +15,7 @@ Manufacturing has two halves:
 
 \section{Photolithography: printing the patterns}
 
-Every layer's pattern is printed using light, much like developing a photograph:
+Every layer's pattern is printed using light, much like developing a photograph (Figure~\ref{fig:litho}):
 \begin{enumerate}
   \item Coat the wafer with a light-sensitive film, \term{photoresist}.
   \item Shine light through a \term{mask} (or reticle) carrying the layer's pattern, so only some of the resist is exposed.
@@ -24,6 +24,46 @@ Every layer's pattern is printed using light, much like developing a photograph:
   \item Strip the remaining resist, and repeat for the next layer.
 \end{enumerate}
 A modern chip needs dozens of masks and hundreds of process steps. Features are now far smaller than the wavelength of the light used to print them (193\,nm deep ultraviolet, or 13.5\,nm extreme ultraviolet, EUV), which requires tricks such as \term{optical proximity correction} (deliberately distorting mask shapes so they print correctly) and \term{multi-patterning} (printing one layer with several masks).
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=0.9]
+  \begin{scope}[xshift=0.0cm]
+  \fill[gray!25] (0,0) rectangle (2.4,0.5);
+  \fill[blue!35] (0,0.5) rectangle (2.4,0.8);
+  \fill[red!35] (0,0.8) rectangle (2.4,1.05);
+  \end{scope}
+  \begin{scope}[xshift=3.0cm]
+  \fill[gray!25] (0,0) rectangle (2.4,0.5);
+  \fill[blue!35] (0,0.5) rectangle (2.4,0.8);
+  \fill[red!35] (0,0.8) rectangle (2.4,1.05);
+  \fill[red!12] (0.8,0.8) rectangle (1.6,1.05);
+  \fill[black] (-0.1,1.75) rectangle (0.8,1.9); \fill[black] (1.6,1.75) rectangle (2.5,1.9);
+  \foreach \u in {0.95,1.2,1.45} \draw[->,orange!80!black,thick] (\u,2.5) -- (\u,1.12);
+  \node[font=\scriptsize] at (2.15,2.2) {mask};
+  \end{scope}
+  \begin{scope}[xshift=6.0cm]
+  \fill[gray!25] (0,0) rectangle (2.4,0.5);
+  \fill[blue!35] (0,0.5) rectangle (2.4,0.8);
+  \fill[red!35] (0,0.8) rectangle (0.8,1.05); \fill[red!35] (1.6,0.8) rectangle (2.4,1.05);
+  \end{scope}
+  \begin{scope}[xshift=9.0cm]
+  \fill[gray!25] (0,0) rectangle (2.4,0.5);
+  \fill[blue!35] (0,0.5) rectangle (0.8,0.8); \fill[blue!35] (1.6,0.5) rectangle (2.4,0.8);
+  \fill[red!35] (0,0.8) rectangle (0.8,1.05); \fill[red!35] (1.6,0.8) rectangle (2.4,1.05);
+  \end{scope}
+  \begin{scope}[xshift=12.0cm]
+  \fill[gray!25] (0,0) rectangle (2.4,0.5);
+  \fill[blue!35] (0,0.5) rectangle (0.8,0.8); \fill[blue!35] (1.6,0.5) rectangle (2.4,0.8);
+  \end{scope}
+  \foreach \t [count=\i from 0] in {1. coat, 2. expose, 3. develop, 4. etch, 5. strip}
+    \node[font=\small] at (3.0*\i+1.2,-0.4) {\t};
+  \foreach \c/\t [count=\i] in {gray!25/wafer, blue!35/layer being patterned, red!35/photoresist}
+    { \fill[\c] (4.4*\i-3.6,-1.25) rectangle ++(0.35,0.3); \node[right,font=\small] at (4.4*\i-3.2,-1.1) {\t}; }
+\end{tikzpicture}
+\caption{Photolithography in five steps. Light through the mask changes the exposed photoresist, which is then washed away; the etch removes the layer only where the resist is gone, copying the mask's pattern into the layer.}
+\label{fig:litho}
+\end{figure}
 
 \section{Other process steps}
 
@@ -42,7 +82,7 @@ Advanced packaging now matters as much as transistors. Large GPUs place the proc
 
 \section{Yield}
 
-Tiny defects (a dust particle, a flaw in a film) land randomly across a wafer. A die with a defect in a critical spot does not work. If defects land at an average density $D$ per unit area, the fraction of dies of area $A$ that escape them all is approximately
+Tiny defects (a dust particle, a flaw in a film) land randomly across a wafer (Figure~\ref{fig:yield}). A die with a defect in a critical spot does not work. If defects land at an average density $D$ per unit area, the fraction of dies of area $A$ that escape them all is approximately
 \[
   Y = e^{-D A}.
 \]
@@ -53,9 +93,117 @@ With $D = 0.1$ defects per cm$^2$: a 1\,cm$^2$ die has $Y = e^{-0.1} \approx 90\
 
 Large dies are doubly expensive: fewer fit on a wafer, and a smaller fraction of them work. Designers fight back with \textbf{redundancy} (spare memory rows and columns that can replace defective ones) and by \textbf{disabling} defective units (a GPU with one broken processing cluster can be sold as a lower-tier product with that cluster turned off).
 
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \draw[thick,fill=gray!8] (0.00,0) circle (2.20);
+  \draw[fill=green!18] (-2.00,-0.40) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-2.00,0.00) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-1.60,-1.20) rectangle ++(0.40,0.40);
+  \draw[fill=red!30] (-1.60,-0.80) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-1.60,-0.40) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-1.60,0.00) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-1.60,0.40) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-1.60,0.80) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-1.20,-1.60) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-1.20,-1.20) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-1.20,-0.80) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-1.20,-0.40) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-1.20,0.00) rectangle ++(0.40,0.40);
+  \draw[fill=red!30] (-1.20,0.40) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-1.20,0.80) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-1.20,1.20) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-0.80,-1.60) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-0.80,-1.20) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-0.80,-0.80) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-0.80,-0.40) rectangle ++(0.40,0.40);
+  \draw[fill=red!30] (-0.80,0.00) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-0.80,0.40) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-0.80,0.80) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-0.80,1.20) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-0.40,-2.00) rectangle ++(0.40,0.40);
+  \draw[fill=red!30] (-0.40,-1.60) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-0.40,-1.20) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-0.40,-0.80) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-0.40,-0.40) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-0.40,0.00) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-0.40,0.40) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-0.40,0.80) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-0.40,1.20) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (-0.40,1.60) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.00,-2.00) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.00,-1.60) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.00,-1.20) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.00,-0.80) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.00,-0.40) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.00,0.00) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.00,0.40) rectangle ++(0.40,0.40);
+  \draw[fill=red!30] (0.00,0.80) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.00,1.20) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.00,1.60) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.40,-1.60) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.40,-1.20) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.40,-0.80) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.40,-0.40) rectangle ++(0.40,0.40);
+  \draw[fill=red!30] (0.40,0.00) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.40,0.40) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.40,0.80) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.40,1.20) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.80,-1.60) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.80,-1.20) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.80,-0.80) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.80,-0.40) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.80,0.00) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.80,0.40) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.80,0.80) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (0.80,1.20) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (1.20,-1.20) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (1.20,-0.80) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (1.20,-0.40) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (1.20,0.00) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (1.20,0.40) rectangle ++(0.40,0.40);
+  \draw[fill=red!30] (1.20,0.80) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (1.60,-0.40) rectangle ++(0.40,0.40);
+  \draw[fill=green!18] (1.60,0.00) rectangle ++(0.40,0.40);
+  \fill (-1.10,0.70) circle (1.6pt);
+  \fill (0.35,1.20) circle (1.6pt);
+  \fill (1.05,-0.40) circle (1.6pt);
+  \fill (-0.30,-1.25) circle (1.6pt);
+  \fill (0.60,0.20) circle (1.6pt);
+  \fill (-1.35,-0.55) circle (1.6pt);
+  \fill (1.30,0.95) circle (1.6pt);
+  \fill (-0.55,0.15) circle (1.6pt);
+  \draw[thick,fill=gray!8] (5.40,0) circle (2.20);
+  \draw[fill=red!30] (3.80,-0.80) rectangle ++(0.80,0.80);
+  \draw[fill=red!30] (3.80,0.00) rectangle ++(0.80,0.80);
+  \draw[fill=red!30] (4.60,-1.60) rectangle ++(0.80,0.80);
+  \draw[fill=green!18] (4.60,-0.80) rectangle ++(0.80,0.80);
+  \draw[fill=red!30] (4.60,0.00) rectangle ++(0.80,0.80);
+  \draw[fill=green!18] (4.60,0.80) rectangle ++(0.80,0.80);
+  \draw[fill=green!18] (5.40,-1.60) rectangle ++(0.80,0.80);
+  \draw[fill=green!18] (5.40,-0.80) rectangle ++(0.80,0.80);
+  \draw[fill=red!30] (5.40,0.00) rectangle ++(0.80,0.80);
+  \draw[fill=red!30] (5.40,0.80) rectangle ++(0.80,0.80);
+  \draw[fill=red!30] (6.20,-0.80) rectangle ++(0.80,0.80);
+  \draw[fill=green!18] (6.20,0.00) rectangle ++(0.80,0.80);
+  \fill (4.30,0.70) circle (1.6pt);
+  \fill (5.75,1.20) circle (1.6pt);
+  \fill (6.45,-0.40) circle (1.6pt);
+  \fill (5.10,-1.25) circle (1.6pt);
+  \fill (6.00,0.20) circle (1.6pt);
+  \fill (4.05,-0.55) circle (1.6pt);
+  \fill (6.70,0.95) circle (1.6pt);
+  \fill (4.85,0.15) circle (1.6pt);
+  \node[font=\small,align=center] at (0,-2.75) {small dies: 61 of 68 good (90\%)};
+  \node[font=\small,align=center] at (5.4,-2.75) {large dies: 5 of 12 good (42\%)};
+\end{tikzpicture}
+\caption{The same eight defects (dots) on two wafers. With small dies, each defect ruins only a small die and most dies work; with dies of four times the area, the same defects ruin a much larger fraction. Failed dies are red.}
+\label{fig:yield}
+\end{figure}
+
 \section{The design flow}
 
-The path from an idea to a manufacturable layout:
+The path from an idea to a manufacturable layout (Figure~\ref{fig:flow}):
 \begin{enumerate}
   \item Specification and architecture.
   \item RTL design in a hardware description language, and functional verification (Chapter~\ref{ch:rtl}).
@@ -67,6 +215,31 @@ The path from an idea to a manufacturable layout:
   \item \textbf{Sign-off}: static timing analysis, power and IR-drop analysis, and the physical checks below.
   \item \textbf{Tape-out}: sending the final layout (a GDSII or OASIS file) to the factory.
 \end{enumerate}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \node[draw,thick,rounded corners=2pt,minimum width=2.4cm,minimum height=0.95cm,align=center,font=\small] (s0) at (0.0,0.0) {specification};
+  \node[draw,thick,rounded corners=2pt,minimum width=2.4cm,minimum height=0.95cm,align=center,font=\small] (s1) at (2.9,0.0) {RTL design and\\verification};
+  \node[draw,thick,rounded corners=2pt,minimum width=2.4cm,minimum height=0.95cm,align=center,font=\small] (s2) at (5.8,0.0) {synthesis};
+  \node[draw,thick,rounded corners=2pt,minimum width=2.4cm,minimum height=0.95cm,align=center,font=\small] (s3) at (8.7,0.0) {floorplanning};
+  \node[draw,thick,rounded corners=2pt,minimum width=2.4cm,minimum height=0.95cm,align=center,font=\small] (s4) at (11.6,0.0) {placement};
+  \node[draw,thick,rounded corners=2pt,minimum width=2.4cm,minimum height=0.95cm,align=center,font=\small] (s5) at (11.6,-1.7) {clock tree\\synthesis};
+  \node[draw,thick,rounded corners=2pt,minimum width=2.4cm,minimum height=0.95cm,align=center,font=\small] (s6) at (8.7,-1.7) {routing};
+  \node[draw,thick,rounded corners=2pt,minimum width=2.4cm,minimum height=0.95cm,align=center,font=\small] (s7) at (5.8,-1.7) {sign-off};
+  \node[draw,thick,rounded corners=2pt,minimum width=2.4cm,minimum height=0.95cm,align=center,font=\small,fill=green!12] (s8) at (2.9,-1.7) {tape-out};
+  \draw[->,thick] (s0) -- (s1);
+  \draw[->,thick] (s1) -- (s2);
+  \draw[->,thick] (s2) -- (s3);
+  \draw[->,thick] (s3) -- (s4);
+  \draw[->,thick] (s4) -- (s5);
+  \draw[->,thick] (s5) -- (s6);
+  \draw[->,thick] (s6) -- (s7);
+  \draw[->,thick] (s7) -- (s8);
+\end{tikzpicture}
+\caption{The design flow, from an idea to a layout the factory can build.}
+\label{fig:flow}
+\end{figure}
 
 Key physical checks:
 \begin{itemize}
@@ -89,13 +262,13 @@ Normally that charge would drain away harmlessly through a transistor's source o
   \fill[red!20] (0.4,0.6) rectangle (1.4,1); \fill[red!20] (3.0,0.6) rectangle (4.0,1);
   \node[font=\scriptsize] at (0.9,0.8) {n+}; \node[font=\scriptsize] at (3.5,0.8) {n+};
   \fill[yellow!70] (1.4,1) rectangle (3.0,1.1);
-  \fill[gray!50] (1.4,1.1) rectangle (3.0,1.6); \node[font=\small] at (2.55,1.35) {gate};
-  \fill[gray!70] (2.1,1.6) rectangle (2.3,2.6);
-  \fill[orange!60] (2.1,2.6) rectangle (9.5,2.95);
+  \fill[gray!50] (1.4,1.1) rectangle (3.0,1.6); \node[font=\small] at (1.95,1.35) {gate};
+  \fill[gray!70] (2.6,1.6) rectangle (2.8,2.6);
+  \fill[orange!60] (2.6,2.6) rectangle (9.5,2.95);
   \node[font=\small] at (6,3.25) {long metal wire being etched};
   \foreach \x in {3,4,...,9} \node[red!70!black,font=\small] at (\x,3.7) {$+$};
   \node[font=\small,red!70!black] at (6,4.15) {charge from the plasma};
-  \draw[->,very thick,red!70!black] (2.2,2.75) -- (2.2,1.12);
+  \draw[->,very thick,red!70!black] (2.7,2.75) -- (2.7,1.12);
   \node[font=\small,anchor=west,align=left] at (4.6,1.75) {only path for the charge:\\through the thin gate oxide};
   \draw[->] (4.55,1.75) -- (3.05,1.06);
 \end{tikzpicture}
@@ -175,7 +348,26 @@ Designs include an \textbf{aging guardband} in their timing so they still work a
 
 \section{Testing manufactured chips}
 
-Factory testing looks for manufacturing defects, not design bugs. The standard model is the \term{stuck-at fault}: a node permanently stuck at 0 or 1. Scan chains (Chapter~\ref{ch:latch}) let testers load every flip-flop with a pattern, run one clock cycle, and read every result back out. Software (\term{ATPG}, automatic test pattern generation) finds a small set of patterns that detect nearly all possible stuck-at faults. Memories have built-in self-test (\term{BIST}) circuits that run test patterns on themselves.
+Factory testing looks for manufacturing defects, not design bugs. The standard model is the \term{stuck-at fault}: a node permanently stuck at 0 or 1. Scan chains (Chapter~\ref{ch:latch} and Figure~\ref{fig:scanchain}) let testers load every flip-flop with a pattern, run one clock cycle, and read every result back out. Software (\term{ATPG}, automatic test pattern generation) finds a small set of patterns that detect nearly all possible stuck-at faults. Memories have built-in self-test (\term{BIST}) circuits that run test patterns on themselves.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=0.85, transform shape]
+  \foreach \n/\x in {a/0, b/5.0, c/10.0} {
+    \muxtwo{m\n}{(\x,0.5)}{}
+    \dbox{f\n}{(\x+1.7,0)}{}{1}
+    \draw (m\n-out) -- (f\n-d |- m\n-out) -- (f\n-d);
+    \draw (m\n-in0) -- ++(-0.5,0) node[left,font=\scriptsize]{logic};
+    \draw (m\n-sel) -- ++(0,-0.75) node[below,font=\scriptsize]{SE};
+  }
+  \draw (ma-in1) -- ++(-0.5,0) node[left,font=\small]{scan in};
+  \draw[blue!70!black,thick] (fa-q) -- ++(0.4,0) |- (mb-in1);
+  \draw[blue!70!black,thick] (fb-q) -- ++(0.4,0) |- (mc-in1);
+  \draw[blue!70!black,thick] (fc-q) -- ++(0.6,0) node[right,font=\small,black]{scan out};
+\end{tikzpicture}
+\caption{A scan chain. Each flip-flop has a mux in front. In normal operation (SE $= 0$) it captures its logic input; in test mode (SE $= 1$) the flip-flops form one long shift register (blue), so a tester can shift a pattern in and the results out. Clock wires are omitted.}
+\label{fig:scanchain}
+\end{figure}
 
 \section{Summary}
 

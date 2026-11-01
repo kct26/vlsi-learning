@@ -105,7 +105,26 @@ A bitline connects to hundreds of cells, so it has a large capacitance, while ea
 
 \section{DRAM}
 
-A \term{DRAM} (dynamic RAM) cell is one transistor and one capacitor (1T1C). The bit is stored as charge on the capacitor: charged means 1, empty means 0. This is far smaller than an SRAM cell, which is why DRAM provides gigabytes cheaply.
+A \term{DRAM} (dynamic RAM) cell is one transistor and one capacitor (1T1C, Figure~\ref{fig:dram}). The bit is stored as charge on the capacitor: charged means 1, empty means 0. This is far smaller than an SRAM cell, which is why DRAM provides gigabytes cheaply.
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (0,-2.4) -- (0,2.4) node[above]{bitline (BL)};
+  \draw (1.6,0) node[nmos, rotate=-90](t){};
+  \draw (0,0) -- (t.S); \fill (0,0) circle (1.6pt);
+  \draw (t.D) -- (3.4,0) to[C, l=$C_s$] (3.4,-1.8) node[ground]{};
+  \draw (t.G) -- (1.6,1.3);
+  \draw[thick] (-1.0,1.3) -- (4.4,1.3) node[right]{wordline (WL)};
+  \fill (1.6,1.3) circle (1.6pt);
+  \draw (0,-1.0) -- (-1.2,-1.0) to[C, l_=$C_{BL}$] (-1.2,-2.4) node[ground]{};
+  \fill (0,-1.0) circle (1.6pt);
+  \node[font=\small,align=center] at (3.4,-2.75) {stores the bit};
+  \node[font=\small,align=center] at (-1.2,-3.45) {bitline\\capacitance};
+\end{circuitikz}
+\caption{A DRAM cell: one transistor and one capacitor. Raising the wordline connects the cell's capacitor $C_s$ to the bitline, whose own capacitance $C_{BL}$ is several times larger.}
+\label{fig:dram}
+\end{figure}
 
 \paragraph{Reading by charge sharing.} The bitline is precharged to $\VDD/2$. Turning on the wordline connects the cell capacitor $C_s$ to the much larger bitline capacitance $C_{BL}$. Charge redistributes, and the bitline moves slightly up (if the cell held a 1) or down (if it held a 0):
 \[
@@ -128,7 +147,26 @@ Only 120\,mV, which a sense amplifier must detect.
 
 \section{Flash memory}
 
-A \term{flash} cell is a transistor with an extra, electrically isolated gate (a floating gate or a charge-trapping layer) under its control gate. Electrons forced onto that layer by tunneling at high voltage stay there for years without power and shift the transistor's threshold voltage. Reading measures the threshold. Flash is nonvolatile and very dense (cells can store 2, 3 or 4 bits by distinguishing several threshold levels), but writing is slow, it must be erased in large blocks, and each cell survives only a limited number of write cycles. It is used for storage (SSDs), not as working memory.
+A \term{flash} cell (Figure~\ref{fig:flash}) is a transistor with an extra, electrically isolated gate (a floating gate or a charge-trapping layer) under its control gate. Electrons forced onto that layer by tunneling at high voltage stay there for years without power and shift the transistor's threshold voltage. Reading measures the threshold. Flash is nonvolatile and very dense (cells can store 2, 3 or 4 bits by distinguishing several threshold levels), but writing is slow, it must be erased in large blocks, and each cell survives only a limited number of write cycles. It is used for storage (SSDs), not as working memory.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \fill[blue!8] (0,0) rectangle (8,2.2); \node at (4,0.4) {p-type body};
+  \fill[red!20] (0.8,1.4) rectangle (2.6,2.2); \node at (1.7,1.8) {n+};
+  \fill[red!20] (5.4,1.4) rectangle (7.2,2.2); \node at (6.3,1.8) {n+};
+  \fill[yellow!70] (2.6,2.2) rectangle (5.4,2.34);
+  \fill[gray!70] (2.6,2.34) rectangle (5.4,2.9);
+  \foreach \x in {3.0,3.5,...,5.0} \node[font=\scriptsize,white] at (\x,2.62) {$-$};
+  \fill[yellow!70] (2.6,2.9) rectangle (5.4,3.15);
+  \fill[gray!40] (2.6,3.15) rectangle (5.4,3.8); \node at (4,3.48) {control gate};
+  \draw[->] (6.2,2.62) node[right,font=\small]{floating gate (trapped electrons)} -- (5.45,2.62);
+  \draw[->] (1.9,3.0) node[left,font=\small]{thin tunnel oxide} -- (2.75,2.28);
+  \node[font=\small] at (1.7,1.1) {source}; \node[font=\small] at (6.3,1.1) {drain};
+\end{tikzpicture}
+\caption{A flash cell. Electrons pushed through the thin tunnel oxide onto the isolated floating gate stay there for years without power, and they raise the transistor's threshold voltage, which is how the bit is read.}
+\label{fig:flash}
+\end{figure}
 
 \section{Register files, CAMs and ROMs}
 

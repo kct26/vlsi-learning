@@ -1278,11 +1278,13 @@ body.dragging .ed-area textarea { pointer-events: none; }
 .lart pre.code { white-space: pre; overflow-x: auto; font-size: 0.84rem; line-height: 1.55; }
 .lart .mathd { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; text-align: center; padding: 8px 2px; font-size: 1.08em; }   /* only wide formulas scroll, sideways; never an empty vertical bar */
 .lart .math { white-space: nowrap; }
+sub.sym { font-size: 0.75em; line-height: 0; }   /* VDD, tcq and R1 written in plain text, with a real subscript */
 .lart math { font-size: 1.08em; }
 .lart .fn { color: var(--muted); font-size: 0.9em; }
 .bfig { margin: 6px 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .bfig img { max-width: 100%; height: auto; background: #FFFFFF; padding: 10px; border: 1px solid var(--line); }
 .bfig figcaption { font-size: 0.86rem; color: var(--muted); text-align: center; max-width: 64ch; }
+.btable { overflow-x: auto; }   /* a table wider than a phone scrolls sideways inside its frame */
 .btable table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
 .btable th, .btable td { border-bottom: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
 .btable th { font-weight: 600; background: var(--surface-2); }
@@ -1294,6 +1296,7 @@ body.dragging .ed-area textarea { pointer-events: none; }
 .b-everyday { border-left-color: #0E7490; } .b-everyday .bbox-h { color: #0E7490; }
 .b-worked { border-left-color: var(--ink); } .b-worked .bbox-h { color: var(--ink); }
 .bcenter { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.bcenter > * { max-width: 100%; }   /* a centred table stays inside the column and scrolls if it must */
 .bdraw { font-style: italic; }
 .lnav { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; padding-top: 16px; border-top: 1px solid var(--line); }
 .lnav .btn.on { color: var(--accent); }
@@ -1301,7 +1304,7 @@ body.dragging .ed-area textarea { pointer-events: none; }
 :root[data-theme="dark"] .b-onoa { border-left-color: #F59E0B; } :root[data-theme="dark"] .b-onoa .bbox-h { color: #F59E0B; }
 :root[data-theme="dark"] .b-remember .bbox-h { color: #FACC15; } :root[data-theme="dark"] .b-everyday .bbox-h { color: #22D3EE; }
 @media (max-width: 900px) {
-  .lx { grid-template-columns: 1fr; }
+  .lx { grid-template-columns: minmax(0, 1fr); }
   .lside { position: static; max-height: 340px; }
   .lmain { padding: 18px 16px 22px; }
 }
@@ -5345,11 +5348,17 @@ function viewQuest(){
   return html + `<h2 class="hh2 left stagesh" id="rmmap">Roadmap map</h2><p class="muted rmintro">Every topic and how they connect. Drag to move, scroll or pinch to zoom, and click a topic for its details.</p>${roadmapHTML()}`;
 }
 
-function openUnit(id){
+// A quest opens at its first unfinished lesson (or the start, once passed).
+function unitStart(id){
   const U = UNITS[id - 1];
-  let step = U.cards.findIndex((c, i) => !state.learn.cards['u' + id + 'c' + i]);
-  if (step < 0) step = unitPassed(id) ? 0 : U.cards.length;
-  ui.unit = {id, step}; ui.view = 'unit'; setHash('quest'); render(); window.scrollTo(0, 0);
+  const step = U.cards.findIndex((c, i) => !state.learn.cards['u' + id + 'c' + i]);
+  return step >= 0 ? step : unitPassed(id) ? 0 : U.cards.length;
+}
+function openUnit(id){
+  ui.unit = {id, step:unitStart(id)}; ui.view = 'unit';
+  // Its own history entry, so the browser's Back returns to the lesson or roadmap it was opened from.
+  try { if (location.hash !== '#quest-' + id) history.pushState(null, '', '#quest-' + id); } catch (e) { setHash('quest-' + id); }
+  render(); window.scrollTo(0, 0);
 }
 function maxStep(U){ const i = U.cards.findIndex((c, k) => !state.learn.cards['u' + U.id + 'c' + k]); return i < 0 ? U.cards.length : i; }
 
@@ -6557,8 +6566,22 @@ function renderMath(root){
   if (window.katex) go(); else loadScript(KATEX).then(go, () => {});
 }
 
+// Symbols written in plain text in questions and quest cards (VDD, Vtn, VGS, tcq, R1, ID =) get a real subscript
+// wherever they appear in the page, so they read like the book's formulas. The text itself is unchanged, so search
+// and copying still see "VDD". Code, editors and rendered math are left alone.
+const SYM_RE = /(?<!\w)V(?:DD|SS|tn|tp|th|t|GS|DS|SG|SD|in|out|OL|OH|IL|IH|M|ref|ov|min|G)(?!\w)|(?<![\w-])t(?:cq|su|pd|cd|h|d|skew)(?![\w-])|(?<!\w)(?:R[0-9D]|C[0-9]|[GP][0-3])(?!\w)|(?<!\w)ID(?=\s*[=?])/g;
+const SYM_SKIP = 'code, pre, textarea, script, style, svg, math, .math, .mathd, .katex, .editor, sub';
+function subSymbols(n){
+  if (n.nodeType === 1) { if (n.closest(SYM_SKIP)) return; const tw = document.createTreeWalker(n, NodeFilter.SHOW_TEXT), list = []; for (let t; (t = tw.nextNode());) list.push(t); list.forEach(subSymbols); return; }
+  if (n.nodeType !== 3 || !n.parentElement || n.parentElement.closest(SYM_SKIP)) return;
+  const s = n.data; SYM_RE.lastIndex = 0; if (!SYM_RE.test(s)) return;
+  const frag = document.createDocumentFragment(); let last = 0;
+  s.replace(SYM_RE, (m, at) => { frag.append(s.slice(last, at), m[0], Object.assign(document.createElement('sub'), {className:'sym', textContent:m.slice(1)})); last = at + m.length; return m; });
+  frag.append(s.slice(last)); n.replaceWith(frag);
+}
+
 // ---------- Home ----------
-const HERO_WORDS = ['digital logic', 'CMOS circuits', 'Verilog RTL', 'static timing', 'GPU architecture', 'computer arithmetic'];
+const HERO_WORDS =['digital logic', 'CMOS circuits', 'Verilog RTL', 'static timing', 'GPU architecture', 'computer arithmetic'];
 const HOME_TABS = [
   {name:'Learn circuits from zero', file:'quest_05.md', go:'quest', link:'Start the quest',
     code:'Quest 5 · The MOSFET\n\n  Vgs < Vth   off: no channel\n  Vgs > Vth   on:  channel forms\n\n  Id = k (Vgs − Vth)²   saturation\n\n✓ 4 lessons with widgets\n✓ 5-problem checkpoint', vis:'mosfet', cap:'drag Vgs past Vth'},
@@ -7657,7 +7680,7 @@ function returnFrom(from){
   if (from && from.view === 'company') { ui.view = 'company'; setHash('company-' + from.co); render(); return; }
   if (from && from.view === 'lesson' && ui.lesson) { ui.view = 'lesson'; setHash(`learn-${ui.lesson.ch}-${ui.lesson.sec}`); render(); return; }
   if (from && from.view === 'position') { ui.pos = {id:from.pos, d:(ui.pos && ui.pos.id === from.pos && ui.pos.d) || 'all'}; ui.view = 'position'; setHash('position-' + from.pos); render(); return; }
-  if (from && from.view === 'unit' && ui.unit) { ui.view = 'unit'; render(); return; }
+  if (from && from.view === 'unit' && ui.unit) { ui.view = 'unit'; setHash('quest-' + ui.unit.id); render(); return; }
   goTab(from && from.tab ? from.tab : 'quest');
 }
 document.addEventListener('input', e => {
@@ -7771,6 +7794,7 @@ function readHash(){
   if (TABS.includes(h)) ui.tab = h;
   if (cm && CODING[+cm[1] - 1]) { ui.tab = 'coding'; ui.cback = {view:'tab', tab:'coding'}; ui.cp = blankCodePage(CODING[+cm[1] - 1].id, CODING.map(p => p.id)); ui.view = 'code'; }
   else if (/^learn-\d+-(\d+|p)$/.test(h)) { const [, ch, sec] = /^learn-(\d+)-(\d+|p)$/.exec(h); ui.tab = 'learn'; ui.lesson = {ch:+ch, sec}; ui.view = 'lesson'; }
+  else if (/^quest-\d+$/.test(h) && UNITS[+h.slice(6) - 1]) { const id = +h.slice(6); ui.tab = 'learn'; ui.unit = {id, step:unitStart(id)}; ui.view = 'unit'; }
   else if (h === 'practice' || h === 'weekly') ui.tab = 'profile';
   else if (h === 'bank' || h === 'problems') ui.tab = 'theory';
   else if (h === 'jobs') ui.tab = 'roles';
@@ -7780,6 +7804,7 @@ function readHash(){
 }
 readHash();
 window.addEventListener('popstate', () => { saveEditorNow(); stopTimer(); ui.view = 'tab'; readHash(); render(); window.scrollTo(0, 0); });
+new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(subSymbols))).observe($('#main'), {childList:true, subtree:true});
 render();
 setSync(store.status);
 initStore();

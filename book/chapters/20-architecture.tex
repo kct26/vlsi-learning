@@ -93,6 +93,34 @@ Speeding up one part of a task only helps as much as that part matters. If a fra
 
 Processors are far faster than DRAM. Waiting about 100\,ns for every memory access would waste hundreds of clock cycles each time. The solution is a hierarchy of memories, small and fast near the processor, large and slow further away:
 
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \filldraw[draw=white,thick,fill=blue!40] (-0.40,0.00) -- (0.40,0.00) -- (1.12,-0.75) -- (-1.12,-0.75) -- cycle;
+  \node[font=\small] at (0,-0.38) {registers};
+  \node[anchor=west,font=\small] at (5.0,-0.38) {$<1$\,ns};
+  \filldraw[draw=white,thick,fill=blue!35] (-1.12,-0.75) -- (1.12,-0.75) -- (1.84,-1.50) -- (-1.84,-1.50) -- cycle;
+  \node[font=\small] at (0,-1.12) {L1 cache};
+  \node[anchor=west,font=\small] at (5.0,-1.12) {$\sim$1\,ns};
+  \filldraw[draw=white,thick,fill=blue!30] (-1.84,-1.50) -- (1.84,-1.50) -- (2.56,-2.25) -- (-2.56,-2.25) -- cycle;
+  \node[font=\small] at (0,-1.88) {L2 cache};
+  \node[anchor=west,font=\small] at (5.0,-1.88) {a few ns};
+  \filldraw[draw=white,thick,fill=blue!25] (-2.56,-2.25) -- (2.56,-2.25) -- (3.28,-3.00) -- (-3.28,-3.00) -- cycle;
+  \node[font=\small] at (0,-2.62) {L3 cache};
+  \node[anchor=west,font=\small] at (5.0,-2.62) {10--40\,ns};
+  \filldraw[draw=white,thick,fill=blue!20] (-3.28,-3.00) -- (3.28,-3.00) -- (4.00,-3.75) -- (-4.00,-3.75) -- cycle;
+  \node[font=\small] at (0,-3.38) {DRAM};
+  \node[anchor=west,font=\small] at (5.0,-3.38) {50--100\,ns};
+  \filldraw[draw=white,thick,fill=blue!15] (-4.00,-3.75) -- (4.00,-3.75) -- (4.72,-4.50) -- (-4.72,-4.50) -- cycle;
+  \node[font=\small] at (0,-4.12) {SSD (flash)};
+  \node[anchor=west,font=\small] at (5.0,-4.12) {$\sim$100\,$\mu$s};
+  \draw[<->,thick] (-5.2,0) node[above,font=\small]{faster} -- (-5.2,-4.5) node[below,font=\small]{larger};
+  \node[anchor=west,font=\small\bfseries] at (5.0,0.35) {access time};
+\end{tikzpicture}
+\caption{The memory hierarchy. Each level down is larger and slower; caches keep the data in use near the top.}
+\label{fig:memhier}
+\end{figure}
+
 \begin{center}
 \begin{tabular}{lll}
 \toprule
@@ -116,7 +144,7 @@ This works because programs have \term{locality}:
 
 \section{How a cache works}
 
-A cache stores copies of recently used memory in fixed-size blocks called \term{lines} (often 64 bytes; fetching a whole line exploits spatial locality). To find whether an address is in the cache, the address is split into three fields:
+A cache stores copies of recently used memory in fixed-size blocks called \term{lines} (often 64 bytes; fetching a whole line exploits spatial locality). To find whether an address is in the cache, the address is split into three fields (Figure~\ref{fig:cacheaddr}):
 \[
   \underbrace{\text{tag}}_{\text{which line is this?}} \;\big|\; \underbrace{\text{index}}_{\text{which set to look in}} \;\big|\; \underbrace{\text{offset}}_{\text{which byte in the line}}
 \]
@@ -125,6 +153,35 @@ A cache stores copies of recently used memory in fixed-size blocks called \term{
   \item \textbf{Index} bits $= \log_2(\text{number of sets})$.
   \item \textbf{Tag} bits $=$ address bits $-$ index bits $-$ offset bits. Each line stores its tag so the cache can check whether it holds the right address, plus a \term{valid} bit and usually a \term{dirty} bit.
 \end{itemize}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \node[font=\small,anchor=east] at (-0.1,4.3) {32-bit address};
+  \draw[thick,fill=orange!20] (0,4.0) rectangle (3.4,4.6); \node[font=\small] at (1.7,4.3) {tag (20 bits)};
+  \draw[thick,fill=blue!20] (3.4,4.0) rectangle (5.0,4.6); \node[font=\small] at (4.2,4.3) {index (6)};
+  \draw[thick,fill=green!20] (5.0,4.0) rectangle (6.6,4.6); \node[font=\small] at (5.8,4.3) {offset (6)};
+  \foreach \y/\l in {2.8/0, 2.4/1, 1.4/k, 0.4/63} {
+    \draw (1,\y) rectangle (1.5,\y+0.4); \draw (1.5,\y) rectangle (3.6,\y+0.4); \draw (3.6,\y) rectangle (7.4,\y+0.4);
+    \node[left,font=\scriptsize] at (1,\y+0.2) {set \l};
+  }
+  \fill[blue!12] (1,1.4) rectangle (7.4,1.8);
+  \draw (1,1.4) rectangle (1.5,1.8); \draw (1.5,1.4) rectangle (3.6,1.8); \draw (3.6,1.4) rectangle (7.4,1.8);
+  \node[font=\scriptsize] at (1.25,1.6) {1}; \node[font=\scriptsize] at (2.55,1.6) {stored tag}; \node[font=\scriptsize] at (5.5,1.6) {64-byte line};
+  \node at (4.2,2.15) {$\vdots$}; \node at (4.2,0.98) {$\vdots$};
+  \node[font=\scriptsize] at (1.25,3.45) {valid}; \node[font=\scriptsize] at (2.55,3.45) {tag}; \node[font=\scriptsize] at (5.5,3.45) {data};
+  \draw[->,thick,blue!70!black] (4.2,4.0) -- (4.2,3.8) -| (-0.9,1.6) -- (0.25,1.6);
+  \node[font=\scriptsize,blue!70!black,align=center] at (-1.6,2.6) {index\\picks\\the set};
+  \draw[thick] (9.8,2.4) circle (0.32); \node at (9.8,2.4) {$=$};
+  \draw[->,thick,orange!80!black] (1.7,4.6) -- (1.7,5.0) -| (9.8,2.72);
+  \draw[->,thick] (2.55,1.4) -- (2.55,1.27) -| (9.8,2.08);
+  \draw[->,thick] (10.12,2.4) -- (10.6,2.4) node[right,font=\small,align=left]{hit if equal\\and valid};
+  \draw[->,thick,green!50!black] (5.8,4.0) -- (5.8,3.8) -- (6.9,3.8) -- (6.9,1.8);
+  \node[font=\scriptsize,green!40!black,anchor=west] at (6.95,3.6) {offset picks the byte};
+\end{tikzpicture}
+\caption{Looking up an address in a direct-mapped cache with 64 sets of 64-byte lines. The index picks one set; the tag stored there is compared with the address's tag; on a hit, the offset picks the byte within the line.}
+\label{fig:cacheaddr}
+\end{figure}
 
 \paragraph{Associativity.} In a \term{direct-mapped} cache, each address can go in exactly one line. In an \term{$N$-way set-associative} cache, each address maps to one \emph{set} of $N$ lines and can go in any of them. In a \term{fully associative} cache, it can go anywhere. More associativity means fewer conflicts but more tags to compare in parallel. When a set is full, a \term{replacement policy} (usually least recently used, LRU, or an approximation) picks a line to evict.
 
@@ -170,7 +227,25 @@ A processor has a base CPI of 1.0. 30\% of instructions are loads or stores, the
 
 \section{Virtual memory}
 
-Programs use \term{virtual addresses}; the hardware translates them to \term{physical addresses} in DRAM. Memory is divided into \term{pages}, typically 4\,KB. A per-process \term{page table} maps virtual page numbers to physical page numbers; the offset within the page (the low 12 bits for 4\,KB pages) is unchanged by translation. A \term{translation lookaside buffer} (TLB), a small cache of recent translations, makes this fast. Accessing a page that is not in memory causes a \term{page fault}, handled by the operating system.
+Programs use \term{virtual addresses}; the hardware translates them to \term{physical addresses} in DRAM (Figure~\ref{fig:vmem}). Memory is divided into \term{pages}, typically 4\,KB. A per-process \term{page table} maps virtual page numbers to physical page numbers; the offset within the page (the low 12 bits for 4\,KB pages) is unchanged by translation. A \term{translation lookaside buffer} (TLB), a small cache of recent translations, makes this fast. Accessing a page that is not in memory causes a \term{page fault}, handled by the operating system.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \node[font=\small,anchor=east] at (-0.2,3.3) {virtual address};
+  \draw[thick,fill=orange!20] (0,3.0) rectangle (4.5,3.6); \node[font=\small] at (2.25,3.3) {virtual page number};
+  \draw[thick,fill=green!20] (4.5,3.0) rectangle (7.1,3.6); \node[font=\small] at (5.8,3.3) {offset (12 bits)};
+  \draw[thick,rounded corners=2pt,fill=gray!12] (0.1,1.3) rectangle (4.4,2.3); \node[font=\small,align=center] at (2.25,1.8) {TLB, or the page table\\on a TLB miss};
+  \draw[->,thick] (2.25,3.0) -- (2.25,2.25);
+  \draw[->,thick] (2.25,1.35) -- (2.25,0.6);
+  \draw[->,thick,dashed,green!40!black] (5.8,3.0) -- node[right,font=\small]{copied unchanged} (5.8,0.6);
+  \node[font=\small,anchor=east] at (-0.2,0.3) {physical address};
+  \draw[thick,fill=blue!20] (0,0) rectangle (4.5,0.6); \node[font=\small] at (2.25,0.3) {physical page number};
+  \draw[thick,fill=green!20] (4.5,0) rectangle (7.1,0.6); \node[font=\small] at (5.8,0.3) {offset (12 bits)};
+\end{tikzpicture}
+\caption{Address translation with 4\,KB pages. The virtual page number is translated, by the TLB or, on a miss, the page table; the 12-bit offset within the page passes through unchanged.}
+\label{fig:vmem}
+\end{figure}
 
 This is why ``are two addresses on the same 4\,KB page?'' (Section~\ref{sec:bitops}) is a natural hardware question: same page means same translation.
 

@@ -5,7 +5,7 @@ We have switches (Chapter~\ref{ch:mosfet}) and the algebra of 0s and 1s (Chapter
 
 \section{The rule of complementary logic}
 
-Every standard logic gate in a modern chip uses \term{static CMOS} (complementary MOS) design. Its output node is connected to two networks of transistors:
+Every standard logic gate in a modern chip uses \term{static CMOS} (complementary MOS) design. Its output node is connected to two networks of transistors (Figure~\ref{fig:pupd}):
 
 \begin{itemize}
   \item a \term{pull-up network} (PUN) of PMOS transistors, between the supply $\VDD$ and the output, which connects the output to 1;
@@ -13,6 +13,24 @@ Every standard logic gate in a modern chip uses \term{static CMOS} (complementar
 \end{itemize}
 
 The two networks are designed so that, for every combination of inputs, \emph{exactly one} of them conducts. The output is therefore always firmly connected to either the supply or ground, never to both and never to neither.
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (0,4.0) node[vdd]{$\VDD$};
+  \draw[thick] (-1.5,2.8) rectangle (1.5,4.0); \node[align=center,font=\small] at (0,3.4) {pull-up network\\(PMOS)};
+  \draw (0,2.8) -- (0,2.2) to[short,*-o] (2.2,2.2) node[right]{output};
+  \draw (0,2.2) -- (0,1.6);
+  \draw[thick] (-1.5,0.4) rectangle (1.5,1.6); \node[align=center,font=\small] at (0,1.0) {pull-down network\\(NMOS)};
+  \draw (0,0.4) node[ground]{};
+  \draw (-3.2,2.2) node[left]{inputs} to[short,-*] (-2.1,2.2);
+  \draw[->] (-2.1,2.2) |- (-1.5,3.4); \draw[->] (-2.1,2.2) |- (-1.5,1.0);
+  \node[font=\small,anchor=west] at (1.8,3.4) {conducts $\Rightarrow$ output $= 1$};
+  \node[font=\small,anchor=west] at (1.8,1.0) {conducts $\Rightarrow$ output $= 0$};
+\end{circuitikz}
+\caption{Every static CMOS gate: a pull-up network of PMOS transistors between $\VDD$ and the output, and a pull-down network of NMOS transistors between the output and ground. The same inputs drive both, and for every input combination exactly one of them conducts.}
+\label{fig:pupd}
+\end{figure}
 
 Why PMOS on top and NMOS on the bottom? Because of the strong and weak levels from Section~\ref{sec:weak1}: PMOS passes a strong 1 and NMOS passes a strong 0. Each transistor is placed where it is good.
 
@@ -67,9 +85,10 @@ What happens for inputs between 0 and $\VDD$? Plotting the output voltage agains
   \draw[dashed] (0,4) node[left]{$\VDD$} -- (4,4) -- (4,0) node[below]{$\VDD$};
   \draw[dotted] (0,0) -- (4,4);
   \draw[dotted] (2,0) node[below]{$V_M$} -- (2,2);
-  \draw[dotted] (1.66,0) -- (1.66,3.75); \node[below] at (1.45,-0.02) {\scriptsize $V_{IL}$};
-  \draw[dotted] (2.34,0) -- (2.34,0.25); \node[below] at (2.55,-0.02) {\scriptsize $V_{IH}$};
-  \node[font=\small,align=left] at (3.15,1.6) {steep middle:\\high gain};
+  \draw[dotted] (1.51,0) -- (1.51,3.84); \node[below] at (1.38,-0.02) {\scriptsize $V_{IL}$};
+  \draw[dotted] (2.49,0) -- (2.49,0.16); \node[below] at (2.62,-0.02) {\scriptsize $V_{IH}$};
+  \node[font=\small,align=left,anchor=west] (gain) at (4.3,2.2) {steep middle:\\high gain};
+  \draw[->,gray] (gain.west) -- (2.14,1.42);
 \end{tikzpicture}
 \caption{Voltage transfer characteristic of an inverter. Where the curve crosses the diagonal, $V_{\text{in}} = V_{\text{out}} = V_M$.}
 \label{fig:vtc}
@@ -206,6 +225,35 @@ The same recipe builds any inverting function:
   \item Build the pull-up network as the dual: swap series and parallel, use PMOS, same inputs.
 \end{enumerate}
 
+\begin{figure}[h]
+\centering
+\begin{circuitikz}[scale=0.9, transform shape]
+  \draw (0,0) node[pmos](pa){} (2,0) node[pmos](pb){};
+  \draw (pa.S) -- (pb.S); \draw ($(pa.S)!0.5!(pb.S)$) node[vdd]{$\VDD$};
+  \draw (pa.D) -- (pb.D);
+  \draw (pb.D) ++(0,-0.6) node[pmos,anchor=S](pc){};
+  \draw (pb.D) -- (pc.S);
+  \draw (pc.D) -- ++(0,-0.5) coordinate(out);
+  \draw (out) to[short,*-o] ++(1.8,0) node[right]{$F = \nt{AB + C}$};
+  \draw (out) -- ++(0,-0.3) coordinate(t);
+  \draw (t) -- ++(-2.2,0) coordinate(t1);
+  \draw (t1) ++(0,-0.77) node[nmos,anchor=D](na){};
+  \draw (na.S) ++(0,-0.6) node[nmos,anchor=D](nb){};
+  \draw (t1) -- (na.D); \draw (na.S) -- (nb.D);
+  \draw (t) ++(0,-0.77) node[nmos,anchor=D](nc){};
+  \draw (t) -- (nc.D);
+  \draw (nb.S) -- ++(0,-0.3) coordinate(g1);
+  \draw (nc.S) -- (nc.S |- g1) -- (g1);
+  \draw ($(g1)!0.5!(nc.S |- g1)$) node[ground]{};
+  \node[left] at (pa.G) {$A$}; \node[left] at (pb.G) {$B$}; \node[left] at (pc.G) {$C$};
+  \node[left] at (na.G) {$A$}; \node[left] at (nb.G) {$B$}; \node[left] at (nc.G) {$C$};
+  \node[font=\small,align=left,anchor=west] at (3.6,0) {pull-up: ($A$ parallel $B$)\\in series with $C$};
+  \node[font=\small,align=left,anchor=west] at (3.6,-4.6) {pull-down: ($A$ series $B$)\\in parallel with $C$};
+\end{circuitikz}
+\caption{The AOI21 gate $F = \nt{AB + C}$ in six transistors. The pull-down network is built straight from $AB + C$; the pull-up network is its dual, with series and parallel swapped.}
+\label{fig:aoi21}
+\end{figure}
+
 \begin{worked}{an AND-OR-INVERT gate}
 Build $F = \nt{AB + C}$ (called AOI21: AND-OR-INVERT with a 2-input AND and a 1-input term).
 
@@ -213,7 +261,7 @@ Pull-down conducts when $AB + C = 1$: NMOS $A$ in series with NMOS $B$, and that
 
 Pull-up is the dual: PMOS $A$ in parallel with PMOS $B$, and that pair in series with PMOS $C$.
 
-Total: 6 transistors. Building the same function from separate AND, OR and NOT gates would take 12 or more, and be slower. Compound gates like AOI and OAI (OR-AND-INVERT) are common for this reason.
+Total: 6 transistors (Figure~\ref{fig:aoi21}). Building the same function from separate AND, OR and NOT gates would take 12 or more, and be slower. Compound gates like AOI and OAI (OR-AND-INVERT) are common for this reason.
 \end{worked}
 
 \paragraph{Why static CMOS gates always invert.} In a single stage, turning an input \emph{on} (to 1) can only turn NMOS transistors on, which can only pull the output \emph{down}. So a rising input can only cause a falling output. A non-inverting function needs two stages: AND is a NAND followed by an inverter, OR is a NOR followed by an inverter.
@@ -277,7 +325,24 @@ Transmission gates make compact multiplexers (two TGs and an inverter make a 2:1
 
 \section{Tristate buffers}
 
-Sometimes several circuits must share one wire, such as a bus. Only one may drive it at a time; the others must disconnect. A \term{tristate buffer} has an enable input. When enabled, it drives its input value (0 or 1) onto the output. When disabled, both its pull-up and pull-down are off and the output is disconnected, a third state called \term{high impedance} or \term{Z}. If two enabled drivers fight over one wire (one driving 1, the other 0), the result is \term{contention}: a large current flows between them and the wire sits at an undefined middle voltage.
+Sometimes several circuits must share one wire, such as a bus. Only one may drive it at a time; the others must disconnect. A \term{tristate buffer} has an enable input (Figure~\ref{fig:tristate}). When enabled, it drives its input value (0 or 1) onto the output. When disabled, both its pull-up and pull-down are off and the output is disconnected, a third state called \term{high impedance} or \term{Z}. If two enabled drivers fight over one wire (one driving 1, the other 0), the result is \term{contention}: a large current flows between them and the wire sits at an undefined middle voltage.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \draw[very thick] (-1.6,2.6) -- (9.6,2.6) node[right]{shared bus};
+  \foreach \x/\c/\en/\st in {0/black/1/{drives its value}, 4/gray/0/{output is Z}, 8/gray/0/{output is Z}} {
+    \draw[thick,\c,fill=white] (\x-0.6,0.3) -- (\x+0.6,0.3) -- (\x,1.4) -- cycle;
+    \draw[\c] (\x,-0.4) node[below,font=\small]{data} -- (\x,0.3);
+    \draw[\c] (\x-1.4,0.85) node[left,font=\small]{EN $=$ \en} -- (\x-0.3,0.85);
+    \node[font=\small,\c,anchor=west] at (\x+0.15,2.0) {\st};
+  }
+  \draw[thick] (0,1.4) -- (0,2.6); \fill (0,2.6) circle (2pt);
+  \draw[gray,dashed] (4,1.4) -- (4,2.6); \draw[gray,dashed] (8,1.4) -- (8,2.6);
+\end{tikzpicture}
+\caption{Tristate buffers sharing a bus. Only the enabled buffer (EN $= 1$) drives the wire; the disabled ones are in high impedance (Z), as if unplugged.}
+\label{fig:tristate}
+\end{figure}
 
 \section{Other logic styles}
 

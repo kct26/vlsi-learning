@@ -65,7 +65,7 @@ Each bit doubles the number of possible patterns, so $n$ bits can represent $2^n
 \section{Negative numbers: two's complement}
 \label{sec:twos}
 
-Computers almost always store signed integers in \term{two's complement}. The idea is simple: the MSB gets a \emph{negative} weight. For 8 bits, the place values are
+Computers almost always store signed integers in \term{two's complement}. The idea is simple: the MSB gets a \emph{negative} weight (Figure~\ref{fig:twoswheel}). For 8 bits, the place values are
 \[
   -128,\; 64,\; 32,\; 16,\; 8,\; 4,\; 2,\; 1.
 \]
@@ -76,6 +76,25 @@ So $1111\,1111_2 = -128 + 127 = -1$, and $1000\,0000_2 = -128$.
   \item The MSB tells the sign: 1 means negative.
   \item \textbf{To negate a number: invert every bit, then add 1.}
 \end{itemize}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \draw[gray] (0,0) circle (2.3);
+  \foreach \i/\b in {0/0000,1/0001,2/0010,3/0011,4/0100,5/0101,6/0110,7/0111,8/1000,9/1001,10/1010,11/1011,12/1100,13/1101,14/1110,15/1111} {
+    \pgfmathsetmacro{\ang}{90 - 22.5*\i}
+    \pgfmathtruncatemacro{\v}{\i < 8 ? \i : \i - 16}
+    \fill ({\ang}:2.3) circle (1.6pt);
+    \node[font=\scriptsize\ttfamily] at ({\ang}:2.95) {\b};
+    \ifnum\v<0 \node[font=\small,red!70!black] at ({\ang}:1.75) {$\v$}; \else \node[font=\small,blue!60!black] at ({\ang}:1.75) {$\v$}; \fi
+  }
+  \draw[very thick,red!70!black] (-78.75:1.3) -- (-78.75:3.4);
+  \node[font=\small,red!70!black,anchor=west] at (0.9,-3.75) {$7 + 1$ wraps to $-8$: overflow};
+  \draw[->,thick,gray] (78:3.5) arc[start angle=78, end angle=40, radius=3.5] node[midway,above right,font=\small]{$+1$};
+\end{tikzpicture}
+\caption{Four-bit two's complement around a circle. Adding 1 moves one step clockwise. Patterns that start with 1 are negative (red), and counting up past $0111 = 7$ wraps to $1000 = -8$: overflow.}
+\label{fig:twoswheel}
+\end{figure}
 
 \begin{worked}{representing $-20$ in 8 bits}
 $+20 = 0001\,0100$. Invert: $1110\,1011$. Add 1: $1110\,1100$. Check with weights: $-128 + 64 + 32 + 8 + 4 = -20$. Correct.
@@ -178,13 +197,26 @@ Conversion: $g = b \oplus (b \gg 1)$. Gray code is used for counters that are re
 
 \section{Boolean algebra}
 
-\term{Boolean algebra}, named after George Boole, is the mathematics of variables that are only 0 or 1. It has three basic operations:
+\term{Boolean algebra}, named after George Boole, is the mathematics of variables that are only 0 or 1. It has three basic operations (their symbols are in Figure~\ref{fig:gates}):
 \begin{itemize}
   \item AND, written $A \cdot B$ or just $AB$: 1 only if both are 1.
   \item OR, written $A + B$: 1 if at least one is 1. (Here $1 + 1 = 1$.)
   \item NOT, written $\nt{A}$ (or $A'$): the opposite value.
 \end{itemize}
 Precedence, as in ordinary algebra: NOT first, then AND, then OR. So $A + BC$ means $A + (B \cdot C)$.
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \foreach \g/\n/\e/\x/\y in {and port/AND/{$AB$}/0/0, or port/OR/{$A+B$}/3.6/0, xor port/XOR/{$A \oplus B$}/7.2/0, not port/NOT/{$\nt{A}$}/10.8/0,
+                             nand port/NAND/{$\nt{AB}$}/0/-2.4, nor port/NOR/{$\nt{A+B}$}/3.6/-2.4, xnor port/XNOR/{$\nt{A \oplus B}$}/7.2/-2.4} {
+    \draw (\x,\y) node[\g] (g) {};
+    \node[font=\small,align=center] at (\x-0.3,\y-0.95) {\textbf{\n}\quad \e};
+  }
+\end{circuitikz}
+\caption{Logic gate symbols. A small circle (a bubble) on an output means NOT: NAND is AND followed by NOT, NOR is OR followed by NOT, and XNOR is XOR followed by NOT.}
+\label{fig:gates}
+\end{figure}
 
 Combined truth table of the common two-input functions:
 \begin{center}

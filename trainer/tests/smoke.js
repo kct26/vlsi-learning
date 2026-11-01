@@ -132,6 +132,12 @@ async function phase1(){
   ok($('#f-list').value === 'va-sta', 'area dropdown follows the sidebar');
   click('[data-act="f-reset"]');
 
+  // Symbols written in plain text get real subscripts
+  const vk = RAW.findIndex(r => /\bVDD\b/.test(r[2]));
+  click($$('#prows a[data-open]')[vk]); await wait(0);
+  ok($('.pv .qtext sub.sym') && /VDD/.test($('.pv .qtext').textContent) && $$('.pv .qtext sub.sym').some(x => x.textContent === 'DD'), 'symbols such as VDD get a real subscript, and the text still reads VDD');
+  tab('theory');
+
   // Problem page: wrong, retry, accepted
   click($$('#prows a[data-open]')[40]);
   ok($('.pv') && /^41\./.test(h1()), 'problem page opens: ' + h1());
@@ -263,6 +269,9 @@ async function phase1(){
   ok($$('.lart .mathd').length && $$('.lart .mathd').every(m => getComputedStyle(m).overflowY === 'hidden'), 'display formulas never get an empty vertical scrollbar');
   click('[data-act="learn-go"][data-v="11-1"]');
   ok(/Synchronous design/.test($('.ltitle').textContent) && $('.lart img[src="book/fig-11-1.png"]') && /Figure 11\.1/.test($('.lart figcaption').textContent), 'a lesson shows its text and the figure from the book');
+  const bookHtml = window.BOOK_LESSONS.map(c => c.sections.map(x => x.html).join('')).join('');
+  ok(!/bdraw|is in the PDF book/.test(bookHtml) && (bookHtml.match(/<img src="book\//g) || []).length >= 100, 'every drawing in the book has its picture on the Learn pages');
+  ok(/<\/span><wbr><span class="math"/.test(bookHtml), 'long inline formulas are split where a phone can wrap them');
   click('[data-act="learn-next"]');
   ok(st().read['11-1'] && $('.litem.on') && /The clock/.test($('.ltitle').textContent) && $('.litem.done'), 'Next marks the lesson read and moves on');
   click('[data-act="learn-read"]');
@@ -286,6 +295,12 @@ async function phase1(){
   ok($('.unitv') && /Back to the lesson/.test($('.unitv .crumbs').textContent) && /Read Chapter 5 in full/.test($('.unitv .crumbs').textContent), 'the quest links back to the lesson and to the full chapter');
   click('.unitv .crumbs [data-act="learn-go"]');
   ok($('.lx') && /Chapter 5/.test($('.lside-h').textContent), 'Back to the lesson returns to the chapter');
+  const lessonHash = location.hash;
+  click('.litem.lquest');
+  ok(location.hash === '#quest-5' && $('.unitv'), 'a quest has its own address');
+  history.back();
+  for (let k = 0; k < 20 && location.hash !== lessonHash; k++) await wait(100);
+  ok(location.hash === lessonHash && $('.lx') && /Chapter 5/.test($('.lside-h').textContent), "the browser's Back from a quest returns to the lesson it was opened from");
 
   // Account pages have a Back button to where you came from
   tab('theory'); click('.premiumbtn');

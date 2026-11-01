@@ -26,8 +26,9 @@ The minus sign means the output moves the opposite way from the input: raising t
   \draw (n.D) to[R, l=$R_D$] ++(0,2) node[vdd]{$\VDD$};
   \draw (n.D) to[short,-o] ++(1.2,0) node[right]{$V_{\text{out}}$};
   \draw (n.G) to[short,-o] ++(-0.8,0) node[left]{$V_{\text{in}}$};
+  \draw[->,very thick,red!70!black] ($(n.D)+(0.45,1.75)$) -- node[right,font=\small]{$I_D$} ($(n.D)+(0.45,0.3)$);
 \end{circuitikz}
-\caption{A common-source amplifier.}
+\caption{A common-source amplifier. Raising $V_{\text{in}}$ increases the current $I_D$ (red), which drops more voltage across $R_D$ and lowers $V_{\text{out}}$.}
 \label{fig:csamp}
 \end{figure}
 
@@ -101,18 +102,63 @@ The key contrast: a MOSFET is \emph{voltage-controlled} and its gate draws no DC
 
 \section{Filters}
 
-A resistor and capacitor make a simple filter. With the capacitor to ground at the output, it is a \term{low-pass filter}: slow signals pass, fast ones are smoothed away. Swap the two components and it becomes a \term{high-pass filter}: fast changes pass, steady levels are blocked. Either way the boundary is the cutoff frequency
+A resistor and capacitor make a simple filter. With the capacitor to ground at the output, it is a \term{low-pass filter} (Figure~\ref{fig:filters}): slow signals pass, fast ones are smoothed away. Swap the two components and it becomes a \term{high-pass filter}: fast changes pass, steady levels are blocked. Either way the boundary is the cutoff frequency
 \[
   f_c = \frac{1}{2\pi R C}.
 \]
+At $f_c$ the output is $1/\sqrt{2}$ of the input, about 71\%.
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}[scale=0.85]
+  \draw (0,1.6) node[left]{in} to[short,o-] (0.2,1.6) to[R, l=$R$] (2.2,1.6) to[short,-o] (3.0,1.6) node[right]{out};
+  \draw (2.2,1.6) to[C, l=$C$, *-] (2.2,0) node[ground]{};
+  \node[font=\small] at (1.5,-0.9) {low-pass};
+  \begin{scope}[xshift=4.2cm,yshift=0.1cm]
+    \draw[->] (0,0) -- (2.6,0) node[right,font=\scriptsize]{$f$}; \draw[->] (0,0) -- (0,1.5) node[above,font=\scriptsize]{gain};
+    \draw[thick,blue!60!black] (0,1.1) -- (0.8,1.1) .. controls (1.25,1.1) and (1.45,0.7) .. (2.4,0.12);
+    \draw[dotted] (1.2,0) node[below,font=\scriptsize]{$f_c$} -- (1.2,1.05);
+  \end{scope}
+  \begin{scope}[xshift=8.2cm]
+    \draw (0,1.6) node[left]{in} to[short,o-] (0.2,1.6) to[C, l=$C$] (2.2,1.6) to[short,-o] (3.0,1.6) node[right]{out};
+    \draw (2.2,1.6) to[R, l=$R$, *-] (2.2,0) node[ground]{};
+    \node[font=\small] at (1.5,-0.9) {high-pass};
+  \end{scope}
+  \begin{scope}[xshift=12.4cm,yshift=0.1cm]
+    \draw[->] (0,0) -- (2.6,0) node[right,font=\scriptsize]{$f$}; \draw[->] (0,0) -- (0,1.5) node[above,font=\scriptsize]{gain};
+    \draw[thick,blue!60!black] (0.1,0.12) .. controls (1.0,0.7) and (1.15,1.1) .. (1.6,1.1) -- (2.4,1.1);
+    \draw[dotted] (1.2,0) node[below,font=\scriptsize]{$f_c$} -- (1.2,1.0);
+  \end{scope}
+\end{circuitikz}
+\caption{RC filters. Low-pass (left): the capacitor to ground shorts fast signals away, so only frequencies below $f_c$ reach the output. High-pass (right): the series capacitor blocks steady levels, so only fast changes pass.}
+\label{fig:filters}
+\end{figure}
 
 \section{Converting between analog and digital}
 
-An \term{analog-to-digital converter} (ADC) measures a voltage and outputs a number. An $N$-bit ADC divides its input range into $2^N$ steps. The voltage of one step, the \term{least significant bit} (LSB) or \term{resolution}, is
+An \term{analog-to-digital converter} (ADC) measures a voltage and outputs a number. An $N$-bit ADC divides its input range into $2^N$ steps (Figure~\ref{fig:adc}). The voltage of one step, the \term{least significant bit} (LSB) or \term{resolution}, is
 \[
   \boxed{\text{LSB} = \frac{V_{\text{ref}}}{2^N}}
 \]
 where $V_{\text{ref}}$ is the full-scale range. (Some texts divide by $2^N - 1$ instead; for large $N$ the difference is tiny. Use whichever convention a question implies.)
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[xscale=0.8,yscale=0.55]
+  \draw[->] (0,0) -- (8.9,0) node[right,font=\small]{input voltage};
+  \draw[->] (0,0) -- (0,8.3) node[above,font=\small]{output code};
+  \draw[dashed,gray] (0,0) -- (8,8);
+  \foreach \k/\c in {0/000,1/001,2/010,3/011,4/100,5/101,6/110,7/111} {
+    \node[left,font=\scriptsize] at (0,\k) {\c};
+    \draw (\k,0.12) -- (\k,-0.12); }
+  \draw[very thick,blue!60!black] (0,0) \foreach \k in {1,...,7} { -- (\k,\k-1) -- (\k,\k) } -- (8,7);
+  \node[below,font=\small] at (0,-0.15) {0};
+  \node[below,font=\small] at (8,-0.15) {$V_{\text{ref}}$};
+  \draw[decorate,decoration={brace,mirror,amplitude=4pt}] (3,-0.5) -- node[below=4pt,font=\small]{1 LSB} (4,-0.5);
+\end{tikzpicture}
+\caption{A 3-bit ADC divides its input range into $2^3 = 8$ steps. Every input within one step gives the same code; the width of one step is one LSB, $V_{\text{ref}}/2^N$.}
+\label{fig:adc}
+\end{figure}
 
 \begin{worked}{ADC resolution}
 A 12-bit ADC has a 3.3\,V range. What voltage change corresponds to one code step?
@@ -128,12 +174,29 @@ A \term{digital-to-analog converter} (DAC) does the reverse, turning numbers int
 
 \section{Power supplies}
 
-Chips need a precise, low supply voltage (around 1\,V), but power arrives at higher voltages (12\,V or more in a computer). Two kinds of circuit convert it.
+Chips need a precise, low supply voltage (around 1\,V), but power arrives at higher voltages (12\,V or more in a computer). Two kinds of circuit convert it (Figure~\ref{fig:regulators}).
 
 \begin{itemize}
   \item A \term{linear regulator} (often an LDO, ``low-dropout'' regulator) acts like an automatically adjusted resistor in series with the load. It is simple and quiet, but it burns the voltage difference as heat. Its efficiency is about $V_{\text{out}}/V_{\text{in}}$.
   \item A \term{switching regulator} (such as a \term{buck converter}) rapidly switches the input on and off and smooths the result with an inductor and capacitor. It wastes little power, typically 85--95\% efficient. GPUs are powered by multi-phase buck converters, called voltage regulator modules (VRMs), placed close to the chip.
 \end{itemize}
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (0,2) node[left]{$V_{\text{in}}$} to[short,o-] (0.2,2) to[vR, l=series pass device] (2.8,2) to[short,-*] (3.6,2) node[above]{$V_{\text{out}}$};
+  \draw (3.6,2) to[R, l=load] (3.6,0) node[ground]{};
+  \node[font=\small,align=center] at (1.8,-1.25) {linear regulator (LDO):\\burns $(V_{\text{in}} - V_{\text{out}})\,I$ as heat};
+  \begin{scope}[xshift=6.6cm]
+    \draw (0,2) node[left]{$V_{\text{in}}$} to[short,o-] (0.2,2) to[cosw, l=fast switch] (2.0,2) to[L, l=$L$, *-*] (4.2,2) node[above]{$V_{\text{out}}$} -- (5.4,2) to[R, l=load] (5.4,0) node[ground]{};
+    \draw (2.0,2) to[cosw] (2.0,0) node[ground]{};
+    \draw (4.2,2) to[C, l=$C$] (4.2,0) node[ground]{};
+    \node[font=\small,align=center] at (2.7,-1.25) {switching (buck) regulator:\\$L$ and $C$ smooth the switched input};
+  \end{scope}
+\end{circuitikz}
+\caption{Two ways to make a low supply voltage. A linear regulator (left) is an automatically adjusted resistor in series with the load. A buck converter (right) switches the input on and off quickly and smooths the result.}
+\label{fig:regulators}
+\end{figure}
 
 \begin{worked}{why linear regulators waste power}
 An LDO converts 3.3\,V to 1.0\,V for a load drawing 2\,A. The same 2\,A flows through the regulator, which drops $3.3 - 1.0 = 2.3$\,V. Power wasted: $2.3 \times 2 = 4.6$\,W. Power delivered: $1.0 \times 2 = 2$\,W. Efficiency: $2/(2+4.6) \approx 30\%$, matching $V_{\text{out}}/V_{\text{in}} = 1.0/3.3$.

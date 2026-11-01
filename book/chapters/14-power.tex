@@ -27,8 +27,8 @@ Consider an inverter driving a load capacitance $C$ (Figure~\ref{fig:dynpower}).
   \draw ($(p.D)!0.5!(n.D)$) to[short,*-] ++(1.6,0) coordinate(o) to[C, l=$C$] ++(0,-1.6) node[ground]{};
   \draw[->,red!70!black,thick] (0.45,0.2) .. controls (1.2,0.2) .. (1.55,-0.8);
   \node[red!70!black,font=\small,right] at (1.5,0.3) {charge: $CV^2$ from supply};
-  \draw[->,blue!70!black,thick] (1.55,-1.5) .. controls (1.0,-2.6) .. (0.45,-2.4);
-  \node[blue!70!black,font=\small,right] at (1.6,-2.6) {discharge to ground};
+  \draw[->,blue!70!black,thick] (1.2,-1.35) .. controls (1.0,-2.4) .. (0.45,-2.4);
+  \node[blue!70!black,font=\small,right] at (1.75,-2.6) {discharge to ground};
 \end{circuitikz}
 \caption{Each 0-to-1 output transition draws charge from the supply; each 1-to-0 transition dumps it to ground.}
 \label{fig:dynpower}
@@ -144,7 +144,25 @@ Parallelism & dynamic & Two slower units at a lower voltage can beat one fast un
 \end{tabularx}
 \end{center}
 
-\paragraph{Clock gating done safely.} Simply ANDing a clock with an enable signal can produce glitches if the enable changes while the clock is high. The standard \term{integrated clock gating} (ICG) cell captures the enable in a latch that is transparent only while the clock is low, then ANDs the latched enable with the clock. The enable can only change while the clock is low, so the gated clock is always clean.
+\paragraph{Clock gating done safely.} Simply ANDing a clock with an enable signal can produce glitches if the enable changes while the clock is high. The standard \term{integrated clock gating} (ICG) cell (Figure~\ref{fig:icg}) captures the enable in a latch that is transparent only while the clock is low, then ANDs the latched enable with the clock. The enable can only change while the clock is low, so the gated clock is always clean.
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \dbox{l}{(0,0)}{latch}{0}
+  \draw (l-d) -- ++(-1.2,0) node[left]{enable};
+  \draw (-1.25,0.5) node[not port, scale=0.6, anchor=in](inv){};
+  \draw (inv.out) -- (l-clk);
+  \draw (4.0,1.0) node[and port](g){};
+  \draw (l-q) -- ++(0.5,0) |- (g.in 1);
+  \draw (-2.8,-0.7) node[left]{$CLK$} -- (2.6,-0.7) |- (g.in 2);
+  \draw (-1.6,-0.7) |- (inv.in); \fill (-1.6,-0.7) circle (1.6pt);
+  \draw (g.out) -- ++(0.5,0) node[right]{gated clock};
+  \node[font=\small,align=center] at (0.75,-1.5) {transparent only\\while $CLK$ is low};
+\end{circuitikz}
+\caption{An integrated clock-gating cell. The latch passes the enable only while the clock is low, so the AND gate's enable input cannot change while the clock is high, and the gated clock has no glitches.}
+\label{fig:icg}
+\end{figure}
 
 \paragraph{Power gating trade-offs.} A power-gated block loses its state, so registers that must survive need special \term{retention} flip-flops (or the state is saved elsewhere). Outputs of a powered-off block float, so \term{isolation cells} clamp them to safe values. Waking up takes time and causes a surge of current as the block's capacitance recharges.
 

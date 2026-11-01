@@ -1263,11 +1263,13 @@ body.dragging .ed-area textarea { pointer-events: none; }
 .lart pre.code { white-space: pre; overflow-x: auto; font-size: 0.84rem; line-height: 1.55; }
 .lart .mathd { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; text-align: center; padding: 8px 2px; font-size: 1.08em; }   /* only wide formulas scroll, sideways; never an empty vertical bar */
 .lart .math { white-space: nowrap; }
+sub.sym { font-size: 0.75em; line-height: 0; }   /* VDD, tcq and R1 written in plain text, with a real subscript */
 .lart math { font-size: 1.08em; }
 .lart .fn { color: var(--muted); font-size: 0.9em; }
 .bfig { margin: 6px 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .bfig img { max-width: 100%; height: auto; background: #FFFFFF; padding: 10px; border: 1px solid var(--line); }
 .bfig figcaption { font-size: 0.86rem; color: var(--muted); text-align: center; max-width: 64ch; }
+.btable { overflow-x: auto; }   /* a table wider than a phone scrolls sideways inside its frame */
 .btable table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
 .btable th, .btable td { border-bottom: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
 .btable th { font-weight: 600; background: var(--surface-2); }
@@ -1279,6 +1281,7 @@ body.dragging .ed-area textarea { pointer-events: none; }
 .b-everyday { border-left-color: #0E7490; } .b-everyday .bbox-h { color: #0E7490; }
 .b-worked { border-left-color: var(--ink); } .b-worked .bbox-h { color: var(--ink); }
 .bcenter { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.bcenter > * { max-width: 100%; }   /* a centred table stays inside the column and scrolls if it must */
 .bdraw { font-style: italic; }
 .lnav { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; padding-top: 16px; border-top: 1px solid var(--line); }
 .lnav .btn.on { color: var(--accent); }
@@ -1286,7 +1289,7 @@ body.dragging .ed-area textarea { pointer-events: none; }
 :root[data-theme="dark"] .b-onoa { border-left-color: #F59E0B; } :root[data-theme="dark"] .b-onoa .bbox-h { color: #F59E0B; }
 :root[data-theme="dark"] .b-remember .bbox-h { color: #FACC15; } :root[data-theme="dark"] .b-everyday .bbox-h { color: #22D3EE; }
 @media (max-width: 900px) {
-  .lx { grid-template-columns: 1fr; }
+  .lx { grid-template-columns: minmax(0, 1fr); }
   .lside { position: static; max-height: 340px; }
   .lmain { padding: 18px 16px 22px; }
 }

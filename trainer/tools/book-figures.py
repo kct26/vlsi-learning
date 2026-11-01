@@ -7,7 +7,11 @@ and trims the white margin. Run it again whenever the PDF changes:
 
     python3 trainer/tools/book-figures.py            (needs Poppler's pdftotext/pdftoppm and Pillow)
 
-Writes docs/book/fig-N-M.png and docs/book/figures.json (figure number -> width and height).
+A few small drawings have no caption (a symbol shown in the middle of a paragraph). DRAWINGS names the text just
+above and just below each one, and they are cut from between those lines the same way.
+
+Writes docs/book/fig-N-M.png, docs/book/draw-N-K.png and docs/book/figures.json (figure number, or dN.K for a
+drawing, -> width and height).
 """
 import json, os, re, subprocess, sys, tempfile
 from html.parser import HTMLParser
@@ -19,6 +23,12 @@ OUT = os.path.join(ROOT, 'docs', 'book')
 DPI = 160
 TEXT_LEFT, TEXT_RIGHT = 60, 552          # a little wider than the 1 inch margins of a letter page
 BOX_ABOVE = {'13.1'}                     # figures right under a framed box: cut below the box's bottom edge
+# Uncaptioned drawings, numbered in order within their chapter (book-convert.js counts them the same way):
+# the end of the line above, the start of the line below, and the alt text the Learn page gives the image.
+DRAWINGS = {
+    'd1.1': ('drawn with this symbol:', 'When someone says', 'The ground symbol: a short vertical line ending in three horizontal bars that get shorter.'),
+    'd4.1': ('conducts heavily.', 'Diodes matter to', 'A diode drawn from anode (p) on the left to cathode (n) on the right. Current flows easily from anode to cathode.'),
+}
 
 class Layout(HTMLParser):
     """Reads pdftotext -bbox-layout output into pages of lines: (yMin, yMax, xMin, xMax, words)."""
@@ -47,21 +57,17 @@ def cut_below_rule(im, pad):
     return retrim(im.crop((0, rows[-1] + 1, W, H)), pad) if rows else im
 
 def strip_rules(im, pad):
-    """Drops a box border caught at an edge (a near full-length line within 40 px of it), then trims again."""
+    """Drops the edge of a box caught at the top or bottom (a line within 40 px of it that runs nearly the full text
+    width), then trims again. A graph's axes and a drawing's own outline are shorter, so they stay."""
     W, H = im.size; px = im.load()
-    dark = lambda x, y: sum(px[x, y]) < 720
-    row = lambda y: sum(1 for x in range(W) if dark(x, y))
-    col = lambda x: sum(1 for y in range(H) if dark(x, y))
-    top, bot, left, right = 0, H, 0, W
+    full = 0.9 * (TEXT_RIGHT - TEXT_LEFT) * DPI / 72
+    row = lambda y: sum(1 for x in range(W) if sum(px[x, y]) < 720)
+    top, bot = 0, H
     for y in range(min(H, 40)):
-        if row(y) > 0.7 * W: top = y + 1
+        if row(y) > full: top = y + 1
     for y in range(H - 1, max(-1, H - 41), -1):
-        if row(y) > 0.7 * W: bot = min(bot, y)
-    for x in range(min(W, 40)):
-        if col(x) > 0.7 * H: left = x + 1
-    for x in range(W - 1, max(-1, W - 41), -1):
-        if col(x) > 0.7 * H: right = min(right, x)
-    if (top, bot, left, right) != (0, H, 0, W): im = retrim(im.crop((left, top, right, bot)), pad)
+        if row(y) > full: bot = min(bot, y)
+    if (top, bot) != (0, H): im = retrim(im.crop((0, top, W, bot)), pad)
     return drop_stray_line(im, pad)
 
 def drop_stray_line(im, pad):
@@ -81,13 +87,42 @@ def drop_stray_line(im, pad):
     if left > pad + 30: return im
     return retrim(im.crop((0, start + band + 1, W, H)), pad)
 
+def render(tmp, pno, top, bottom):
+    """The text column of page pno between top and bottom (points), trimmed to its ink with a small margin."""
+    s = DPI / 72
+    base = os.path.join(tmp, 'f')
+    subprocess.run(['pdftoppm', '-f', str(pno), '-l', str(pno), '-r', str(DPI), '-png', '-singlefile',
+                    '-x', str(int(TEXT_LEFT * s)), '-y', str(int(top * s)), '-W', str(int((TEXT_RIGHT - TEXT_LEFT) * s)),
+                    '-H', str(int((bottom - top) * s)), PDF, base], check=True)
+    im = Image.open(base + '.png').convert('RGB')
+    diff = ImageChops.difference(im, Image.new('RGB', im.size, (255, 255, 255)))
+    box = diff.point(lambda v: 255 if v > 12 else 0).getbbox()
+    if not box: return None
+    return retrim(im, 10)
+
+def save(im, name):
+    im.convert('P', palette=Image.ADAPTIVE, colors=64).save(os.path.join(OUT, name), optimize=True)
+
 def main():
     os.makedirs(OUT, exist_ok=True)
+    for f in os.listdir(OUT):                # figures renumber when one is added, so start clean
+        if re.fullmatch(r'(fig|draw)-\d+-\d+\.png', f): os.remove(os.path.join(OUT, f))
     with tempfile.TemporaryDirectory() as tmp:
         bbox = os.path.join(tmp, 'b.html')
         subprocess.run(['pdftotext', '-bbox-layout', PDF, bbox], check=True)
         L = Layout(); L.feed(open(bbox, encoding='utf-8').read())
         meta = {}
+        text = lambda ln: ' '.join(ln['w'])
+        for key, (before, after, alt) in DRAWINGS.items():
+            hit = [(pno, ln) for pno, lines in enumerate(L.pages, 1) for ln in lines if text(ln).endswith(before)]
+            if len(hit) != 1: print('skip (the line above is not found once)', key, file=sys.stderr); continue
+            pno, ln = hit[0]
+            below = sorted((x for x in L.pages[pno - 1] if x['y0'] > ln['y1'] and text(x).startswith(after)), key=lambda x: x['y0'])
+            if not below: print('skip (the line below is not on the same page)', key, file=sys.stderr); continue
+            im = render(tmp, pno, ln['y1'] + 2, below[0]['y0'] - 1)
+            if not im: print('skip (blank)', key, file=sys.stderr); continue
+            save(im, 'draw-' + key[1:].replace('.', '-') + '.png')
+            meta[key] = {'w': im.width, 'h': im.height, 'page': pno, 'alt': alt}
         for pno, lines in enumerate(L.pages, 1):
             for ln in lines:
                 w = ln['w']
@@ -96,30 +131,20 @@ def main():
                 cap_top = ln['y0']
                 # The figure sits between the nearest body-text line above the caption and the caption.
                 above = [x for x in lines if x['y1'] < cap_top - 1]
-                # Body text: long lines, or lines that start at the left margin (the last line of a paragraph does),
-                # or list items and boxed text just inside it. Labels inside a centred drawing start further right.
-                body = [x for x in above if (x['x1'] - x['x0']) > 300 or len(x['w']) > 11 or x['x0'] < 83 or x['w'][0] in ('•', '–')]
+                # Body text: lines that start at the left margin (the last line of a paragraph does), long lines that
+                # start near it (list items, boxed text), and bullets. Labels inside a centred drawing start further
+                # right, even a long row of them such as the bits of a number.
+                body = [x for x in above if x['x0'] < 83 or (x['x0'] < 120 and ((x['x1'] - x['x0']) > 300 or len(x['w']) > 11)) or x['w'][0] in ('•', '–')]
                 top = max([x['y1'] for x in body] + [62]) + 2
                 if cap_top - top < 20: print('skip (too small)', num, file=sys.stderr); continue
-                s = DPI / 72
-                base = os.path.join(tmp, 'f')
-                subprocess.run(['pdftoppm', '-f', str(pno), '-l', str(pno), '-r', str(DPI), '-png', '-singlefile',
-                                '-x', str(int(TEXT_LEFT * s)), '-y', str(int(top * s)), '-W', str(int((TEXT_RIGHT - TEXT_LEFT) * s)),
-                                '-H', str(int((cap_top - top - 1) * s)), PDF, base], check=True)
-                im = Image.open(base + '.png').convert('RGB')
-                diff = ImageChops.difference(im, Image.new('RGB', im.size, (255, 255, 255)))
-                box = diff.point(lambda v: 255 if v > 12 else 0).getbbox()
-                if not box: print('skip (blank)', num, file=sys.stderr); continue
-                pad = 10
-                box = (max(0, box[0] - pad), max(0, box[1] - pad), min(im.width, box[2] + pad), min(im.height, box[3] + pad))
-                im = im.crop(box)
-                if num in BOX_ABOVE: im = cut_below_rule(im, pad)
-                im = strip_rules(im, pad)
-                name = 'fig-' + num.replace('.', '-') + '.png'
-                im.convert('P', palette=Image.ADAPTIVE, colors=64).save(os.path.join(OUT, name), optimize=True)
+                im = render(tmp, pno, top, cap_top - 1)
+                if not im: print('skip (blank)', num, file=sys.stderr); continue
+                if num in BOX_ABOVE: im = cut_below_rule(im, 10)
+                im = strip_rules(im, 10)
+                save(im, 'fig-' + num.replace('.', '-') + '.png')
                 meta[num] = {'w': im.width, 'h': im.height, 'page': pno}
         json.dump(meta, open(os.path.join(OUT, 'figures.json'), 'w'), indent=0, sort_keys=True)
-        print(len(meta), 'figures written to', OUT)
+        print(len(meta), 'figures and drawings written to', OUT)
 
 if __name__ == '__main__':
     main()

@@ -7,7 +7,24 @@ With flip-flops and timing understood, we can build circuits that step through s
 
 A \term{counter} is a register that adds 1 on every clock edge. An $n$-bit counter steps through $0, 1, 2, \ldots, 2^n - 1$ and then wraps back to 0.
 
-\paragraph{Synchronous counter.} A register plus an adder: $Q^+ = Q + 1$. All flip-flops share one clock and change together. This is the standard design.
+\paragraph{Synchronous counter.} A register plus an adder: $Q^+ = Q + 1$ (Figure~\ref{fig:counter}). All flip-flops share one clock and change together. This is the standard design.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \dbox{r}{(0,0)}{}{1}
+  \node[font=\small\bfseries] at (0.75,-0.35) {$n$-bit register};
+  \draw[thick] (0.2,2.8) rectangle (1.3,3.6); \node at (0.75,3.2) {$+1$};
+  \draw (r-q) -- (2.4,1.5) coordinate(o) -- (3.4,1.5) node[right]{count $Q$};
+  \fill (o) circle (1.6pt);
+  \draw[->] (o) |- (1.3,3.2);
+  \draw[->] (0.2,3.2) -- (-0.6,3.2) |- (r-d);
+  \draw (r-clk) -- ++(-1.0,0) node[left]{$CLK$};
+  \draw (2.9,1.35) -- (3.05,1.65); \node[font=\scriptsize] at (3.0,1.9) {$n$};
+\end{tikzpicture}
+\caption{A synchronous counter: a register whose input is its own output plus 1. On every clock edge it loads $Q + 1$.}
+\label{fig:counter}
+\end{figure}
 
 \paragraph{Ripple counter.} A chain of toggle flip-flops in which each flip-flop's output clocks the next. The first flip-flop toggles on every clock edge, so its output is a square wave at half the clock frequency. The second toggles on every edge of the first, so it runs at a quarter of the clock frequency, and so on. Ripple counters are small, but each stage adds a clock-to-Q delay, so the bits do not change at the same instant. Reading the count while it ripples gives wrong values briefly.
 
@@ -217,11 +234,30 @@ A \textbf{Moore} version needs one more state, S4 (``just matched''), whose outp
 \section{Other useful counters}
 
 \begin{itemize}
-  \item \term{Ring counter}: a shift register with the last output fed back to the first, holding a single 1. With $N$ flip-flops it has $N$ states (one-hot).
+  \item \term{Ring counter} (Figure~\ref{fig:johnson}): a shift register with the last output fed back to the first, holding a single 1. With $N$ flip-flops it has $N$ states (one-hot).
   \item \term{Johnson counter}: a shift register with the \emph{inverted} last output fed back. With $N$ flip-flops it cycles through $2N$ states, and only one bit changes per step.
   \item \term{Linear-feedback shift register} (LFSR): a shift register whose input is the XOR of certain bits. With the right taps, $N$ flip-flops step through all $2^N - 1$ nonzero states in a pseudo-random order. LFSRs generate test patterns, scramble data and compute checksums (CRCs).
   \item \term{Gray-code counter}: counts in Gray code, so only one bit changes per step; used for pointers that cross clock domains (Chapter~\ref{ch:rtl}).
 \end{itemize}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=0.85]
+  \foreach \row/\y/\name in {r/3.6/ring counter, j/0/Johnson counter} {
+    \foreach \n/\x in {1/0, 2/2.3, 3/4.6, 4/6.9} \dbox{\row\n}{(\x,\y)}{}{1};
+    \draw (\row1-q) -- (\row2-d); \draw (\row2-q) -- (\row3-d); \draw (\row3-q) -- (\row4-d);
+    \node[font=\small\bfseries,anchor=west] at (9.6,\y+2.2) {\name};
+  }
+  \draw (r4-q) -- ++(0.5,0) |- (3.75,6.0) -| ($(r1-d)+(-0.5,0)$) -- (r1-d);
+  \draw (j4-q) -- ++(0.5,0) |- (4.6,2.4);
+  \draw (4.6,2.4) node[not port, rotate=180, anchor=in 1, scale=0.8](inv){};
+  \draw (inv.out) -| ($(j1-d)+(-0.5,0)$) -- (j1-d);
+  \node[anchor=west,font=\small\ttfamily,align=left] at (9.6,4.6) {1000\\0100\\0010\\0001};
+  \node[anchor=west,font=\small\ttfamily,align=left] at (9.6,1.0) {0000 1000\\1100 1110\\1111 0111\\0011 0001};
+\end{tikzpicture}
+\caption{Ring counter (top): the last output feeds back to the first, so a single 1 circulates through $N = 4$ states. Johnson counter (bottom): the feedback is inverted, so it passes through $2N = 8$ states, changing one bit per step. Clock wires are omitted.}
+\label{fig:johnson}
+\end{figure}
 
 \section{Summary}
 

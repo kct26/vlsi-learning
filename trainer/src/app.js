@@ -595,11 +595,17 @@ function viewQuest(){
   return html + `<h2 class="hh2 left stagesh" id="rmmap">Roadmap map</h2><p class="muted rmintro">Every topic and how they connect. Drag to move, scroll or pinch to zoom, and click a topic for its details.</p>${roadmapHTML()}`;
 }
 
-function openUnit(id){
+// A quest opens at its first unfinished lesson (or the start, once passed).
+function unitStart(id){
   const U = UNITS[id - 1];
-  let step = U.cards.findIndex((c, i) => !state.learn.cards['u' + id + 'c' + i]);
-  if (step < 0) step = unitPassed(id) ? 0 : U.cards.length;
-  ui.unit = {id, step}; ui.view = 'unit'; setHash('quest'); render(); window.scrollTo(0, 0);
+  const step = U.cards.findIndex((c, i) => !state.learn.cards['u' + id + 'c' + i]);
+  return step >= 0 ? step : unitPassed(id) ? 0 : U.cards.length;
+}
+function openUnit(id){
+  ui.unit = {id, step:unitStart(id)}; ui.view = 'unit';
+  // Its own history entry, so the browser's Back returns to the lesson or roadmap it was opened from.
+  try { if (location.hash !== '#quest-' + id) history.pushState(null, '', '#quest-' + id); } catch (e) { setHash('quest-' + id); }
+  render(); window.scrollTo(0, 0);
 }
 function maxStep(U){ const i = U.cards.findIndex((c, k) => !state.learn.cards['u' + U.id + 'c' + k]); return i < 0 ? U.cards.length : i; }
 
@@ -1807,8 +1813,22 @@ function renderMath(root){
   if (window.katex) go(); else loadScript(KATEX).then(go, () => {});
 }
 
+// Symbols written in plain text in questions and quest cards (VDD, Vtn, VGS, tcq, R1, ID =) get a real subscript
+// wherever they appear in the page, so they read like the book's formulas. The text itself is unchanged, so search
+// and copying still see "VDD". Code, editors and rendered math are left alone.
+const SYM_RE = /(?<!\w)V(?:DD|SS|tn|tp|th|t|GS|DS|SG|SD|in|out|OL|OH|IL|IH|M|ref|ov|min|G)(?!\w)|(?<![\w-])t(?:cq|su|pd|cd|h|d|skew)(?![\w-])|(?<!\w)(?:R[0-9D]|C[0-9]|[GP][0-3])(?!\w)|(?<!\w)ID(?=\s*[=?])/g;
+const SYM_SKIP = 'code, pre, textarea, script, style, svg, math, .math, .mathd, .katex, .editor, sub';
+function subSymbols(n){
+  if (n.nodeType === 1) { if (n.closest(SYM_SKIP)) return; const tw = document.createTreeWalker(n, NodeFilter.SHOW_TEXT), list = []; for (let t; (t = tw.nextNode());) list.push(t); list.forEach(subSymbols); return; }
+  if (n.nodeType !== 3 || !n.parentElement || n.parentElement.closest(SYM_SKIP)) return;
+  const s = n.data; SYM_RE.lastIndex = 0; if (!SYM_RE.test(s)) return;
+  const frag = document.createDocumentFragment(); let last = 0;
+  s.replace(SYM_RE, (m, at) => { frag.append(s.slice(last, at), m[0], Object.assign(document.createElement('sub'), {className:'sym', textContent:m.slice(1)})); last = at + m.length; return m; });
+  frag.append(s.slice(last)); n.replaceWith(frag);
+}
+
 // ---------- Home ----------
-const HERO_WORDS = ['digital logic', 'CMOS circuits', 'Verilog RTL', 'static timing', 'GPU architecture', 'computer arithmetic'];
+const HERO_WORDS =['digital logic', 'CMOS circuits', 'Verilog RTL', 'static timing', 'GPU architecture', 'computer arithmetic'];
 const HOME_TABS = [
   {name:'Learn circuits from zero', file:'quest_05.md', go:'quest', link:'Start the quest',
     code:'Quest 5 · The MOSFET\n\n  Vgs < Vth   off: no channel\n  Vgs > Vth   on:  channel forms\n\n  Id = k (Vgs − Vth)²   saturation\n\n✓ 4 lessons with widgets\n✓ 5-problem checkpoint', vis:'mosfet', cap:'drag Vgs past Vth'},
@@ -2907,7 +2927,7 @@ function returnFrom(from){
   if (from && from.view === 'company') { ui.view = 'company'; setHash('company-' + from.co); render(); return; }
   if (from && from.view === 'lesson' && ui.lesson) { ui.view = 'lesson'; setHash(`learn-${ui.lesson.ch}-${ui.lesson.sec}`); render(); return; }
   if (from && from.view === 'position') { ui.pos = {id:from.pos, d:(ui.pos && ui.pos.id === from.pos && ui.pos.d) || 'all'}; ui.view = 'position'; setHash('position-' + from.pos); render(); return; }
-  if (from && from.view === 'unit' && ui.unit) { ui.view = 'unit'; render(); return; }
+  if (from && from.view === 'unit' && ui.unit) { ui.view = 'unit'; setHash('quest-' + ui.unit.id); render(); return; }
   goTab(from && from.tab ? from.tab : 'quest');
 }
 document.addEventListener('input', e => {
@@ -3021,6 +3041,7 @@ function readHash(){
   if (TABS.includes(h)) ui.tab = h;
   if (cm && CODING[+cm[1] - 1]) { ui.tab = 'coding'; ui.cback = {view:'tab', tab:'coding'}; ui.cp = blankCodePage(CODING[+cm[1] - 1].id, CODING.map(p => p.id)); ui.view = 'code'; }
   else if (/^learn-\d+-(\d+|p)$/.test(h)) { const [, ch, sec] = /^learn-(\d+)-(\d+|p)$/.exec(h); ui.tab = 'learn'; ui.lesson = {ch:+ch, sec}; ui.view = 'lesson'; }
+  else if (/^quest-\d+$/.test(h) && UNITS[+h.slice(6) - 1]) { const id = +h.slice(6); ui.tab = 'learn'; ui.unit = {id, step:unitStart(id)}; ui.view = 'unit'; }
   else if (h === 'practice' || h === 'weekly') ui.tab = 'profile';
   else if (h === 'bank' || h === 'problems') ui.tab = 'theory';
   else if (h === 'jobs') ui.tab = 'roles';
@@ -3030,6 +3051,7 @@ function readHash(){
 }
 readHash();
 window.addEventListener('popstate', () => { saveEditorNow(); stopTimer(); ui.view = 'tab'; readHash(); render(); window.scrollTo(0, 0); });
+new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(subSymbols))).observe($('#main'), {childList:true, subtree:true});
 render();
 setSync(store.status);
 initStore();

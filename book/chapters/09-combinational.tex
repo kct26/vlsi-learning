@@ -5,7 +5,7 @@ A \term{combinational} circuit is one whose output depends only on its \emph{cur
 
 \section{Universal gates}
 
-A gate type is \term{universal} if any Boolean function can be built using only that gate. NAND is universal, and so is NOR. With NAND alone:
+A gate type is \term{universal} if any Boolean function can be built using only that gate. NAND is universal, and so is NOR. With NAND alone (Figure~\ref{fig:nanduniv}):
 
 \begin{itemize}
   \item \textbf{NOT}: tie both inputs together. $\nt{A \cdot A} = \nt{A}$. (1 gate)
@@ -15,6 +15,52 @@ A gate type is \term{universal} if any Boolean function can be built using only 
 \end{itemize}
 
 Because NOT, AND and OR can express any function (any truth table can be written as a sum of products), a gate that can build all three is universal.
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}[scale=0.85, transform shape]
+  % NOT
+  \draw (1.2,0) node[nand port](n){};
+  \draw (n.in 1) -- ++(-0.3,0) coordinate(j1); \draw (n.in 2) -- ++(-0.3,0) coordinate(j2);
+  \draw (j1) -- (j2); \draw ($(j1)!0.5!(j2)$) to[short,*-] ++(-0.6,0) node[left]{$A$};
+  \draw (n.out) -- ++(0.4,0) node[right]{$\nt{A}$};
+  \node[font=\small] at (0.6,-1.2) {NOT: 1 gate};
+  % AND
+  \draw (5.2,0) node[nand port](a1){} (7.8,0) node[nand port](a2){};
+  \draw (a1.in 1) -- ++(-0.4,0) node[left]{$A$}; \draw (a1.in 2) -- ++(-0.4,0) node[left]{$B$};
+  \draw (a1.out) -- ++(0.35,0) coordinate(k);
+  \draw (a2.in 1) -- ++(-0.3,0) coordinate(k1); \draw (a2.in 2) -- ++(-0.3,0) coordinate(k2); \draw (k1) -- (k2); \draw (k) |- ($(k1)!0.5!(k2)$);
+  \draw (a2.out) -- ++(0.4,0) node[right]{$AB$};
+  \node[font=\small] at (6.3,-1.2) {AND: 2 gates};
+  % OR
+  \draw (11.4,0.75) node[nand port](o1){} (11.4,-0.75) node[nand port](o2){} (13.9,0) node[nand port](o3){};
+  \draw (o1.in 1) -- (o1.in 2); \draw (o2.in 1) -- (o2.in 2);
+  \draw ($(o1.in 1)!0.5!(o1.in 2)$) -- ++(-0.4,0) node[left]{$A$};
+  \draw ($(o2.in 1)!0.5!(o2.in 2)$) -- ++(-0.4,0) node[left]{$B$};
+  \draw (o1.out) -| ($(o3.in 1)+(-0.3,0)$) -- (o3.in 1);
+  \draw (o2.out) -| ($(o3.in 2)+(-0.3,0)$) -- (o3.in 2);
+  \draw (o3.out) -- ++(0.4,0) node[right]{$A + B$};
+  \node[font=\small] at (12.6,-1.9) {OR: 3 gates};
+  % XOR
+  \begin{scope}[yshift=-4.4cm]
+    \draw (3.6,0) node[nand port](m){} (6.4,1.1) node[nand port](x1){} (6.4,-1.1) node[nand port](x2){} (9.0,0) node[nand port](x3){};
+    \draw (0.8,1.6) node[left]{$A$} -- (2.0,1.6) coordinate(ja); \draw (0.8,-1.6) node[left]{$B$} -- (2.0,-1.6) coordinate(jb);
+    \draw (ja) |- (m.in 1); \draw (jb) |- (m.in 2);
+    \fill (ja) circle (1.6pt); \fill (jb) circle (1.6pt);
+    \draw (ja) -- (ja -| x1.in 1) ++(0,0) coordinate(ta); \draw (ta) |- (x1.in 1);
+    \draw (jb) -- (jb -| x2.in 2) coordinate(tb); \draw (tb) |- (x2.in 2);
+    \draw (m.out) -- ++(0.5,0) coordinate(jm); \fill (jm) circle (1.6pt);
+    \draw (jm) |- (x1.in 2); \draw (jm) |- (x2.in 1);
+    \node[above,font=\small] at (m.out) {$M$};
+    \draw (x1.out) -| ($(x3.in 1)+(-0.3,0)$) -- (x3.in 1);
+    \draw (x2.out) -| ($(x3.in 2)+(-0.3,0)$) -- (x3.in 2);
+    \draw (x3.out) -- ++(0.4,0) node[right]{$A \oplus B$};
+    \node[font=\small] at (5.4,-2.4) {XOR: 4 gates, with $M = \nt{AB}$};
+  \end{scope}
+\end{circuitikz}
+\caption{NOT, AND, OR and XOR built from NAND gates alone, so NAND is universal.}
+\label{fig:nanduniv}
+\end{figure}
 
 \section{The multiplexer}
 
@@ -133,6 +179,27 @@ Muxes can also build \emph{memory}: a mux whose output is fed back to one of its
 
 A \term{decoder} takes an $n$-bit binary number and raises exactly one of its $2^n$ outputs: a 2-to-4 decoder with input $11$ raises output 3. Decoders select memory rows: a memory with 1024 rows uses a 10-to-1024 decoder on its address bits (Chapter~\ref{ch:memory}).
 
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \draw[thick] (0,0) rectangle (2.2,3.2); \node[align=center] at (1.1,1.6) {2-to-4\\decoder};
+  \draw (-1,2.2) node[left]{$A_1 = 1$} -- (0,2.2);
+  \draw (-1,1.0) node[left]{$A_0 = 1$} -- (0,1.0);
+  \foreach \i/\y/\v in {0/2.8/0, 1/2.0/0, 2/1.2/0} \draw (2.2,\y) -- (3.2,\y) node[right]{$Y_\i = \v$};
+  \draw[very thick,blue!70!black] (2.2,0.4) -- (3.2,0.4) node[right]{$Y_3 = 1$};
+  \node[anchor=west] at (5.4,1.6) {\small
+    \begin{tabular}{cc|cccc}
+      $A_1$ & $A_0$ & $Y_0$ & $Y_1$ & $Y_2$ & $Y_3$ \\ \hline
+      0 & 0 & 1 & 0 & 0 & 0 \\
+      0 & 1 & 0 & 1 & 0 & 0 \\
+      1 & 0 & 0 & 0 & 1 & 0 \\
+      1 & 1 & 0 & 0 & 0 & 1 \\
+    \end{tabular}};
+\end{tikzpicture}
+\caption{A 2-to-4 decoder raises exactly one output: the one whose number is on the inputs. Input $11$ raises $Y_3$.}
+\label{fig:decoder}
+\end{figure}
+
 An \term{encoder} does the reverse: given which one of $2^n$ inputs is active, it outputs that input's number. A \term{priority encoder} handles several active inputs by reporting the highest-priority one, which is useful for interrupt controllers and arbiters.
 
 A \term{demultiplexer} routes one input to one of several outputs, chosen by select bits: the opposite of a mux.
@@ -150,7 +217,25 @@ A \term{demultiplexer} routes one input to one of several outputs, chosen by sel
 \]
 $C_{out}$ is the \term{majority} function: it is 1 when at least two of the three inputs are 1. The sum is 1 when an odd number of inputs are 1.
 
-\paragraph{Ripple-carry adder.} Chain $n$ full adders, each passing its carry to the next. It is simple and small, but slow: in the worst case (for example, adding 1 to $0111\ldots1$) a carry must ripple through every stage, so delay grows in proportion to $n$.
+\paragraph{Ripple-carry adder.} Chain $n$ full adders, each passing its carry to the next (Figure~\ref{fig:ripple}). It is simple and small, but slow: in the worst case (for example, adding 1 to $0111\ldots1$) a carry must ripple through every stage, so delay grows in proportion to $n$.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \foreach \i/\x in {3/0, 2/2.8, 1/5.6, 0/8.4} {
+    \draw[thick] (\x,0) rectangle (\x+1.6,1.4); \node at (\x+0.8,0.7) {FA};
+    \draw (\x+0.45,1.4) -- ++(0,0.5) node[above]{$A_\i$};
+    \draw (\x+1.15,1.4) -- ++(0,0.5) node[above]{$B_\i$};
+    \draw (\x+0.8,0) -- ++(0,-0.5) node[below]{$S_\i$};
+  }
+  \foreach \x in {0, 2.8, 5.6} \draw[->,thick,red!70!black] (\x+2.8,0.7) -- (\x+1.6,0.7);
+  \draw[->,thick] (10.8,0.7) node[right]{$C_{in}$} -- (10.0,0.7);
+  \draw[->,thick,red!70!black] (0,0.7) -- (-0.8,0.7) node[left]{$C_{out}$};
+  \node[font=\small,red!70!black] at (5.0,-1.4) {the carry ripples right to left, through every stage};
+\end{tikzpicture}
+\caption{A 4-bit ripple-carry adder: four full adders (FA), each passing its carry to the next. In the worst case the carry travels through every stage.}
+\label{fig:ripple}
+\end{figure}
 
 \paragraph{Faster adders.} Each position can be described by whether it \term{generates} a carry ($G = AB$: both bits are 1) or \term{propagates} an incoming carry ($P = A \oplus B$: exactly one bit is 1). A \term{carry-lookahead} adder computes the carries for many positions at once from $G$ and $P$ instead of waiting for the ripple. Tree-shaped \term{prefix adders} (such as Kogge--Stone) bring the delay down to grow with $\log_2 n$ instead of $n$, at the cost of more area and wiring. A \term{carry-select} adder computes the upper half twice, once assuming carry-in 0 and once assuming 1, then uses a mux to pick the right one when the real carry arrives.
 

@@ -62,7 +62,7 @@ int power(int a, int b) {
 
 \section{Structs, padding and alignment}
 
-Processors read memory fastest when each value sits at an address that is a multiple of its size (its \term{alignment}). The compiler inserts unused \term{padding} bytes inside structs to keep each member aligned, and pads the end so that arrays of the struct stay aligned.
+Processors read memory fastest when each value sits at an address that is a multiple of its size (its \term{alignment}). The compiler inserts unused \term{padding} bytes (Figure~\ref{fig:structpad}) inside structs to keep each member aligned, and pads the end so that arrays of the struct stay aligned.
 
 \begin{worked}{size of a struct on a 64-bit machine}
 \begin{lstlisting}[language=C]
@@ -72,6 +72,79 @@ struct U { int b; char a; char c; };    // b at 0, a at 4, c at 5, pad 2
 \end{lstlisting}
 \code{sizeof(struct S) == 16}, \code{sizeof(struct T) == 12}, \code{sizeof(struct U) == 8}. Ordering members from largest to smallest minimizes padding.
 \end{worked}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \foreach \k in {0,4,8,12} \node[font=\scriptsize,gray] at (0.55*\k+0.275,3.5) {\k};
+  \node[anchor=east,font=\small\ttfamily] at (-0.2,2.90) {struct S};
+  \fill[fill=blue!25] (0.00,2.60) rectangle ++(0.55,0.6);
+  \draw[thick] (0.00,2.60) rectangle ++(0.55,0.6);
+  \node[font=\small\ttfamily,fill=blue!25,inner sep=1.5pt] at (0.28,2.90) {c};
+  \fill[pattern=north east lines, pattern color=gray!60] (0.55,2.60) rectangle ++(3.85,0.6);
+  \draw[gray!50] (1.10,2.60) -- ++(0,0.6);
+  \draw[gray!50] (1.65,2.60) -- ++(0,0.6);
+  \draw[gray!50] (2.20,2.60) -- ++(0,0.6);
+  \draw[gray!50] (2.75,2.60) -- ++(0,0.6);
+  \draw[gray!50] (3.30,2.60) -- ++(0,0.6);
+  \draw[gray!50] (3.85,2.60) -- ++(0,0.6);
+  \draw[thick] (0.55,2.60) rectangle ++(3.85,0.6);
+  \fill[fill=orange!35] (4.40,2.60) rectangle ++(4.40,0.6);
+  \draw[gray!50] (4.95,2.60) -- ++(0,0.6);
+  \draw[gray!50] (5.50,2.60) -- ++(0,0.6);
+  \draw[gray!50] (6.05,2.60) -- ++(0,0.6);
+  \draw[gray!50] (6.60,2.60) -- ++(0,0.6);
+  \draw[gray!50] (7.15,2.60) -- ++(0,0.6);
+  \draw[gray!50] (7.70,2.60) -- ++(0,0.6);
+  \draw[gray!50] (8.25,2.60) -- ++(0,0.6);
+  \draw[thick] (4.40,2.60) rectangle ++(4.40,0.6);
+  \node[font=\small\ttfamily,fill=orange!35,inner sep=1.5pt] at (6.60,2.90) {p};
+  \node[anchor=west,font=\small] at (9.10,2.90) {16 bytes};
+  \node[anchor=east,font=\small\ttfamily] at (-0.2,1.90) {struct T};
+  \fill[fill=blue!25] (0.00,1.60) rectangle ++(0.55,0.6);
+  \draw[thick] (0.00,1.60) rectangle ++(0.55,0.6);
+  \node[font=\small\ttfamily,fill=blue!25,inner sep=1.5pt] at (0.28,1.90) {a};
+  \fill[pattern=north east lines, pattern color=gray!60] (0.55,1.60) rectangle ++(1.65,0.6);
+  \draw[gray!50] (1.10,1.60) -- ++(0,0.6);
+  \draw[gray!50] (1.65,1.60) -- ++(0,0.6);
+  \draw[thick] (0.55,1.60) rectangle ++(1.65,0.6);
+  \fill[fill=orange!35] (2.20,1.60) rectangle ++(2.20,0.6);
+  \draw[gray!50] (2.75,1.60) -- ++(0,0.6);
+  \draw[gray!50] (3.30,1.60) -- ++(0,0.6);
+  \draw[gray!50] (3.85,1.60) -- ++(0,0.6);
+  \draw[thick] (2.20,1.60) rectangle ++(2.20,0.6);
+  \node[font=\small\ttfamily,fill=orange!35,inner sep=1.5pt] at (3.30,1.90) {b};
+  \fill[fill=blue!25] (4.40,1.60) rectangle ++(0.55,0.6);
+  \draw[thick] (4.40,1.60) rectangle ++(0.55,0.6);
+  \node[font=\small\ttfamily,fill=blue!25,inner sep=1.5pt] at (4.68,1.90) {c};
+  \fill[pattern=north east lines, pattern color=gray!60] (4.95,1.60) rectangle ++(1.65,0.6);
+  \draw[gray!50] (5.50,1.60) -- ++(0,0.6);
+  \draw[gray!50] (6.05,1.60) -- ++(0,0.6);
+  \draw[thick] (4.95,1.60) rectangle ++(1.65,0.6);
+  \node[anchor=west,font=\small] at (9.10,1.90) {12 bytes};
+  \node[anchor=east,font=\small\ttfamily] at (-0.2,0.90) {struct U};
+  \fill[fill=orange!35] (0.00,0.60) rectangle ++(2.20,0.6);
+  \draw[gray!50] (0.55,0.60) -- ++(0,0.6);
+  \draw[gray!50] (1.10,0.60) -- ++(0,0.6);
+  \draw[gray!50] (1.65,0.60) -- ++(0,0.6);
+  \draw[thick] (0.00,0.60) rectangle ++(2.20,0.6);
+  \node[font=\small\ttfamily,fill=orange!35,inner sep=1.5pt] at (1.10,0.90) {b};
+  \fill[fill=blue!25] (2.20,0.60) rectangle ++(0.55,0.6);
+  \draw[thick] (2.20,0.60) rectangle ++(0.55,0.6);
+  \node[font=\small\ttfamily,fill=blue!25,inner sep=1.5pt] at (2.48,0.90) {a};
+  \fill[fill=blue!25] (2.75,0.60) rectangle ++(0.55,0.6);
+  \draw[thick] (2.75,0.60) rectangle ++(0.55,0.6);
+  \node[font=\small\ttfamily,fill=blue!25,inner sep=1.5pt] at (3.02,0.90) {c};
+  \fill[pattern=north east lines, pattern color=gray!60] (3.30,0.60) rectangle ++(1.10,0.6);
+  \draw[gray!50] (3.85,0.60) -- ++(0,0.6);
+  \draw[thick] (3.30,0.60) rectangle ++(1.10,0.6);
+  \node[anchor=west,font=\small] at (9.10,0.90) {8 bytes};
+  \draw[pattern=north east lines, pattern color=gray!60] (0,-0.25) rectangle ++(0.4,0.3); \node[right,font=\small] at (0.45,-0.1) {padding};
+  \node[font=\scriptsize,gray,anchor=west] at (2.4,-0.1) {one box per byte};
+\end{tikzpicture}
+\caption{The three structs from the worked example, byte by byte on a 64-bit machine. Each member starts at a multiple of its size, so the compiler inserts padding (hatched).}
+\label{fig:structpad}
+\end{figure}
 
 \begin{onoa}
 A reported question asks for the output of a C program on a 64-bit machine involving a \code{sizeof}-style macro and a struct containing a \code{char} and a \code{void*}. The answer turns on padding: 1 byte of \code{char} plus 7 bytes of padding plus an 8-byte pointer gives 16. Static variables, macro expansion, shift operators and recursion are also reported topics.

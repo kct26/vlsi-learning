@@ -61,7 +61,7 @@ always @(posedge clk) begin
   b <= a;
 end
 \end{lstlisting}
-Both right sides use the old values: after the first edge \code{a = 2, b = 1}; after the second \code{a = 1, b = 2}. The registers swap every cycle, which is what two cross-connected flip-flops do.
+Both right sides use the old values: after the first edge \code{a = 2, b = 1}; after the second \code{a = 1, b = 2}. The registers swap every cycle, which is what two cross-connected flip-flops do (Figure~\ref{fig:blocking}).
 
 \textbf{Blocking:}
 \begin{lstlisting}[language=Verilog]
@@ -72,6 +72,25 @@ end
 \end{lstlisting}
 After the first edge \code{a = 2, b = 2}, and they stay 2 forever. No swap.
 \end{worked}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \dbox{a}{(0,0)}{a}{1} \dbox{b}{(3.2,0)}{b}{1}
+  \draw (a-q) -- (b-d);
+  \draw (b-q) -- (5.1,1.5) -- (5.1,2.9) -- (-0.4,2.9) -- (-0.4,1.5) -- (a-d);
+  \node[font=\small,align=center] at (2.35,-0.6) {\texttt{a <= b; b <= a;}\\swaps every cycle};
+  \begin{scope}[xshift=7.4cm]
+    \dbox{c}{(0,0)}{a}{1} \dbox{d}{(3.2,0)}{b}{1}
+    \draw (c-q) -- ++(0.6,0) node[right,font=\small]{a};
+    \draw (d-q) -- (5.1,1.5) -- (5.1,2.9) -- (-0.4,2.9) -- (-0.4,1.5) -- (c-d);
+    \draw (2.8,2.9) -- (2.8,1.5) -- (d-d); \fill (2.8,2.9) circle (1.6pt);
+    \node[font=\small,align=center] at (2.35,-0.6) {\texttt{a = b; b = a;}\\both registers load the old $b$};
+  \end{scope}
+\end{tikzpicture}
+\caption{The hardware each version describes (clocks omitted). Nonblocking (left): two cross-connected flip-flops that swap. Blocking (right): the second line reads the new $a$, which is just $b$, so both flip-flops load $b$.}
+\label{fig:blocking}
+\end{figure}
 
 \begin{worked}{what does \code{\$display} print?}
 \begin{lstlisting}[language=Verilog]
@@ -167,7 +186,24 @@ Rules that go with it:
 
 A \term{FIFO} (first in, first out) is a queue: data is written at one end and read out in the same order at the other. It decouples a producer and a consumer that run at different moments or rates.
 
-\paragraph{Structure.} A FIFO is a small memory used as a circular buffer, plus a \term{write pointer} (where the next word goes) and a \term{read pointer} (where the next word comes from). Both advance and wrap around. The FIFO is \term{empty} when the pointers are equal and \term{full} when the write pointer has gone all the way around and caught up with the read pointer. To tell these two cases apart, the pointers get one extra bit: equal including the extra bit means empty; equal except for the extra bit means full.
+\paragraph{Structure.} A FIFO is a small memory used as a circular buffer (Figure~\ref{fig:fifo}), plus a \term{write pointer} (where the next word goes) and a \term{read pointer} (where the next word comes from). Both advance and wrap around. The FIFO is \term{empty} when the pointers are equal and \term{full} when the write pointer has gone all the way around and caught up with the read pointer. To tell these two cases apart, the pointers get one extra bit: equal including the extra bit means empty; equal except for the extra bit means full.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \foreach \i in {0,...,7} {
+    \draw[thick] (\i,0) rectangle ++(1,0.8);
+    \node[above,font=\scriptsize] at (\i+0.5,0.8) {\i};
+  }
+  \foreach \i/\d in {2/D0, 3/D1, 4/D2, 5/D3} { \fill[blue!20] (\i+0.03,0.03) rectangle ++(0.94,0.74); \node at (\i+0.5,0.4) {\d}; }
+  \draw[->,thick,red!70!black] (2.5,-1.0) node[below,font=\small,align=center]{read pointer\\(oldest word)} -- (2.5,-0.08);
+  \draw[->,thick,blue!70!black] (6.5,-1.0) node[below,font=\small,align=center]{write pointer\\(next free slot)} -- (6.5,-0.08);
+  \draw[->,gray,thick] (8.1,0.4) .. controls (9.3,0.4) and (9.3,1.9) .. (4,1.9) .. controls (-1.3,1.9) and (-1.3,0.4) .. (-0.1,0.4);
+  \node[font=\small,gray] at (4,2.2) {both pointers wrap around};
+\end{tikzpicture}
+\caption{A FIFO as a circular buffer of 8 words. Words are written at the write pointer and read at the read pointer; both advance and wrap around. Here it holds four words, D0 to D3.}
+\label{fig:fifo}
+\end{figure}
 
 \paragraph{Asynchronous FIFOs.} When the writer and reader use different clocks, each side must compare its own pointer with the other side's pointer, which crosses a clock domain. The pointers are converted to Gray code and passed through two-flop synchronizers. Because only one bit changes at a time, the synchronized pointer is always a valid (if slightly old) value, and a slightly old value can only make the FIFO look a little fuller or emptier than it is, which is safe.
 
@@ -197,7 +233,24 @@ FIFOs are reported on the Ignite assessment, and FIFO depth calculations (module
 
 \section{Handshakes and arbiters}
 
-\paragraph{Valid/ready.} Within one clock domain, blocks usually exchange data with a \term{valid/ready} handshake: the sender raises \code{valid} when it has data; the receiver raises \code{ready} when it can take it; a transfer happens on each clock edge where both are high. This lets either side pause the other (\term{backpressure}).
+\paragraph{Valid/ready.} Within one clock domain, blocks usually exchange data with a \term{valid/ready} handshake: the sender raises \code{valid} when it has data; the receiver raises \code{ready} when it can take it; a transfer happens on each clock edge where both are high (Figure~\ref{fig:validready}). This lets either side pause the other (\term{backpressure}).
+
+\begin{figure}[h]
+\centering
+\begin{tikztimingtable}[timing/slope=0.05, xscale=1.3, yscale=1.2]
+$clk$   & LL HH LL HH LL HH LL HH LL HH LL \\
+$valid$ & 2.3L 16H 3.7L \\
+$ready$ & 6.3H 4L 11.7H \\
+$data$  & 2.3U 4D{D0} 8D{D1} 4D{D2} 3.7U \\
+\extracode
+\begin{pgfonlayer}{background}
+\vertlines[help lines]{2,10,22}
+\vertlines[blue!60,thick]{6,14,18}
+\end{pgfonlayer}
+\end{tikztimingtable}
+\caption{A valid/ready handshake. A word moves on each rising edge where both valid and ready are high (blue lines): D0, then D1, then D2. At the edge in between, ready is low, so D1 waits: the receiver is applying backpressure.}
+\label{fig:validready}
+\end{figure}
 
 \paragraph{Arbiters.} When several requesters share one resource (a memory port, a bus), an \term{arbiter} grants it to one at a time. A \term{fixed-priority} arbiter always prefers the lowest-numbered requester, which is simple but can starve the others. A \term{round-robin} arbiter rotates priority after each grant, so every requester is eventually served.
 

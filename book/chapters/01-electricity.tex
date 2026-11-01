@@ -83,8 +83,10 @@ Ground is not magic. It is just a wire (or, on a circuit board, a large copper p
   \draw (0,3) node[vdd]{$V_{DD}$} to[R, l=$10\,\mathrm{k}\Omega$] (0,1.2)
         to[push button, l=button] (0,-0.4) node[ground]{};
   \draw (0,1.2) to[short,*-o] (2,1.2) node[right]{to logic input};
+  \draw[->,very thick,red!70!black] (-0.75,2.7) -- node[left,align=right,font=\small]{current flows\\only while the\\button is pressed} (-0.75,-0.1);
+  \node[font=\small,align=left,anchor=west,blue!70!black] at (2.0,0.55) {open: input $= \VDD$, reads 1\\pressed: input $= 0$\,V, reads 0};
 \end{circuitikz}
-\caption{A pull-up resistor keeps the input at a defined 1 until the button connects it to ground.}
+\caption{A pull-up resistor keeps the input at a defined 1 until the button connects it to ground. Red: the current, which flows only while the button is pressed. Blue: what the input sees.}
 \label{fig:pullup}
 \end{figure}
 
@@ -150,12 +152,31 @@ All 360\,W ends up as heat that the cooling system must remove (Chapter~\ref{ch:
 
 \section{Circuits: closed loops, opens and shorts}
 
-A \term{circuit} is a closed loop through which current can flow: from a source, through components, and back. Two failure modes appear constantly:
+A \term{circuit} is a closed loop through which current can flow: from a source, through components, and back. Two failure modes appear constantly (Figure~\ref{fig:openshort}):
 
 \begin{itemize}
   \item An \term{open circuit} is a break in the loop. No current flows, no matter how high the voltage. A switch that is ``off'' is an open circuit.
   \item A \term{short circuit} is a path with (nearly) zero resistance. By Ohm's law, $I = V/R$ becomes very large. A short across a power supply can melt wires or destroy the supply.
 \end{itemize}
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (0,0) to[battery1, l=$V$] (0,2) -- (2.2,2) to[R, l=$R$] (2.2,0) -- (0,0);
+  \draw[->,very thick,red!70!black,rounded corners=4pt] (0.45,1.6) -- (1.75,1.6) -- (1.75,0.4) -- (0.45,0.4);
+  \node[font=\small,red!70!black] at (1.1,1.0) {$I$};
+  \node[align=center,font=\small] at (1.1,-0.75) {closed loop:\\current flows};
+  \draw (4.2,0) to[battery1, l=$V$] (4.2,2) to[cosw] (6.4,2) to[R, l=$R$] (6.4,0) -- (4.2,0);
+  \node[align=center,font=\small] at (5.3,-0.75) {open circuit:\\$I = 0$};
+  \draw (8.4,0) to[battery1, l=$V$] (8.4,2) -- (11.6,2) to[R, l=$R$] (11.6,0) -- (8.4,0);
+  \draw (9.5,2) to[short, *-*] (9.5,0);
+  \draw[->,line width=2pt,red!70!black,rounded corners=4pt] (8.85,1.6) -- (9.15,1.6) -- (9.15,0.4) -- (8.85,0.4);
+  \node[font=\small,red!70!black,anchor=west] at (9.6,1.0) {huge $I$};
+  \node[align=center,font=\small] at (10.0,-0.75) {short circuit:\\almost no resistance};
+\end{circuitikz}
+\caption{A closed loop carries current (left). An open circuit, here a switch that is off, breaks the loop, so no current flows (middle). A short circuit is a path with almost no resistance: it bypasses $R$, and the current becomes very large (right). Red arrows show the current.}
+\label{fig:openshort}
+\end{figure}
 
 \section{Series and parallel}
 
@@ -165,14 +186,19 @@ Components can be connected in two basic ways (Figure~\ref{fig:seriespar}).
 \centering
 \begin{circuitikz}
   \draw (0,0) to[battery1, l=$V$] (0,2) to[R, l=$R_1$] (2.5,2) to[R, l=$R_2$] (2.5,0) -- (0,0);
-  \node at (1.25,-0.6) {series};
-  \draw (5,0) to[battery1, l=$V$] (5,2) -- (8,2);
-  \draw (6.5,2) to[R, l_=$R_1$] (6.5,0);
-  \draw (8,2) to[R, l=$R_2$] (8,0);
-  \draw (5,0) -- (8,0);
-  \node at (6.5,-0.6) {parallel};
+  \draw[->,very thick,red!70!black,rounded corners=4pt] (0.45,1.55) -- (1.95,1.55) -- (1.95,0.45) -- (0.45,0.45);
+  \node[font=\small,red!70!black] at (1.2,1.0) {$I$};
+  \node[align=center] at (1.25,-0.75) {series:\\the same $I$ through both};
+  \draw (5,0) to[battery1, l=$V$] (5,2) -- (8.8,2);
+  \draw (6.6,2) to[R, l_=$R_1$, *-*] (6.6,0);
+  \draw (8.8,2) to[R, l_=$R_2$] (8.8,0);
+  \draw (5,0) -- (8.8,0);
+  \draw[->,very thick,red!70!black] (5.35,2.3) -- node[above,font=\small]{$I$} (6.3,2.3);
+  \draw[->,very thick,red!70!black] (6.95,1.5) -- node[right,font=\small]{$I_1$} (6.95,0.5);
+  \draw[->,very thick,red!70!black] (9.15,1.5) -- node[right,font=\small]{$I_2$} (9.15,0.5);
+  \node[align=center] at (7.0,-0.75) {parallel:\\$I = I_1 + I_2$};
 \end{circuitikz}
-\caption{Series (left): one path, same current through both. Parallel (right): two paths, same voltage across both.}
+\caption{Series (left): one path, so the same current flows through both. Parallel (right): two paths, so the current splits, and both resistors have the same voltage across them. Red arrows show the current.}
 \label{fig:seriespar}
 \end{figure}
 
@@ -200,7 +226,25 @@ The parallel pair: $200 \parallel 200 = 100~\Omega$. Add the series resistor: $1
 
 \section{Kirchhoff's laws}
 
-Two rules, both forms of ``nothing is created or lost,'' let you solve any circuit.
+Two rules, both forms of ``nothing is created or lost,'' let you solve any circuit (Figure~\ref{fig:kirchhoff}).
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \fill (0,0) circle (2.5pt);
+  \draw[->,very thick,red!70!black] (-1.9,1.0) -- node[above,sloped,font=\small]{$I_1 = 3$\,A} (-0.12,0.07);
+  \draw[->,very thick,red!70!black] (-1.9,-1.0) -- node[below,sloped,font=\small]{$I_2 = 2$\,A} (-0.12,-0.07);
+  \draw[->,very thick,red!70!black] (0.12,0) -- node[above,font=\small]{$I_3 = 5$\,A} (2.0,0);
+  \node[font=\small] at (0,-1.9) {current law: in $=$ out, $3 + 2 = 5$};
+  \draw (4.6,-1.1) to[battery1, l=$5$\,V] (4.6,1.2) to[R, l=$R_1$] (7.6,1.2) to[R, l_=$R_2$] (7.6,-1.1) -- (4.6,-1.1);
+  \draw[<->,thick,blue!70!black] (5.4,0.75) -- node[below,font=\small]{3\,V} (6.8,0.75);
+  \draw[<->,thick,blue!70!black] (8.3,0.4) -- node[right,font=\small]{2\,V} (8.3,-0.6);
+  \draw[->,thick,red!70!black] (5.1,-0.3) arc[start angle=180, end angle=-90, radius=0.45];
+  \node[font=\small] at (6.1,-1.9) {voltage law: rise $=$ drops, $5 = 3 + 2$};
+\end{circuitikz}
+\caption{Kirchhoff's laws. Current law: the current flowing into a node equals the current flowing out (left). Voltage law: around a loop, the rise from the source equals the drops across the components (right). Red: currents and the direction of the walk around the loop; blue: voltages.}
+\label{fig:kirchhoff}
+\end{figure}
 
 \paragraph{Kirchhoff's current law (KCL).} The total current flowing into a node equals the total current flowing out. Charge does not pile up in a wire junction.
 \[
@@ -219,11 +263,15 @@ The single most useful small circuit is the \term{voltage divider}: two resistor
 \begin{figure}[h]
 \centering
 \begin{circuitikz}
-  \draw (0,0) to[battery1, l=$V_{\text{in}}$] (0,3) -- (2,3) to[R, l=$R_1$] (2,1.5) to[R, l=$R_2$] (2,0) -- (0,0);
-  \draw (2,1.5) to[short,*-o] (3.5,1.5) node[right]{$V_{\text{out}}$};
+  \draw (0,0) to[battery1, l=$V_{\text{in}}$] (0,3) -- (2.4,3) to[R, l_=$R_1$] (2.4,1.5) to[R, l_=$R_2$] (2.4,0) -- (0,0);
+  \draw (2.4,1.5) to[short,*-o] (5.6,1.5) node[right]{output};
   \draw (0,0) node[ground]{};
+  \draw[->,very thick,red!70!black] (0.4,3.35) -- node[above,font=\small]{$I = V_{\text{in}}/(R_1 + R_2)$} (2.0,3.35);
+  \draw[->,very thick,red!70!black] (2.85,2.85) -- (2.85,0.15);
+  \draw[<->,thick,blue!70!black] (3.7,3.0) -- node[right,font=\small]{$I R_1$} (3.7,1.6);
+  \draw[<->,thick,blue!70!black] (3.7,1.4) -- node[right,font=\small]{$V_{\text{out}} = I R_2$} (3.7,0.0);
 \end{circuitikz}
-\caption{A voltage divider.}
+\caption{A voltage divider. The same current $I$ (red) flows through both resistors, so the input voltage splits between them in proportion to their resistances (blue). The output is the part across $R_2$.}
 \label{fig:divider}
 \end{figure}
 
@@ -246,12 +294,16 @@ A real power supply is not a perfect voltage source. The supply itself, and ever
 \begin{figure}[h]
 \centering
 \begin{circuitikz}
-  \draw (0,0) to[battery1, l=$1.00$\,V regulator] (0,2.5) to[R, l=$R_{\text{path}}$, i=$I$] (4,2.5) -- (4,2.2);
+  \draw (0,0) to[battery1, l=$1.00$\,V regulator] (0,2.5) to[R, l_=$R_{\text{path}}$] (4,2.5) -- (4,2.2);
   \draw (3.4,0.3) rectangle (4.6,2.2); \node at (4,1.25) {chip};
   \draw (4,0.3) -- (4,0) -- (0,0);
   \draw (0,0) node[ground]{};
+  \draw[->,very thick,red!70!black] (0.5,3.25) -- node[above,font=\small]{current $I$} (3.5,3.25);
+  \draw[<->,thick,blue!70!black] (1.3,2.85) -- node[above,font=\small]{} (2.7,2.85);
+  \node[font=\small,blue!70!black] at (2.0,1.55) {drop $= IR$};
+  \node[font=\small,blue!70!black,align=left,anchor=west] at (4.75,1.25) {chip sees\\$1.00\,\text{V} - IR$};
 \end{circuitikz}
-\caption{Every bit of resistance between the regulator and the chip steals some voltage.}
+\caption{Every bit of resistance between the regulator and the chip steals some voltage. The current $I$ (red) drops $IR$ across the path (blue), so the chip gets less than the regulator's 1.00\,V.}
 \end{figure}
 
 \begin{worked}{voltage at the chip's power pins}
@@ -267,19 +319,56 @@ Notice why high-power chips are hard: power is $V \times I$, and chip voltages a
 
 \section{Measuring voltage and current}
 
-A \term{voltmeter} measures the voltage between two points, so it connects \emph{across} (in parallel with) the thing being measured. A good voltmeter has very high resistance so it draws almost no current and does not disturb the circuit.
+A \term{voltmeter} measures the voltage between two points, so it connects \emph{across} (in parallel with) the thing being measured (Figure~\ref{fig:meters}). A good voltmeter has very high resistance so it draws almost no current and does not disturb the circuit.
 
 An \term{ammeter} measures the current through a wire, so the wire must be broken and the meter placed \emph{in series}. A good ammeter has very low resistance so it does not add a voltage drop. Connecting an ammeter across a power supply (in parallel) creates a short circuit, a classic lab mistake.
 
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (0,0) to[battery1, l=$V$] (0,2.4) to[rmeter, t=A, l=ammeter: in series] (3.4,2.4) to[R, l=$R$] (3.4,0) -- (0,0);
+  \draw (3.4,2.4) to[short, *-] (5.6,2.4) to[rmeter, t=V, l=voltmeter: across $R$] (5.6,0) to[short, -*] (3.4,0);
+  \draw[->,very thick,red!70!black,rounded corners=4pt] (0.45,1.95) -- (2.85,1.95) -- (2.85,0.45) -- (0.45,0.45);
+  \node[font=\scriptsize,red!70!black,align=center] at (1.65,1.2) {current goes\\through the\\ammeter};
+\end{circuitikz}
+\caption{Connecting meters. The ammeter goes in series, so the current it measures (red) flows through it. The voltmeter goes across the part whose voltage it measures.}
+\label{fig:meters}
+\end{figure}
+
 \section{DC, AC and frequency}
 
-A \term{DC} (direct current) signal stays at a constant value, like a battery. An \term{AC} (alternating current) signal changes over time and repeats, like the mains power in a wall outlet or a clock signal in a chip.
+A \term{DC} (direct current) signal stays at a constant value, like a battery. An \term{AC} (alternating current) signal changes over time and repeats, like the mains power in a wall outlet or a clock signal in a chip (Figure~\ref{fig:dcac}).
 
 A repeating signal has a \term{period} $T$, the time for one full repetition, and a \term{frequency} $f$, the number of repetitions per second, measured in \term{hertz} (Hz):
 \[
   f = \frac{1}{T}.
 \]
 A 2\,GHz clock ($2 \times 10^9$ cycles per second) has a period of $1/(2\times 10^9) = 0.5$\,ns. Square-wave signals that switch between a low and a high level also have a \term{duty cycle}: the fraction of each period spent high. A clock that is high for half its period has a 50\% duty cycle.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=0.85]
+  \draw[->] (0,0) -- (4,0) node[right]{$t$}; \draw[->] (0,-1.1) -- (0,1.6) node[above]{$V$};
+  \draw[thick,blue!60!black] (0,0.8) -- (3.8,0.8);
+  \node[font=\small] at (1.9,-1.5) {DC: constant};
+  \begin{scope}[xshift=5.4cm]
+    \draw[->] (0,0) -- (4,0) node[right]{$t$}; \draw[->] (0,-1.1) -- (0,1.6) node[above]{$V$};
+    \draw[thick,blue!60!black,domain=0:3.8,samples=90] plot (\x,{0.85*sin(225*\x)});
+    \draw[dotted] (0.4,0.85) -- (0.4,1.2); \draw[dotted] (2.0,0.85) -- (2.0,1.2);
+    \draw[<->] (0.4,1.2) -- node[above,font=\small]{$T$} (2.0,1.2);
+    \node[font=\small] at (1.9,-1.5) {AC: repeats every period $T$};
+  \end{scope}
+  \begin{scope}[xshift=10.8cm]
+    \draw[->] (0,0) -- (4,0) node[right]{$t$}; \draw[->] (0,-1.1) -- (0,1.6) node[above]{$V$};
+    \draw[thick,blue!60!black] (0,0) -- (0.5,0) -- (0.5,0.85) -- (1.3,0.85) -- (1.3,0) -- (2.1,0) -- (2.1,0.85) -- (2.9,0.85) -- (2.9,0) -- (3.7,0) -- (3.7,0.85) -- (3.8,0.85);
+    \draw[<->] (0.5,1.2) -- node[above,font=\small]{$T$} (2.1,1.2);
+    \draw[<->] (0.5,-0.35) -- node[below,font=\scriptsize]{$T/2$} (1.3,-0.35);
+    \node[font=\small] at (1.9,-1.5) {clock: 50\% duty cycle};
+  \end{scope}
+\end{tikzpicture}
+\caption{A DC signal stays constant (left). An AC signal repeats every period $T$ (middle). A clock is a square wave; with a 50\% duty cycle it is high for half of each period (right).}
+\label{fig:dcac}
+\end{figure}
 
 \section{Summary}
 
