@@ -261,7 +261,24 @@ A 50\,$\Omega$ trace ends in a 25\,$\Omega$ load. What fraction of an incoming v
 One third of the step reflects, and since $\Gamma$ is negative, the reflection is inverted. With a 150\,$\Omega$ load instead, $\Gamma = (150-50)/(150+50) = +0.5$: half reflects, same polarity.
 \end{worked}
 
-Reflections cause \term{ringing}: the signal overshoots and wobbles before settling, which can make a receiver see extra transitions. The cure is \term{termination}: adding resistors so the line sees a matched load at the end (parallel termination) or a matched source at the start (series termination).
+Reflections cause \term{ringing} (Figure~\ref{fig:ringing}): the signal overshoots and wobbles before settling, which can make a receiver see extra transitions. The cure is \term{termination}: adding resistors so the line sees a matched load at the end (parallel termination) or a matched source at the start (series termination).
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \foreach \x/\t in {0/unmatched: ringing, 6.6/terminated: clean} {
+    \draw[->] (\x,0) -- (\x+5.6,0) node[right,font=\small]{$t$}; \draw[->] (\x,0) -- (\x,2.6);
+    \draw[dashed,gray] (\x,1.0) -- (\x+5.4,1.0) node[right,font=\scriptsize,gray]{threshold};
+    \node[font=\small] at (\x+2.7,-0.45) {\t};
+  }
+  \draw[thick,red!70!black,domain=0.4:5.4,samples=200] (0,0) -- (0.4,0) plot (\x,{2*(1-exp(-0.45*(\x-0.4))*cos(5*(\x-0.4) r))});
+  \draw[red!70!black,thick] (1.66,0.86) circle (0.22);
+  \node[font=\scriptsize,red!70!black,anchor=north west] at (1.85,0.75) {dips below: an extra edge};
+  \draw[thick,green!45!black,domain=7.0:12.0,samples=80] (6.6,0) -- (7.0,0) plot (\x,{2*(1-exp(-(\x-7.0)/0.15))});
+\end{tikzpicture}
+\caption{The same step at the far end of a line. Unmatched (left), reflections make it overshoot and ring; a dip back below the threshold looks like an extra transition. With termination (right) it settles cleanly.}
+\label{fig:ringing}
+\end{figure}
 
 \section{Measuring fast signals: bandwidth}
 \label{sec:probe}

@@ -26,7 +26,24 @@ A \term{counter} is a register that adds 1 on every clock edge. An $n$-bit count
 \label{fig:counter}
 \end{figure}
 
-\paragraph{Ripple counter.} A chain of toggle flip-flops in which each flip-flop's output clocks the next. The first flip-flop toggles on every clock edge, so its output is a square wave at half the clock frequency. The second toggles on every edge of the first, so it runs at a quarter of the clock frequency, and so on. Ripple counters are small, but each stage adds a clock-to-Q delay, so the bits do not change at the same instant. Reading the count while it ripples gives wrong values briefly.
+\paragraph{Ripple counter.} A chain of toggle flip-flops in which each flip-flop's output clocks the next (Figure~\ref{fig:ripplecount}). The first flip-flop toggles on every clock edge, so its output is a square wave at half the clock frequency. The second toggles on every edge of the first, so it runs at a quarter of the clock frequency, and so on. Ripple counters are small, but each stage adds a clock-to-Q delay, so the bits do not change at the same instant. Reading the count while it ripples gives wrong values briefly.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \node[left] at (0,4.0) {$CLK$}; \draw[thick] (0,3.7) -- (1,3.7) -- (1,4.3) -- (7.5,4.3);
+  \node[left] at (0,3.0) {$Q_0$}; \draw[thick] (0,3.2) -- (1.6,3.2) -- (1.6,2.7) -- (7.5,2.7);
+  \node[left] at (0,2.0) {$Q_1$}; \draw[thick] (0,2.2) -- (2.4,2.2) -- (2.4,1.7) -- (7.5,1.7);
+  \node[left] at (0,1.0) {$Q_2$}; \draw[thick] (0,0.7) -- (3.2,0.7) -- (3.2,1.2) -- (7.5,1.2);
+  \foreach \x in {1.6,2.4,3.2} \draw[dashed,gray] (\x,4.5) -- (\x,-0.3);
+  \node[left,font=\small] at (0,-0.1) {count read};
+  \node[font=\small] at (0.8,-0.1) {3}; \node[font=\small,red!70!black] at (2.0,-0.1) {2}; \node[font=\small,red!70!black] at (2.8,-0.1) {0}; \node[font=\small] at (5.3,-0.1) {4};
+  \node[font=\small,red!70!black,anchor=west] at (3.6,3.0) {each bit changes one $t_{cq}$ later,};
+  \node[font=\small,red!70!black,anchor=west] at (3.6,2.55) {so the count passes through 2 and 0};
+\end{tikzpicture}
+\caption{A 3-bit ripple counter going from 3 ($011$) to 4 ($100$). Each flip-flop is clocked by the one before it, so the bits change one after another, and for a moment the count reads 2, then 0 (red), before it settles at 4.}
+\label{fig:ripplecount}
+\end{figure}
 
 \begin{bigidea}
 Each bit of a binary counter runs at half the frequency of the bit below it. Bit $k$ (counting from bit 0) is a square wave at $f_{clk}/2^{k+1}$. The most significant bit of an $n$-bit counter has frequency $f_{clk}/2^n$ and period $2^n \cdot T_{clk}$.
@@ -110,6 +127,26 @@ Which version? $Q$ changes just \emph{after} each rising clock edge (by $t_{cq}$
 \[
   \text{OUT} = Q \cdot \nt{CLK}.
 \]
+Figure~\ref{fig:divglitch} shows both versions.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \node[left] at (0,4.0) {$CLK$};
+  \draw[thick] (0,3.7) -- (1,3.7) -- (1,4.3) -- (2.5,4.3) -- (2.5,3.7) -- (4,3.7) -- (4,4.3) -- (5.5,4.3) -- (5.5,3.7) -- (7,3.7) -- (7,4.3) -- (8.5,4.3);
+  \node[left] at (0,3.0) {$Q$};
+  \draw[thick] (0,2.7) -- (1.25,2.7) -- (1.25,3.3) -- (4.25,3.3) -- (4.25,2.7) -- (7.25,2.7) -- (7.25,3.3) -- (8.5,3.3);
+  \node[left] at (0,2.0) {$Q \cdot CLK$};
+  \draw[thick,red!70!black] (0,1.7) -- (1.25,1.7) -- (1.25,2.3) -- (2.5,2.3) -- (2.5,1.7) -- (4,1.7) -- (4,2.3) -- (4.25,2.3) -- (4.25,1.7) -- (7.25,1.7) -- (7.25,2.3) -- (8.5,2.3);
+  \draw[red!70!black,thick] (4.12,2.0) circle (0.3); \node[font=\scriptsize,red!70!black,anchor=west] at (4.45,2.35) {glitch};
+  \node[left] at (0,1.0) {$Q \cdot \nt{CLK}$};
+  \draw[thick,green!45!black] (0,0.7) -- (2.5,0.7) -- (2.5,1.3) -- (4,1.3) -- (4,0.7) -- (8.5,0.7);
+  \foreach \x in {1,4,7} \draw[dashed,gray] (\x,4.5) -- (\x,0.4);
+  \draw[<->] (4,4.6) -- node[above,font=\scriptsize]{$t_{cq}$} (4.25,4.6);
+\end{tikzpicture}
+\caption{Divide by 2 with a 25\% duty cycle. $Q$ changes $t_{cq}$ after each rising edge. $Q \cdot CLK$ (red) glitches at the edge where $Q$ falls, because the clock rises first; $Q \cdot \nt{CLK}$ (green) is clean.}
+\label{fig:divglitch}
+\end{figure}
 
 \begin{onoa}
 Reported clock-divider questions include divide-by-2 with a 25\% duty cycle and divide-by-3 with a 50\% duty cycle (``bonus for 50\% duty cycle''), followed by many follow-up questions about the design. Be ready to draw the waveforms, explain why odd division needs the falling edge, and point out glitch risks when gating a clock with logic.

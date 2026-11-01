@@ -168,7 +168,22 @@ A 12-bit ADC has a 3.3\,V range. What voltage change corresponds to one code ste
 A 10-bit ADC with a 1.024\,V range has exactly $1.024/1024 = 1$\,mV per step.
 \end{worked}
 
-\paragraph{Sampling.} An ADC measures at regular intervals, the \term{sampling rate}. To capture a signal faithfully, you must sample at more than twice its highest frequency, the \term{Nyquist rate}. Sampling too slowly causes \term{aliasing}: fast signals masquerade as slow ones. Audio CDs sample at 44.1\,kHz to capture sound up to about 20\,kHz.
+\paragraph{Sampling.} An ADC measures at regular intervals, the \term{sampling rate}. To capture a signal faithfully, you must sample at more than twice its highest frequency, the \term{Nyquist rate}. Sampling too slowly causes \term{aliasing}: fast signals masquerade as slow ones (Figure~\ref{fig:aliasing}). Audio CDs sample at 44.1\,kHz to capture sound up to about 20\,kHz.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[xscale=1.05]
+  \draw[->] (0,0) -- (10.6,0) node[right]{$t$};
+  \draw[thick,blue!45,domain=0:10,samples=400] plot (\x,{1.2*sin(0.9*360*\x)});
+  \draw[very thick,dashed,red!70!black,domain=0:10,samples=100] plot (\x,{-1.2*sin(0.1*360*\x)});
+  \foreach \k in {0,...,10} { \pgfmathsetmacro{\v}{-1.2*sin(36*\k)} \draw[gray] (\k,0) -- (\k,\v); \fill[red!70!black] (\k,\v) circle (2.5pt); }
+  \node[font=\small,blue!60!black,anchor=west] at (10.7,1.0) {real signal: fast};
+  \node[font=\small,red!70!black,anchor=west] at (10.7,-0.3) {what the samples};
+  \node[font=\small,red!70!black,anchor=west] at (10.7,-0.75) {show: slow};
+\end{tikzpicture}
+\caption{Aliasing. The signal (blue) completes 9 cycles in the time the ADC takes 10 samples, far below the Nyquist rate. The samples (dots) trace a slow wave (dashed) that is not really there.}
+\label{fig:aliasing}
+\end{figure}
 
 A \term{digital-to-analog converter} (DAC) does the reverse, turning numbers into voltages.
 

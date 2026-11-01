@@ -251,8 +251,30 @@ SR & $S$ sets, $R$ resets, both 1 not allowed & $S + \nt{R}Q$ \\
 \paragraph{Asynchronous set and clear.} Many flip-flops have extra inputs that force the output immediately, without waiting for a clock edge: \term{preset} (or set) forces $Q = 1$, and \term{clear} (or reset) forces $Q = 0$. These are often \term{active low}, written $\nt{PRE}$ and $\nt{CLR}$: they act when held at 0.
 
 \begin{trap}
-``Set and clear tied to zero'' means opposite things depending on the polarity. For \emph{active-high} set and clear, tying them to 0 disables them, and the flip-flop works normally. For \emph{active-low} inputs, tying them to 0 asserts them, and the output is stuck (and with both asserted, the behavior is invalid). Always check whether the input has a bubble on the symbol.
+``Set and clear tied to zero'' means opposite things depending on the polarity. For \emph{active-high} set and clear, tying them to 0 disables them, and the flip-flop works normally. For \emph{active-low} inputs, tying them to 0 asserts them, and the output is stuck (and with both asserted, the behavior is invalid). Always check whether the input has a bubble on the symbol (Figure~\ref{fig:setclear}).
 \end{trap}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \dbox{f0}{(0,0)}{}{1}
+  \draw (0.75,2.0) -- (0.75,2.4); \node[font=\scriptsize] at (0.75,1.8) {PRE};
+  \draw (0.75,0) -- (0.75,-0.4); \node[font=\scriptsize,anchor=east] at (1.45,0.15) {CLR};
+  \draw (0.75,2.4) -- (0.35,2.4) node[left,font=\scriptsize]{0};
+  \draw (0.75,-0.4) -- (0.35,-0.4) node[left,font=\scriptsize]{0};
+  \node[font=\small,green!45!black,align=center] at (0.75,-1.2) {active high, tied to 0:\\disabled, works normally};
+  \dbox{f5}{(5,0)}{}{1}
+  \draw (5.75,2.0) -- (5.75,2.4); \node[font=\scriptsize] at (5.75,1.8) {$\nt{\mathrm{PRE}}$};
+  \draw (5.75,0) -- (5.75,-0.4); \node[font=\scriptsize,anchor=east] at (6.45,0.15) {$\nt{\mathrm{CLR}}$};
+  \draw (5.75,2.4) -- (5.35,2.4) node[left,font=\scriptsize]{0};
+  \draw (5.75,-0.4) -- (5.35,-0.4) node[left,font=\scriptsize]{0};
+  \draw[fill=white] (5.75,2.08) circle (0.08);
+  \draw[fill=white] (5.75,-0.08) circle (0.08);
+  \node[font=\small,red!70!black,align=center] at (5.75,-1.2) {active low (bubbles), tied to 0:\\both asserted, output stuck};
+\end{tikzpicture}
+\caption{The same wiring, opposite results. Tying set and clear to 0 turns them off when they are active high (left), but turns them both on when they are active low (right), shown by the bubbles.}
+\label{fig:setclear}
+\end{figure}
 
 \paragraph{Synchronous versus asynchronous reset.} An \term{asynchronous} reset acts immediately, even with no clock running. A \term{synchronous} reset is just a condition in the logic in front of $D$, so it takes effect only at the next clock edge. Both are common; Chapter~\ref{ch:rtl} discusses the trade-offs.
 

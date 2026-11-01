@@ -69,11 +69,62 @@ When someone says a chip's supply is ``1.0\,V'', they mean the supply wire is 1.
 
 Ground is not magic. It is just a wire (or, on a circuit board, a large copper plane) that everything agrees to measure from. Several practical rules follow from this.
 
-\paragraph{Every connected device must share ground.} Suppose board A sends a ``1'' to board B as 3.3\,V. That 3.3\,V is measured relative to A's ground. If B's ground is not connected to A's ground, B has no idea what A's 3.3\,V means: the two boards have no common reference, and the signal is meaningless. This is why every cable between two devices carries a ground wire as well as the signal wires, and why a missing ground connection is one of the most common reasons a circuit ``does nothing.''
+\paragraph{Every connected device must share ground.} Suppose board A sends a ``1'' to board B as 3.3\,V (Figure~\ref{fig:sharedground}). That 3.3\,V is measured relative to A's ground. If B's ground is not connected to A's ground, B has no idea what A's 3.3\,V means: the two boards have no common reference, and the signal is meaningless. This is why every cable between two devices carries a ground wire as well as the signal wires, and why a missing ground connection is one of the most common reasons a circuit ``does nothing.''
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \node[font=\small\bfseries,red!70!black] at (3.0,2.75) {WRONG};
+  \begin{scope}[xshift=0cm]
+  \draw[thick,rounded corners=3pt] (0,0) rectangle (1.8,2.2); \node[font=\small] at (0.9,1.9) {board A};
+  \draw[thick,rounded corners=3pt] (4.2,0) rectangle (6.0,2.2); \node[font=\small] at (5.1,1.9) {board B};
+  \draw[thick,blue!70!black] (1.8,1.3) -- node[above,font=\small]{signal: 3.3\,V} (4.2,1.3);
+  \draw (0.9,0.6) node[ground]{} -- (0.9,0.8); \draw (5.1,0.6) node[ground]{} -- (5.1,0.8);
+  \end{scope}
+  \node[font=\small,red!70!black,align=center] at (3.0,-0.75) {no common ground:\\3.3\,V compared with what?};
+  \node[font=\small\bfseries,green!45!black] at (10.2,2.75) {RIGHT};
+  \begin{scope}[xshift=7.2cm]
+  \draw[thick,rounded corners=3pt] (0,0) rectangle (1.8,2.2); \node[font=\small] at (0.9,1.9) {board A};
+  \draw[thick,rounded corners=3pt] (4.2,0) rectangle (6.0,2.2); \node[font=\small] at (5.1,1.9) {board B};
+  \draw[thick,blue!70!black] (1.8,1.3) -- node[above,font=\small]{signal: 3.3\,V} (4.2,1.3);
+  \draw (0.9,0.6) node[ground]{} -- (0.9,0.8); \draw (5.1,0.6) node[ground]{} -- (5.1,0.8);
+  \draw[thick] (0.9,0.8) -- (1.8,0.8) -- node[below,font=\small]{ground wire} (4.2,0.8) -- (5.1,0.8);
+  \end{scope}
+  \node[font=\small,green!45!black,align=center] at (10.2,-0.75) {grounds connected:\\B measures the same 3.3\,V};
+\end{circuitikz}
+\caption{Two boards must share ground. Without a ground wire (left), board A's 3.3\,V has no meaning to board B. With the grounds connected (right), both measure from the same reference, and the signal current has a path back.}
+\label{fig:sharedground}
+\end{figure}
 
 \paragraph{Current needs a return path.} Charge flows in loops. Current that leaves a power supply through the supply wire must come back through ground. If the ground path is broken, no current flows at all, just as water cannot circulate in a pipe loop with a gap in it.
 
-\paragraph{Floating inputs.} An input that is connected to nothing (neither a voltage nor ground) is called \term{floating}. Its voltage is undefined: it drifts with stray charge and electrical noise, so a digital input reads randomly as 0 or 1. Never leave a logic input floating. Tie it to the supply or to ground, directly or through a resistor.
+\paragraph{Floating inputs.} An input that is connected to nothing (neither a voltage nor ground) is called \term{floating}. Its voltage is undefined: it drifts with stray charge and electrical noise, so a digital input reads randomly as 0 or 1. Never leave a logic input floating (Figure~\ref{fig:floating}). Tie it to the supply or to ground, directly or through a resistor.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \node[font=\small\bfseries,red!70!black] at (1.6,3.3) {WRONG};
+  \draw[thick] (2.2,0.6) rectangle (3.4,1.8); \node[font=\small,align=center] at (2.8,1.2) {logic\\gate};
+  \draw (0.6,1.2) node[circle,draw,inner sep=1.5pt,fill=white]{} -- (2.2,1.2);
+  \node[font=\small,anchor=east] at (0.45,1.2) {nothing};
+  \begin{scope}[shift={(0.4,2.0)}]
+    \draw[->,gray] (0,0) -- (2.8,0); \draw[thick,red!70!black] (0.00,0.09) -- (0.18,0.50) -- (0.36,0.23) -- (0.54,0.72) -- (0.72,0.36) -- (0.90,0.85) -- (1.08,0.27) -- (1.26,0.63) -- (1.44,0.14) -- (1.62,0.54) -- (1.80,0.77) -- (1.98,0.32) -- (2.16,0.45) -- (2.34,0.81) -- (2.52,0.18);
+  \end{scope}
+  \node[font=\small,red!70!black] at (1.8,-0.2) {floating: reads 0 or 1 at random};
+  \node[font=\small\bfseries,green!45!black] at (7.6,3.3) {RIGHT};
+  \begin{scope}[xshift=6cm]
+    \draw[thick] (2.2,0.6) rectangle (3.4,1.8); \node[font=\small,align=center] at (2.8,1.2) {logic\\gate};
+    \draw (0.8,1.2) -- (2.2,1.2);
+    \draw (0.8,1.2) to[R, l_=$R$, *-] (0.8,-0.2) node[ground]{};
+    \begin{scope}[shift={(0.4,2.0)}]
+      \draw[->,gray] (0,0) -- (2.8,0); \draw[thick,green!45!black] (0,0.05) -- (2.6,0.05);
+    \end{scope}
+    \node[font=\small,green!45!black,anchor=west] at (1.2,0.15) {pulled down: always 0};
+  \end{scope}
+\end{tikzpicture}
+\caption{A floating input (left) is connected to nothing, so stray charge and noise move it and it reads randomly. A pull-down resistor (right) ties it to a definite 0; a pull-up would tie it to 1.}
+\label{fig:floating}
+\end{figure}
 
 \paragraph{Pull-up and pull-down resistors.} A common fix for a floating input is a resistor to the supply (a \term{pull-up}) or to ground (a \term{pull-down}). In Figure~\ref{fig:pullup}, when the button is open, no current flows through the resistor, so the input sits at $\VDD$ and reads 1. When the button is pressed, the input is connected straight to ground and reads 0. The resistor limits the current that flows from the supply to ground while the button is pressed.
 
@@ -321,7 +372,7 @@ Notice why high-power chips are hard: power is $V \times I$, and chip voltages a
 
 A \term{voltmeter} measures the voltage between two points, so it connects \emph{across} (in parallel with) the thing being measured (Figure~\ref{fig:meters}). A good voltmeter has very high resistance so it draws almost no current and does not disturb the circuit.
 
-An \term{ammeter} measures the current through a wire, so the wire must be broken and the meter placed \emph{in series}. A good ammeter has very low resistance so it does not add a voltage drop. Connecting an ammeter across a power supply (in parallel) creates a short circuit, a classic lab mistake.
+An \term{ammeter} measures the current through a wire, so the wire must be broken and the meter placed \emph{in series}. A good ammeter has very low resistance so it does not add a voltage drop. Connecting an ammeter across a power supply (in parallel) creates a short circuit, a classic lab mistake (Figure~\ref{fig:ammeterwrong}).
 
 \begin{figure}[h]
 \centering
@@ -333,6 +384,22 @@ An \term{ammeter} measures the current through a wire, so the wire must be broke
 \end{circuitikz}
 \caption{Connecting meters. The ammeter goes in series, so the current it measures (red) flows through it. The voltmeter goes across the part whose voltage it measures.}
 \label{fig:meters}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \node[font=\small\bfseries,red!70!black] at (1.1,2.9) {WRONG};
+  \draw (0,0) to[battery1, l=$V$] (0,2.2) -- (2.2,2.2) to[rmeter, t=A] (2.2,0) -- (0,0);
+  \draw[->,line width=2pt,red!70!black,rounded corners=4pt] (0.45,1.75) -- (1.6,1.75) -- (1.6,0.45) -- (0.45,0.45);
+  \node[font=\small,red!70!black,align=center] at (1.1,-0.75) {ammeter across the supply:\\almost 0\,$\Omega$, huge current};
+  \node[font=\small\bfseries,green!45!black] at (7.0,2.9) {RIGHT};
+  \draw (5.4,0) to[battery1, l=$V$] (5.4,2.2) to[rmeter, t=A] (8.6,2.2) to[R, l=$R$] (8.6,0) -- (5.4,0);
+  \draw[->,thick,green!45!black,rounded corners=4pt] (5.85,1.65) -- (8.05,1.65) -- (8.05,0.45) -- (5.85,0.45);
+  \node[font=\small,green!45!black,align=center] at (7.0,-0.75) {ammeter in series:\\the load sets the current};
+\end{circuitikz}
+\caption{The classic mistake. An ammeter has almost no resistance, so connecting it straight across the supply (left) is a short circuit. It belongs in series with the load (right), which limits the current.}
+\label{fig:ammeterwrong}
 \end{figure}
 
 \section{DC, AC and frequency}

@@ -113,7 +113,7 @@ Use \code{<=} (nonblocking) in clocked \code{always @(posedge clk)} blocks. Use 
 
 \section{Accidental latches}
 
-In a combinational \code{always @(*)} block, every output must be assigned a value in \emph{every} path through the code. If some path leaves an output unassigned, the output must ``remember'' its old value, and synthesis creates a latch, usually unintended.
+In a combinational \code{always @(*)} block, every output must be assigned a value in \emph{every} path through the code. If some path leaves an output unassigned, the output must ``remember'' its old value, and synthesis creates a latch, usually unintended (Figure~\ref{fig:latchinfer}).
 
 \begin{lstlisting}[language=Verilog]
 always @(*) begin
@@ -122,13 +122,36 @@ end                      //   -> a latch is inferred
 \end{lstlisting}
 The fix: add the \code{else}, give a \code{default} in every \code{case}, or assign a default value at the top of the block.
 
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \node[font=\small\bfseries,red!70!black] at (1.4,3.4) {WRONG};
+  \node[font=\small\ttfamily,align=left,anchor=west] at (-0.6,2.85) {if (sel) y = a;};
+  \dbox{l}{(0.6,0)}{}{0}
+  \draw (l-d) -- ++(-0.7,0) node[left]{$a$};
+  \draw (l-clk) -- ++(-0.7,0) node[left]{$sel$};
+  \draw (l-q) -- ++(0.6,0) node[right]{$y$};
+  \node[font=\small,red!70!black] at (1.35,-0.45) {a latch: $y$ holds when $sel = 0$};
+  \node[font=\small\bfseries,green!45!black] at (7.6,3.4) {RIGHT};
+  \node[font=\small\ttfamily,align=left,anchor=west] at (5.6,2.85) {if (sel) y = a; else y = b;};
+  \muxtwo{m}{(7.1,0.3)}{}
+  \draw (m-in0) -- ++(-0.7,0) node[left]{$b$};
+  \draw (m-in1) -- ++(-0.7,0) node[left]{$a$};
+  \draw (m-sel) -- ++(0,-0.4) node[below]{$sel$};
+  \draw (m-out) -- ++(0.6,0) node[right]{$y$};
+  \node[font=\small,green!45!black] at (7.6,-0.75) {a plain mux, no memory};
+\end{tikzpicture}
+\caption{What synthesis builds. With no \code{else} (left), $y$ must remember its value when $sel$ is 0, so a latch is inferred. Assigning $y$ on every path (right) gives plain combinational logic, here a 2:1 mux.}
+\label{fig:latchinfer}
+\end{figure}
+
 \section{Resets}
 
 \paragraph{Synchronous reset.} The reset is just another input to the logic in front of the flip-flops: \code{if (rst) q <= 0;} inside \code{always @(posedge clk)}. It takes effect at the next clock edge, so it needs a running clock, but it never causes timing surprises.
 
 \paragraph{Asynchronous reset.} The reset is in the sensitivity list (\code{always @(posedge clk or negedge rst\_n)}) and drives the flip-flops' clear pins directly, so it works with no clock. The danger is \emph{releasing} it: if reset deasserts close to a clock edge, some flip-flops may leave reset one cycle earlier than others, or go metastable. The standard solution is a \term{reset synchronizer}: assert reset asynchronously, but release it through two flip-flops clocked by the destination clock (``asynchronous assert, synchronous deassert'').
 
-\paragraph{Filtering glitches on a reset line.} A noisy reset input should not reset the chip because of a brief glitch. One simple filter compares the reset with a delayed copy of itself: for an active-low reset, the filtered reset is asserted only when both the input and its delayed copy are low,
+\paragraph{Filtering glitches on a reset line.} A noisy reset input should not reset the chip because of a brief glitch. One simple filter compares the reset with a delayed copy of itself (Figure~\ref{fig:resetfilter}): for an active-low reset, the filtered reset is asserted only when both the input and its delayed copy are low,
 \[
   \text{rst\_n}_{\text{filtered}} = \text{rst\_n} \;\text{OR}\; \text{rst\_n}_{\text{delayed}}.
 \]
@@ -137,6 +160,33 @@ A low glitch shorter than the delay has already ended by the time its delayed co
 \begin{worked}{how many buffers?}
 Glitches up to 25\,ns must be filtered. Each buffer in the delay chain delays the signal by 2\,ns. The chain delay must exceed the glitch width: $k \times 2 > 25$, so $k = 13$ buffers (26\,ns). In this circuit the OR gate's own delay applies to both inputs equally, so it does not change the count; if a question's circuit puts a gate delay in only one of the two paths, add it to that path's delay.
 \end{worked}
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (6.4,0.6) node[or port](o){};
+  \draw (0,1.6) node[left]{rst\_n} -- (0.8,1.6) node[circ](j){};
+  \draw (j) -| ($(o.in 1)+(-0.6,0)$) -- (o.in 1);
+  \draw (j) |- (1.3,0.0);
+  \foreach \i in {0,1,2} \draw[thick] (1.3+1.0*\i,-0.3) -- (1.3+1.0*\i,0.3) -- (1.9+1.0*\i,0.0) -- cycle;
+  \draw (1.9,0) -- (2.3,0); \draw (2.9,0) -- (3.3,0);
+  \node[font=\small] at (4.2,0) {$\cdots$};
+  \draw (3.9,0) -- (3.95,0); \draw (4.45,0) -| ($(o.in 2)+(-0.6,0)$) -- (o.in 2);
+  \node[font=\scriptsize,align=center] at (2.6,-0.65) {delay chain, longer than the widest glitch};
+  \draw (o.out) -- ++(0.4,0) node[right]{filtered rst\_n};
+  \begin{scope}[yshift=-4.4cm]
+    \node[left,font=\small] at (0,2.6) {rst\_n};
+    \draw[thick] (0,2.9) -- (1.5,2.9) -- (1.5,2.3) -- (2.1,2.3) -- (2.1,2.9) -- (8,2.9);
+    \node[left,font=\small] at (0,1.6) {delayed copy};
+    \draw[thick] (0,1.9) -- (3.3,1.9) -- (3.3,1.3) -- (3.9,1.3) -- (3.9,1.9) -- (8,1.9);
+    \node[left,font=\small] at (0,0.6) {OR output};
+    \draw[thick,green!45!black] (0,0.9) -- (8,0.9);
+    \node[font=\small,green!45!black,anchor=west] at (4.3,0.5) {never both low: the glitch is filtered};
+  \end{scope}
+\end{circuitikz}
+\caption{A reset glitch filter for an active-low reset. A short low glitch and its delayed copy never overlap, so the OR output stays high. A real reset, longer than the delay, makes both inputs low together and gets through.}
+\label{fig:resetfilter}
+\end{figure}
 
 \begin{onoa}
 A reported question gives a glitch width $N = 25$\,ns, a buffer delay of 2\,ns and an OR-gate delay of 4\,ns, and asks how many buffers are needed to filter glitches of that width or less. The principle is the one above: the delayed path must be longer than the widest glitch to be filtered, counting every delay that lies only on the delayed path.
@@ -175,12 +225,30 @@ Rules that go with it:
   \item A short pulse from a fast domain may fall entirely between the slow domain's clock edges and be missed. Stretch it, or convert it into a level that toggles (a ``toggle synchronizer'').
 \end{itemize}
 
-\paragraph{Many bits: never synchronize each bit separately.} If a multi-bit value changes, its bits pass through separate synchronizers with slightly different delays, and the receiver can see a mixture of old and new bits, a value that never existed. Safe methods:
+\paragraph{Many bits: never synchronize each bit separately.} If a multi-bit value changes, its bits pass through separate synchronizers with slightly different delays, and the receiver can see a mixture of old and new bits, a value that never existed (Figure~\ref{fig:multibitcdc}). Safe methods:
 \begin{itemize}
   \item \textbf{Gray code}: if the value is a counter, encode it in Gray code (Section~\ref{sec:gray}). Only one bit changes per step, so the receiver sees either the old value or the new one, never garbage.
   \item \textbf{Handshake}: hold the data stable, send a single ``valid'' bit through a synchronizer, and wait for an acknowledgment to come back the same way before changing the data.
   \item \textbf{Asynchronous FIFO}: the general solution for streams of data, described next.
 \end{itemize}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \node[left,font=\small] at (0,2.6) {bit 1, synchronized};
+  \draw[thick] (0,2.3) -- (2.0,2.3) -- (2.0,2.9) -- (7,2.9);
+  \node[left,font=\small] at (0,1.6) {bit 0, synchronized};
+  \draw[thick] (0,1.9) -- (3.5,1.9) -- (3.5,1.3) -- (7,1.3);
+  \node[left,font=\small] at (0,0.6) {value seen};
+  \draw (0,0.3) -- (7,0.3); \draw (0,0.9) -- (7,0.9);
+  \foreach \x in {2.0,3.5} \draw[dashed,gray] (\x,3.1) -- (\x,0.1);
+  \node[font=\small] at (1.0,0.6) {01}; \node[font=\small,red!70!black] at (2.75,0.6) {11}; \node[font=\small] at (5.2,0.6) {10};
+  \node[font=\small,red!70!black,anchor=west] at (2.15,-0.15) {never existed};
+  \draw[red!70!black,->] (2.6,-0.05) -- (2.75,0.28);
+\end{tikzpicture}
+\caption{Synchronizing each bit separately. The value changes from 01 to 10, but the two bits come through their synchronizers one cycle apart, so for one cycle the receiver sees 11, a value the sender never had. Gray code avoids this by changing only one bit at a time.}
+\label{fig:multibitcdc}
+\end{figure}
 
 \section{FIFOs}
 

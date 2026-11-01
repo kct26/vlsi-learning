@@ -325,7 +325,7 @@ Transmission gates make compact multiplexers (two TGs and an inverter make a 2:1
 
 \section{Tristate buffers}
 
-Sometimes several circuits must share one wire, such as a bus. Only one may drive it at a time; the others must disconnect. A \term{tristate buffer} has an enable input (Figure~\ref{fig:tristate}). When enabled, it drives its input value (0 or 1) onto the output. When disabled, both its pull-up and pull-down are off and the output is disconnected, a third state called \term{high impedance} or \term{Z}. If two enabled drivers fight over one wire (one driving 1, the other 0), the result is \term{contention}: a large current flows between them and the wire sits at an undefined middle voltage.
+Sometimes several circuits must share one wire, such as a bus. Only one may drive it at a time; the others must disconnect. A \term{tristate buffer} has an enable input (Figure~\ref{fig:tristate}). When enabled, it drives its input value (0 or 1) onto the output. When disabled, both its pull-up and pull-down are off and the output is disconnected, a third state called \term{high impedance} or \term{Z}. If two enabled drivers fight over one wire (one driving 1, the other 0), the result is \term{contention} (Figure~\ref{fig:contention}): a large current flows between them and the wire sits at an undefined middle voltage.
 
 \begin{figure}[h]
 \centering
@@ -342,6 +342,19 @@ Sometimes several circuits must share one wire, such as a bus. Only one may driv
 \end{tikzpicture}
 \caption{Tristate buffers sharing a bus. Only the enabled buffer (EN $= 1$) drives the wire; the disabled ones are in high impedance (Z), as if unplugged.}
 \label{fig:tristate}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (0,4.4) node[vdd]{$\VDD$} to[R, l=A drives 1: pull-up on] (0,2.2) to[R, l=B drives 0: pull-down on, *-] (0,0) node[ground]{};
+  \draw (0,2.2) -- (-2.0,2.2) node[left,font=\small,align=right]{shared wire:\\stuck in the middle};
+  \draw[->,line width=2pt,red!70!black] (-0.65,4.0) -- (-0.65,2.55);
+  \draw[->,line width=2pt,red!70!black] (-0.65,1.85) -- (-0.65,0.4);
+  \node[font=\small,red!70!black,align=right,anchor=east] at (-0.8,3.4) {large current};
+\end{circuitikz}
+\caption{Bus contention. When two enabled drivers disagree, one connects the wire to the supply and the other to ground. Current flows straight through both, and the wire sits at a divider voltage that is neither 0 nor 1.}
+\label{fig:contention}
 \end{figure}
 
 \section{Other logic styles}

@@ -263,10 +263,28 @@ A \term{shift register} is a chain of flip-flops with each $Q$ wired directly to
 Four D flip-flops form a shift register. Each has $t_{cq} = 50$\,ps (positive) and $t_h = 0$.
 \begin{itemize}
   \item With zero skew: $50 \ge 0$. Hold is met. Each stage captures its neighbor's old value before the neighbor changes, and the register shifts exactly one place per edge.
-  \item Now suppose the clock reaches each flip-flop 60\,ps later than the one before it ($t_{skew} = +60$\,ps along the shift direction). Hold requires $50 \ge 0 + 60$: violated. The new value from one flip-flop arrives at the next one before that one's (late) clock edge, so data can skip through two stages in one cycle and bits are lost.
+  \item Now suppose the clock reaches each flip-flop 60\,ps later than the one before it ($t_{skew} = +60$\,ps along the shift direction). Hold requires $50 \ge 0 + 60$: violated. The new value from one flip-flop arrives at the next one before that one's (late) clock edge, so data can skip through two stages in one cycle and bits are lost (Figure~\ref{fig:holdskew}).
   \item Fix: route the clock the other way (so skew is negative along the data direction), or add delay between stages.
 \end{itemize}
 \end{worked}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \node[left,font=\small] at (0,3.0) {clock at FF1};
+  \draw[thick] (0,2.6) -- (1.5,2.6) -- (1.5,3.4) -- (7,3.4);
+  \node[left,font=\small] at (0,1.8) {$Q_1$ = input of FF2};
+  \draw[thick] (0,1.4) -- (2.4,1.4) -- (2.6,2.2) -- (7,2.2);
+  \node[left,font=\small] at (0,0.6) {clock at FF2 (late)};
+  \draw[thick] (0,0.2) -- (2.7,0.2) -- (2.7,1.0) -- (7,1.0);
+  \draw[dashed,gray] (1.5,3.6) -- (1.5,-0.3); \draw[dashed,red!70!black] (2.7,3.6) -- (2.7,-0.3);
+  \draw[<->] (1.5,-0.45) -- node[below,font=\scriptsize]{$t_{cq} = 50$\,ps} (2.5,-0.45);
+  \draw[<->] (1.5,-1.05) -- node[below,font=\scriptsize]{skew $= 60$\,ps} (2.7,-1.05);
+  \node[font=\small,red!70!black,align=left,anchor=west] at (3.1,-0.75) {FF2's edge comes after $Q_1$ changed:\\it takes the new bit, which skips a stage};
+\end{tikzpicture}
+\caption{The shift-register hold failure from the worked example. The clock reaches FF2 60\,ps late, but $Q_1$ changes only 50\,ps after FF1's edge, so FF2 captures the new value instead of the old one.}
+\label{fig:holdskew}
+\end{figure}
 
 \begin{onoa}
 A reported question describes a 4-bit shift register of D flip-flops with positive clock-to-Q delay and zero hold time. The point being tested: with no logic between stages, correct shifting depends on $t_{cq}$ being larger than the hold time plus any skew. With $t_h = 0$ and no skew, any positive $t_{cq}$ works.

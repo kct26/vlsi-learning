@@ -290,11 +290,36 @@ Reported questions give a small gate circuit with rise and fall delays, flip the
 
 \subsection*{Glitches and hazards}
 
-Unequal path delays can produce a brief wrong pulse, a \term{glitch}, even when the output should not change at all.
+Unequal path delays can produce a brief wrong pulse, a \term{glitch}, even when the output should not change at all (Figure~\ref{fig:glitch}).
 
 \begin{worked}{a glitch}
 $Z = A + \nt{A}$ should always be 1. Build $\nt{A}$ with an inverter of delay 1\,ns, and suppose $A$ falls from 1 to 0 at $t = 0$. From $t = 0$ to $t = 1$\,ns, $A$ is already 0 but $\nt{A}$ has not yet risen. Both OR inputs are 0, so after the OR gate's delay, $Z$ dips to 0 for about 1\,ns before returning to 1.
 \end{worked}
+
+\begin{figure}[h]
+\centering
+\begin{circuitikz}
+  \draw (2.6,0) node[or port](o){};
+  \draw (o.in 1) -- ++(-1.9,0) coordinate(j) -- ++(-0.7,0) node[left]{$A$};
+  \fill (j) circle (1.6pt);
+  \draw (j) -- ++(0,-1.2) coordinate(k);
+  \draw (k) node[not port, anchor=in, scale=0.7](n){};
+  \draw (n.out) -| ($(o.in 2)+(-0.3,0)$) -- (o.in 2);
+  \node[font=\scriptsize] at ($(n)+(0.2,-0.8)$) {inverter delay: 1\,ns};
+  \draw (o.out) -- ++(0.4,0) node[right]{$Z$};
+  \begin{scope}[xshift=5.6cm,yshift=-1.4cm]
+    \foreach \y/\n in {2.6/A, 1.6/{\nt{A}}, 0.6/Z} \node[left] at (0,\y+0.2) {$\n$};
+    \draw[thick] (0,3.0) -- (1.2,3.0) -- (1.2,2.6) -- (5,2.6);
+    \draw[thick] (0,1.6) -- (2.2,1.6) -- (2.2,2.0) -- (5,2.0);
+    \draw[thick,red!70!black] (0,1.0) -- (1.5,1.0) -- (1.5,0.6) -- (2.5,0.6) -- (2.5,1.0) -- (5,1.0);
+    \draw[dashed,gray] (1.2,3.2) -- (1.2,0.2); \draw[dashed,gray] (2.2,3.2) -- (2.2,0.2);
+    \draw[<->] (1.2,3.35) -- node[above,font=\scriptsize]{inverter delay} (2.2,3.35);
+    \node[font=\small,red!70!black,anchor=west] at (2.7,0.4) {glitch: should stay 1};
+  \end{scope}
+\end{circuitikz}
+\caption{A static-1 hazard. $Z = A + \nt{A}$ should always be 1, but when $A$ falls, $\nt{A}$ rises only after the inverter's delay. For that moment both OR inputs are 0, and $Z$ glitches low.}
+\label{fig:glitch}
+\end{figure}
 
 This is a \term{static-1 hazard}: an output that should stay 1 briefly drops to 0. In a K-map it appears when two groups of 1s touch but do not overlap; adding the redundant \emph{consensus} term that covers the boundary removes the hazard. In synchronous designs (Chapter~\ref{ch:timing}), glitches are usually harmless as long as everything settles before the next clock edge, but they waste power, and a glitch on a clock or an asynchronous reset is a serious bug.
 

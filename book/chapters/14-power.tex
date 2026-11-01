@@ -144,7 +144,7 @@ Parallelism & dynamic & Two slower units at a lower voltage can beat one fast un
 \end{tabularx}
 \end{center}
 
-\paragraph{Clock gating done safely.} Simply ANDing a clock with an enable signal can produce glitches if the enable changes while the clock is high. The standard \term{integrated clock gating} (ICG) cell (Figure~\ref{fig:icg}) captures the enable in a latch that is transparent only while the clock is low, then ANDs the latched enable with the clock. The enable can only change while the clock is low, so the gated clock is always clean.
+\paragraph{Clock gating done safely.} Simply ANDing a clock with an enable signal can produce glitches if the enable changes while the clock is high (Figure~\ref{fig:gateglitch}). The standard \term{integrated clock gating} (ICG) cell (Figure~\ref{fig:icg}) captures the enable in a latch that is transparent only while the clock is low, then ANDs the latched enable with the clock. The enable can only change while the clock is low, so the gated clock is always clean.
 
 \begin{figure}[h]
 \centering
@@ -162,6 +162,25 @@ Parallelism & dynamic & Two slower units at a lower voltage can beat one fast un
 \end{circuitikz}
 \caption{An integrated clock-gating cell. The latch passes the enable only while the clock is low, so the AND gate's enable input cannot change while the clock is high, and the gated clock has no glitches.}
 \label{fig:icg}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \node[left] at (0,4.0) {$CLK$};
+  \draw[thick] (0,3.7) -- (1,3.7) -- (1,4.3) -- (2.5,4.3) -- (2.5,3.7) -- (4,3.7) -- (4,4.3) -- (5.5,4.3) -- (5.5,3.7) -- (7,3.7);
+  \node[left] at (0,3.0) {enable};
+  \draw[thick] (0,2.7) -- (1.8,2.7) -- (1.8,3.3) -- (7,3.3);
+  \node[left] at (0,2.0) {plain AND};
+  \draw[thick,red!70!black] (0,1.7) -- (1.8,1.7) -- (1.8,2.3) -- (2.5,2.3) -- (2.5,1.7) -- (4,1.7) -- (4,2.3) -- (5.5,2.3) -- (5.5,1.7) -- (7,1.7);
+  \node[font=\scriptsize,red!70!black,anchor=north] at (2.15,1.65) {chopped pulse};
+  \node[left] at (0,1.0) {clock-gating cell};
+  \draw[thick,green!45!black] (0,0.7) -- (4,0.7) -- (4,1.3) -- (5.5,1.3) -- (5.5,0.7) -- (7,0.7);
+  \draw[dashed,gray] (1.8,4.5) -- (1.8,0.4);
+  \node[font=\scriptsize,anchor=west] at (1.85,4.6) {enable changes while the clock is high};
+\end{tikzpicture}
+\caption{Why clock gating needs the special cell. A plain AND passes a chopped, short pulse (red) when the enable changes while the clock is high, and flip-flops may see it as an edge. The clock-gating cell waits for the clock to be low, so its first pulse is a whole one (green).}
+\label{fig:gateglitch}
 \end{figure}
 
 \paragraph{Power gating trade-offs.} A power-gated block loses its state, so registers that must survive need special \term{retention} flip-flops (or the state is saved elsewhere). Outputs of a powered-off block float, so \term{isolation cells} clamp them to safe values. Waking up takes time and causes a surge of current as the block's capacitance recharges.
