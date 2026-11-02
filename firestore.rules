@@ -35,5 +35,16 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/premium/$(request.auth.uid)).data.active == true);
       allow write: if isAdmin();
     }
+    // Job Hub, the owner's private job tracker (a separate site on this Firebase project): one document,
+    // jobhub/{owner uid}, that only the owner's account can read or write. Each list is stored as JSON text.
+    match /jobhub/{uid} {
+      allow read, delete: if isAdmin() && request.auth.uid == uid;
+      allow create, update: if isAdmin() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['apps', 'outsideJobs', 'mergedSeed', 'updatedAt'])
+        && request.resource.data.apps is string && request.resource.data.apps.size() < 600000
+        && request.resource.data.outsideJobs is string && request.resource.data.outsideJobs.size() < 350000
+        && request.resource.data.mergedSeed is string && request.resource.data.mergedSeed.size() < 20000
+        && request.resource.data.updatedAt is number;
+    }
   }
 }
