@@ -369,6 +369,8 @@ Factory testing looks for manufacturing defects, not design bugs. The standard m
 \label{fig:scanchain}
 \end{figure}
 
+\paragraph{JTAG and boundary scan.} IEEE 1149.1, known as \term{JTAG}, defines a small test port found on nearly every complex chip: a test clock (TCK), a mode select (TMS), serial data in and out (TDI, TDO) and an optional reset. TMS steers a 16-state controller (the TAP controller) that selects which internal register TDI shifts into. The best-known register is the \term{boundary-scan} chain: a scan cell beside every I/O pin, linked into one shift register, so a tester can set and read every pin of every chip on an assembled board without touching it with probes. That finds open and shorted solder joints between chips, the board-level equivalent of stuck-at faults. The same port is how FPGAs are programmed during development and how debuggers connect to processors.
+
 \section{Summary}
 
 \begin{itemize}
@@ -380,6 +382,7 @@ Factory testing looks for manufacturing defects, not design bugs. The standard m
   \item Latch-up: a parasitic p-n-p-n thyristor shorts $\VDD$ to ground; prevented by taps and guard rings.
   \item ESD protection diodes guard every pin.
   \item Aging (NBTI, HCI, TDDB) needs guardbands; soft errors need ECC.
+  \item JTAG boundary scan shifts patterns through a cell at every pin to test the connections between chips on a board; the same port programs FPGAs and connects debuggers.
 \end{itemize}
 
 \section{Exercises}

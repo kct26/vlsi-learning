@@ -13,6 +13,7 @@ function rawIn(container){
   const lab = $$('.qmeta .mono', container).map(s => s.textContent).find(t => /^#\d+$/.test(t));
   return lab ? RAW[+lab.slice(1) - 1] : null;
 }
+const chOf = r => MOVED[r[0]] || parseInt(r[0], 10);   // a question's chapter: its id prefix unless it was moved
 function code(r, right){ return Array.isArray(r[3]) ? (right ? '0' : '1') : ((right ? r[3] : !r[3]) ? 'T' : 'F'); }
 function answer(scope, right){
   const opts = $(`.opts[data-scope="${scope}"]`); if (!opts) { log.push('FAIL no options in ' + scope); return; }
@@ -125,10 +126,10 @@ async function phase1(){
   ok($$('#prows tr').length === sh, 'status filter count matches solved (' + sh + ')');
   click('[data-act="f-reset"]');
   click('[data-act="f-ch"][data-v="17"]');
-  ok($$('#prows tr').length === RAW.filter(r => r[0].startsWith('17-')).length, 'topic chip filters to chapter 17');
+  ok($$('#prows tr').length === RAW.filter(r => chOf(r) === 17).length, 'topic chip filters to chapter 17');
   ok($$('.studycard .slist').length === 13 && !/Real OA|Your OA|By skill/i.test($('.studycard').textContent), 'sidebar lists the 13 VLSI areas (no OA or skill lists)');
   click('[data-act="f-list"][data-v="va-sta"]');
-  ok($$('#prows tr').length === RAW.filter(r => /^(11|13)-/.test(r[0])).length, 'VLSI area "Static timing analysis" shows chapters 11 and 13');
+  ok($$('#prows tr').length === RAW.filter(r => [11, 13].includes(chOf(r))).length, 'VLSI area "Static timing analysis" shows chapters 11 and 13');
   ok($('#f-list').value === 'va-sta', 'area dropdown follows the sidebar');
   click('[data-act="f-reset"]');
 
@@ -137,6 +138,17 @@ async function phase1(){
   click($$('#prows a[data-open]')[vk]); await wait(0);
   ok($('.pv .qtext sub.sym') && /VDD/.test($('.pv .qtext').textContent) && $$('.pv .qtext sub.sym').some(x => x.textContent === 'DD'), 'symbols such as VDD get a real subscript, and the text still reads VDD');
   tab('theory');
+  // A question taught in a later chapter is practised there, after that chapter's own questions.
+  const rowIds = () => $$('#prows tr[data-open]').map(tr => tr.dataset.open);
+  click('[data-act="f-ch"][data-v="2"]');
+  ok(Object.keys(MOVED).length > 0 && rowIds().length === RAW.filter(r => chOf(r) === 2).length && rowIds().includes('01-19'), 'a moved question is listed with the chapter that teaches it');
+  click('[data-act="f-ch"][data-v="1"]');
+  ok(!rowIds().includes('01-19'), 'and no longer with the chapter its id names');
+  click('[data-act="f-ch"][data-v="2"]');
+  click('#prows a[data-open="01-19"]'); await wait(0);
+  ok($('.pv .topicchip') && $('.pv .topicchip').dataset.ch === '2', 'a moved question shows the chapter that teaches it');
+  tab('theory');
+  click('[data-act="f-reset"]');
 
   // Problem page: wrong, retry, accepted
   click($$('#prows a[data-open]')[40]);
@@ -262,7 +274,7 @@ async function phase1(){
   tab('learn');
   click('[data-act="learn-open"][data-v="11"]');
   const nSec11 = window.BOOK_LESSONS.find(c => c.n === 11).sections.length;
-  ok($('.lx') && $$('.litem:not(.lquest)').length === nSec11 + 1 && /Practice problems/.test($('.litem.prac').textContent) && $('.litem.lquest'), 'a chapter shows its lessons, a Practice page and its quest in the sidebar');
+  ok($('.lx') && $$('.litem').length === nSec11 + 1 && /Practice problems/.test($('.litem.prac').textContent) && !$('.litem.lquest'), 'a chapter shows its lessons and a Practice page in the sidebar, with no quest card');
   click('[data-act="learn-go"][data-v="11-1"]');
   const mathSec = window.BOOK_LESSONS.find(c => c.n === 11).sections.find(x => x.html.includes('class="mathd"')).id;
   click(`[data-act="learn-go"][data-v="${mathSec}"]`);
@@ -277,7 +289,7 @@ async function phase1(){
   click('[data-act="learn-read"]');
   ok(st().read['11-2'] && /Read/.test($('[data-act="learn-read"]').textContent), 'Mark as read works');
   click('[data-act="learn-go"][data-v="11-p"]');
-  const n11 = RAW.filter(r => r[0].startsWith('11-')).length;
+  const n11 = RAW.filter(r => chOf(r) === 11).length;
   ok($$('#lprows tr').length === n11 && /Practice:/.test($('.lmain h1').textContent), 'the Practice page lists the chapter\'s ' + n11 + ' problems');
   click($$('#lprows a[data-open]')[0]);
   ok($('.pvcard') && /Back to the lesson/.test($('[data-act="pv-back"]').textContent) && new RegExp('/ ' + n11).test($('.pvbar .mono').textContent), 'a problem opened from a chapter steps through that chapter');
@@ -290,17 +302,7 @@ async function phase1(){
   click('.learnseg [data-v="quest"]');
   ok($('.navlinks button[data-tab="learn"]').getAttribute('aria-current') === 'page' && $$('.node').length === 23 && $$('.node .qbook').length === 23, 'the roadmap keeps Learn highlighted and links every quest to its chapter');
   click('.node .qbook[data-v="5"]');
-  ok($('.lx') && /Chapter 5/.test($('.lside-h').textContent) && $('.litem.lquest'), 'a chapter shows its interactive quest in the sidebar');
-  click('.litem.lquest');
-  ok($('.unitv') && /Back to the lesson/.test($('.unitv .crumbs').textContent) && /Read Chapter 5 in full/.test($('.unitv .crumbs').textContent), 'the quest links back to the lesson and to the full chapter');
-  click('.unitv .crumbs [data-act="learn-go"]');
-  ok($('.lx') && /Chapter 5/.test($('.lside-h').textContent), 'Back to the lesson returns to the chapter');
-  const lessonHash = location.hash;
-  click('.litem.lquest');
-  ok(location.hash === '#quest-5' && $('.unitv'), 'a quest has its own address');
-  history.back();
-  for (let k = 0; k < 20 && location.hash !== lessonHash; k++) await wait(100);
-  ok(location.hash === lessonHash && $('.lx') && /Chapter 5/.test($('.lside-h').textContent), "the browser's Back from a quest returns to the lesson it was opened from");
+  ok($('.lx') && /Chapter 5/.test($('.lside-h').textContent) && !$('.litem.lquest'), 'a roadmap quest link opens its chapter, whose sidebar has no quest card');
 
   // Account pages have a Back button to where you came from
   tab('theory'); click('.premiumbtn');

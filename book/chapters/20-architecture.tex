@@ -250,6 +250,7 @@ Programs use \term{virtual addresses}; the hardware translates them to \term{phy
 This is why ``are two addresses on the same 4\,KB page?'' (Section~\ref{sec:bitops}) is a natural hardware question: same page means same translation.
 
 \section{Endianness}
+\label{sec:endian}
 
 A 32-bit value occupies 4 bytes in memory. A \term{little-endian} machine (x86, most ARM and RISC-V systems) stores the least significant byte at the lowest address; a \term{big-endian} machine stores the most significant byte first. The value \code{0x12345678} stored at address \code{0x100}:
 \begin{center}
@@ -267,6 +268,56 @@ Big-endian & \code{12} & \code{34} & \code{56} & \code{78} \\
 
 A chip with several cores, each with its own cache, must keep the caches \term{coherent}: if one core writes a value, other cores must not keep reading a stale copy. Coherence protocols such as MESI track whether each cached line is Modified, Exclusive, Shared or Invalid, and invalidate other copies when one core writes.
 
+\subsection*{How coherence works}
+
+Every cached line is in one of four MESI states:
+\begin{center}
+\begin{tabular}{l p{0.42\linewidth} p{0.3\linewidth}}
+\toprule
+\textbf{State} & \textbf{Meaning} & \textbf{Matches memory?} \\
+\midrule
+Modified & only this cache has it, and it has been written & no: this copy is the only up-to-date one \\
+Exclusive & only this cache has it, unwritten & yes \\
+Shared & other caches may hold it too; read-only & yes \\
+Invalid & not usable & -- \\
+\bottomrule
+\end{tabular}
+\end{center}
+A core may write only a line it holds in M or E. To write a Shared line it first broadcasts an \term{invalidate}, turning every other copy to I, and moves to M. Exclusive exists so that the common case, reading data no other core has and then writing it, moves from E to M without any bus traffic. When another core reads a Modified line, the owner supplies the data (or writes it back) and both copies become Shared.
+
+Small systems implement this by \term{snooping}: every cache watches a shared bus for other cores' requests. Snooping traffic grows with the number of cores, so large chips use a \term{directory} that records which caches hold each line and sends messages only to them.
+
+\begin{trap}
+\term{False sharing}: two cores write \emph{different} variables that happen to sit in the same 64-byte line. Neither shares any data, yet every write invalidates the other core's copy, and the line bounces between caches. The fix is to pad or align the variables onto separate lines.
+\end{trap}
+
+\section{Out-of-order execution}
+\label{sec:ooo}
+
+The five-stage pipeline stalls whenever an instruction waits, for example on a cache miss, even if later instructions are independent and could run. An \term{out-of-order} (OoO) core lets them go ahead, while still making the program appear to run in order.
+
+\paragraph{Register renaming.} Code reuses a few architectural registers, which creates false dependences: if instruction 1 reads \code{r1} and instruction 2 later writes \code{r1}, instruction 2 must not finish first (a write-after-read hazard), although no data passes between them. Write-after-write is similar. Renaming maps each new write to a fresh \emph{physical} register, from a pool much larger than the architectural set, so only true read-after-write dependences remain.
+
+\paragraph{The machinery.}
+\begin{enumerate}
+  \item The front end fetches and decodes several instructions per cycle, predicting branches far ahead.
+  \item Renamed instructions wait in \term{reservation stations} (an issue queue) until their operands are ready, then \term{issue} to any free execution unit, oldest ready first.
+  \item Results are broadcast to the waiting instructions that need them.
+  \item The \term{reorder buffer} (ROB) holds every instruction in program order. An instruction \term{retires} (commits its result permanently) only when everything before it has retired.
+\end{enumerate}
+Because results become permanent only at retirement, the core can \term{speculate}: execute past a predicted branch, and on a misprediction or an exception discard every younger instruction in the ROB. A larger ROB lets the core look further ahead to find independent work and keep more cache misses in flight at once.
+
+\begin{remember}
+OoO: rename to remove false dependences (WAR, WAW), execute when operands are ready, retire in order from the reorder buffer. In-order retirement is what makes speculation and precise exceptions possible.
+\end{remember}
+
+\section{On-chip buses: AXI}
+\label{sec:axi}
+
+Blocks inside a chip or an FPGA design talk over standard interfaces, most often ARM's AMBA \term{AXI}. A \term{manager} (master), such as a CPU or DMA engine, starts transactions; a \term{subordinate} (slave), such as a memory controller or a register block, answers them. AXI has five independent channels, each a valid/ready handshake (Section~\ref{sec:handshake}): write address (AW), write data (W), write response (B), read address (AR) and read data (R). A transfer on any channel happens on a clock edge where both \code{VALID} and \code{READY} are high. Two rules prevent deadlock: a source must not wait for \code{READY} before raising \code{VALID}, and once \code{VALID} is high it must stay high with stable data until the transfer happens.
+
+A single address can start a \term{burst} of up to 256 data beats, and transaction IDs let a subordinate return responses out of order. \term{AXI4-Lite} drops bursts and IDs for simple control registers, and \term{AXI4-Stream} drops addresses entirely: just \code{TVALID}, \code{TREADY}, \code{TDATA} and \code{TLAST} marking the end of a packet, the standard way to pass packet data between blocks in FPGA designs.
+
 \section{Summary}
 
 \begin{itemize}
@@ -278,6 +329,9 @@ A chip with several cores, each with its own cache, must keep the caches \term{c
   \item AMAT $=$ hit time $+$ miss rate $\times$ miss penalty, applied level by level.
   \item Virtual memory translates pages (4\,KB); the TLB caches translations.
   \item Little-endian stores the least significant byte first.
+  \item Coherence (MESI): write only in M or E; writing a Shared line first invalidates other copies. Snooping for few cores, directories for many. False sharing bounces a line between cores.
+  \item Out-of-order cores rename registers to remove false dependences, issue instructions when their operands are ready, and retire in order from the reorder buffer.
+  \item AXI: five valid/ready channels (AW, W, B, AR, R); AXI4-Lite for registers, AXI4-Stream for packet data.
 \end{itemize}
 
 \section{Exercises}
@@ -292,6 +346,9 @@ A chip with several cores, each with its own cache, must keep the caches \term{c
   \item Which kind of miss does full associativity eliminate?
   \item Show how \code{0xA1B2C3D4} is stored at address 0 in a little-endian machine.
   \item Base CPI 1.0, 40\% loads/stores, 5\% miss rate, 100-cycle penalty. What is the effective CPI?
+  \item Two threads update counters \code{a} and \code{b}, which share a cache line, on different cores. Neither reads the other's counter, yet both run slowly. Why, and what is the fix?
+  \item Which hazards does register renaming remove, and which remain?
+  \item On an AXI channel, may a source wait for \code{READY} before asserting \code{VALID}?
 \end{enumerate}
 
 \subsection*{Answers}
@@ -305,4 +362,7 @@ A chip with several cores, each with its own cache, must keep the caches \term{c
   \item Conflict misses.
   \item Address 0: \code{D4}, 1: \code{C3}, 2: \code{B2}, 3: \code{A1}.
   \item $1.0 + 0.4 \times 0.05 \times 100 = 3.0$.
+  \item False sharing: each write invalidates the other core's copy of the line. Put the counters in separate 64-byte lines.
+  \item It removes write-after-read and write-after-write (false) dependences; read-after-write (true) dependences remain.
+  \item No. That could deadlock if the destination waits for \code{VALID}. The source raises \code{VALID} when it has data and holds it until the transfer.
 \end{enumerate}

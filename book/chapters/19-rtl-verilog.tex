@@ -112,6 +112,7 @@ Use \code{<=} (nonblocking) in clocked \code{always @(posedge clk)} blocks. Use 
 \end{remember}
 
 \section{Accidental latches}
+\label{sec:latches}
 
 In a combinational \code{always @(*)} block, every output must be assigned a value in \emph{every} path through the code. If some path leaves an output unassigned, the output must ``remember'' its old value, and synthesis creates a latch, usually unintended (Figure~\ref{fig:latchinfer}).
 
@@ -300,6 +301,7 @@ FIFOs are reported on the Ignite assessment, and FIFO depth calculations (module
 \end{onoa}
 
 \section{Handshakes and arbiters}
+\label{sec:handshake}
 
 \paragraph{Valid/ready.} Within one clock domain, blocks usually exchange data with a \term{valid/ready} handshake: the sender raises \code{valid} when it has data; the receiver raises \code{ready} when it can take it; a transfer happens on each clock edge where both are high (Figure~\ref{fig:validready}). This lets either side pause the other (\term{backpressure}).
 
@@ -464,6 +466,192 @@ Verification also happens at several levels. Each block is tested on its own (un
 A test without a checker tests nothing. Start every testbench with a reference model and an automatic comparison, add constrained-random stimulus and assertions, and measure functional coverage against a written plan.
 \end{remember}
 
+\section{SystemVerilog for design}
+\label{sec:sv}
+
+Most new RTL is written in SystemVerilog, which is Verilog plus features that make intent explicit and catch mistakes at compile time. Interviewers for FPGA and ASIC roles expect you to read and write these constructs.
+
+\paragraph{One type, three kinds of block.} \code{logic} replaces both \code{wire} and \code{reg}: it can be driven by an \code{assign} or by a procedural block, but only from one place. The generic \code{always} is split three ways:
+\begin{itemize}
+  \item \code{always\_ff @(posedge clk)} for flip-flops. Tools complain if the block does not describe edge-triggered storage.
+  \item \code{always\_comb} for combinational logic. It needs no sensitivity list, runs once at time zero so outputs start correct, and tools warn if it would infer a latch.
+  \item \code{always\_latch} for the rare latch you really want.
+\end{itemize}
+
+\paragraph{Named states with enum.} A state machine's states should have names, not magic numbers:
+\begin{lstlisting}[language=Verilog]
+typedef enum logic [1:0] {IDLE, LOAD, RUN, DONE} state_t;
+state_t state, next;
+
+always_ff @(posedge clk or negedge rst_n)
+  if (!rst_n) state <= IDLE;
+  else        state <= next;
+
+always_comb begin
+  next = state;                 // default: stay, so no latch
+  unique case (state)
+    IDLE: if (start)    next = LOAD;
+    LOAD:               next = RUN;
+    RUN:  if (count==0) next = DONE;
+    DONE:               next = IDLE;
+  endcase
+end
+\end{lstlisting}
+Waveform viewers show \code{RUN} instead of \code{2'b10}, and assigning a plain number to \code{state} is a compile error. The default assignment \code{next = state} at the top of the block is the standard way to avoid accidental latches (Section~\ref{sec:latches}).
+
+\paragraph{unique and priority.} \code{unique case} tells the tools that exactly one branch matches, so the branches may be built as parallel logic (a mux) rather than a priority chain; simulation warns if no branch or more than one matches. \code{priority case} (or \code{priority if}) says the first match wins and at least one must match. Both replace the old, dangerous \code{full\_case}/\code{parallel\_case} synthesis comments, which changed the hardware without changing the simulation.
+
+\paragraph{Wildcards and sets.} In \code{casez}, a \code{?} (or \code{z}) bit in a case item is a don't-care, which is how priority encoders are usually written: \code{4'b1???: idx = 3;}. \code{casex} also treats \code{x} as don't-care, so an unknown input silently matches a branch and hides bugs; avoid it. The \code{inside} operator tests set membership: \code{if (op inside \{ADD, SUB, [8:11]\})}.
+
+\paragraph{Packed structs.} A \code{typedef struct packed} groups fields into one bit vector, with the first field in the most significant bits:
+\begin{lstlisting}[language=Verilog]
+typedef struct packed {
+  logic [3:0]  kind;     // bits 39:36
+  logic [3:0]  id;       // bits 35:32
+  logic [31:0] data;     // bits 31:0
+} pkt_t;                 // 40 bits in all
+pkt_t p;
+assign p = in_bus;       // a struct is just bits
+assign is_write = (p.kind == 4'h1);
+\end{lstlisting}
+
+\paragraph{Packed and unpacked arrays.} Dimensions \emph{before} the name are packed: \code{logic [3:0][7:0] w} is one 32-bit vector seen as four bytes, and \code{w[2]} is bits 23:16. Dimensions \emph{after} the name are unpacked: \code{logic [7:0] mem [0:255]} is 256 separate bytes, a memory. Only packed data can be assigned to or compared with a plain vector in one step.
+
+\paragraph{Parameters, generate and \$clog2.} Reusable blocks are parameterized, and \code{\$clog2} computes the bits needed: a FIFO of depth \code{DEPTH} needs pointers of \code{\$clog2(DEPTH)} bits (\$clog2(16) $= 4$, \$clog2(17) $= 5$). A \code{generate for} loop builds repeated hardware, one copy per iteration, at elaboration time:
+\begin{lstlisting}[language=Verilog]
+module sync_bus #(parameter int W = 8) (
+  input  logic clk, input logic [W-1:0] d, output logic [W-1:0] q);
+  for (genvar i = 0; i < W; i++) begin : g_bit
+    sync2 u_sync (.clk, .d(d[i]), .q(q[i]));   // W synchronizers
+  end
+endmodule
+\end{lstlisting}
+(That is the right structure for W \emph{independent} bits, such as separate interrupt lines. For a W-bit \emph{value} it is wrong, for the reason in Section~\ref{sec:cdc}.) A plain \code{for} loop inside \code{always\_comb} also unrolls into parallel hardware; it describes a circuit, not a sequence of steps over time.
+
+\paragraph{Interfaces and modports.} An \code{interface} bundles the signals of one connection, such as a valid/ready stream, so a module port list says \code{stream\_if.sink in} instead of repeating every wire. A \code{modport} gives each side its directions: the source drives \code{valid} and \code{data} and reads \code{ready}; the sink does the opposite.
+
+\paragraph{Packages.} A \code{package} holds shared types, parameters and functions (the \code{pkt\_t} above, a state enum, an opcode list), and modules \code{import} it, so every block agrees on one definition.
+
+\begin{trap}
+SystemVerilog makes intent checkable, but it does not change what you build. An \code{always\_comb} block missing an assignment on one path still describes a latch; the tool now warns you about it. Read the warnings.
+\end{trap}
+
+\subsection*{A pipelined datapath}
+
+Pipelining (Section~\ref{sec:pipelining}) is easy to describe in RTL: each stage is a set of registers, and a \code{valid} bit travels with the data so the stage after knows when it holds real work.
+\begin{lstlisting}[language=Verilog]
+// y = a*b + c in two stages: multiply, then add.
+always_ff @(posedge clk) begin
+  v1 <= in_valid;  prod <= a * b;  c1 <= c;      // stage 1
+  v2 <= v1;        y    <= prod + c1;            // stage 2
+end
+assign out_valid = v2;
+\end{lstlisting}
+Two rules: every value used in a later stage must be carried forward in its own register (here \code{c} becomes \code{c1}, so it lines up with \code{prod}), and the latency is the number of register stages, here 2 cycles. Throughput stays one result per cycle. If the downstream block can stall, each stage also needs a ready signal, and a skid buffer keeps the ready path short.
+
+\section{Reading VHDL}
+
+VHDL is the other standard HDL. It is common in FPGA teams, defense and aerospace, and at several trading firms. It is wordier and more strictly typed than Verilog, but the hardware ideas are the same. You mostly need to read it and map it onto what you already know.
+
+\begin{lstlisting}[language=VHDL]
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity counter4 is
+  port ( clk, rst, en : in  std_logic;
+         q            : out unsigned(3 downto 0) );
+end entity;
+
+architecture rtl of counter4 is
+  signal cnt : unsigned(3 downto 0);
+begin
+  process (clk)
+  begin
+    if rising_edge(clk) then
+      if rst = '1' then  cnt <= (others => '0');   -- synchronous reset
+      elsif en = '1' then cnt <= cnt + 1;
+      end if;
+    end if;
+  end process;
+  q <= cnt;                                        -- concurrent assignment
+end architecture;
+\end{lstlisting}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{VHDL} & \textbf{Verilog / SystemVerilog} \\
+\midrule
+\code{entity} (ports) + \code{architecture} (body) & \code{module} \\
+\code{std\_logic}, \code{std\_logic\_vector(7 downto 0)} & \code{logic}, \code{logic [7:0]} \\
+\code{unsigned}, \code{signed} (from \code{numeric\_std}) & \code{logic [7:0]}, \code{logic signed [7:0]} \\
+\code{process (clk)} with \code{if rising\_edge(clk)} & \code{always\_ff @(posedge clk)} \\
+\code{process (all)} (VHDL-2008) & \code{always\_comb} \\
+signal assignment \code{<=} & nonblocking \code{<=} \\
+variable assignment \code{:=} & blocking \code{=} \\
+\code{y <= a when s = '1' else b;} & \code{assign y = s ? a : b;} \\
+\code{(others => '0')} & \code{'0} \\
+\code{x"FF"}, \code{"1010"}, \code{'1'} & \code{8'hFF}, \code{4'b1010}, \code{1'b1} \\
+\code{generic}, \code{generate} & \code{parameter}, \code{generate} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Signals and variables.} A VHDL \code{signal} assigned in a process takes its new value only when the process finishes (at the end of the delta cycle), exactly like a nonblocking assignment. A \code{variable}, declared inside a process, changes immediately, like a blocking assignment. So \code{a <= b; b <= a;} on signals swaps them, just as in Verilog.
+
+\paragraph{Strong typing.} VHDL will not add a \code{std\_logic\_vector} to an integer, or assign an 8-bit value to a 4-bit signal; you convert explicitly, for example \code{unsigned(v)}, \code{std\_logic\_vector(u)} and \code{to\_integer(u)}. This catches width and sign bugs that Verilog silently truncates, at the cost of more typing. Use \code{numeric\_std} for arithmetic, not the old non-standard \code{std\_logic\_arith} packages.
+
+\paragraph{std\_logic has nine values.} Besides \code{'0'} and \code{'1'} there are \code{'Z'} (high impedance), \code{'U'} (uninitialized, what every signal starts as in simulation), \code{'X'} (conflict), \code{'-'} (don't care) and weak levels. Seeing \code{'U'} in a waveform means a register was never reset or a signal is never driven.
+
+\section{FPGAs: where your RTL lands}
+\label{sec:fpga}
+
+A \term{field-programmable gate array} (FPGA) is a chip of prebuilt logic and wiring whose function is set by configuration memory loaded at power-up. The same RTL you would give an ASIC flow becomes, on an FPGA, a pattern of configuration bits: no masks, no fab, a new design in minutes to hours. The price is speed, power and area: the same logic is typically several times slower and uses far more silicon than in an ASIC, because every connection passes through programmable switches. FPGAs win where volumes are low, designs change often, or latency matters more than cost: prototyping, networking equipment, test gear, and low-latency trading, where a market-data packet can be parsed and acted on in well under a microsecond without ever touching a CPU.
+
+\paragraph{The LUT.} The basic logic element is a $k$-input \term{look-up table} (LUT), a tiny memory of $2^k$ bits addressed by the inputs. Since it stores a whole truth table, a LUT implements \emph{any} function of its $k$ inputs in the same time (this is the ``any function from a big multiplexer'' idea of Section~\ref{sec:muxgates}). Modern FPGAs use 6-input LUTs, which can often be split into two 5-input LUTs sharing inputs. A function of more inputs takes several LUTs in levels, and each level adds delay, so FPGA timing is counted in \emph{LUT levels} rather than gates.
+
+\begin{worked}{LUTs for a wide function}
+How many 6-input LUTs does a 16-input AND need, and how many levels?
+
+Each LUT can AND six signals. The first level reduces 16 inputs with $\lceil 16/6 \rceil = 3$ LUTs, giving 3 signals; one more LUT combines them. Total \textbf{4 LUTs in 2 levels}. A 36-input AND would need 6 + 1 = 7 LUTs, still in 2 levels.
+\end{worked}
+
+\paragraph{Logic blocks and carry chains.} LUTs are grouped with flip-flops into slices or logic blocks (on AMD/Xilinx parts, a \term{CLB}). Each LUT output can feed a flip-flop right next to it, so pipelining is nearly free: the registers are already there, unused, beside every LUT. Each block also has a dedicated \term{carry chain}, fast hard-wired logic for the carry of an adder, so a 32-bit add is much faster than if the carry rippled through LUTs and routing.
+
+\paragraph{Hard blocks.} Some functions are so common that the FPGA builds them in fixed silicon:
+\begin{itemize}
+  \item \textbf{Block RAM} (BRAM): dual-port memories of tens of kilobits each, hundreds of them per chip. They have \emph{synchronous} reads: the address is registered and data appears the cycle after. RTL written with an asynchronous read cannot map to BRAM and is built from LUTs instead (\term{distributed RAM}), or from flip-flops, which is much bigger.
+  \item \textbf{DSP slices}: hard multiply-accumulate units (on recent AMD parts, a 27$\times$18-bit multiplier with a 48-bit accumulator) with optional pipeline registers inside. A \code{*} in your RTL lands here. Using the internal registers lets it run at full clock speed.
+  \item \textbf{Clocking}: PLLs and MMCMs make new clock frequencies and phases, and dedicated global clock networks distribute them with low skew. Clocks must go through these, never through ordinary logic (Section~\ref{sec:clockgen}).
+  \item \textbf{I/O and transceivers}: configurable I/O pins for many voltage standards, and multi-gigabit SerDes transceivers for Ethernet, PCIe and similar links (Chapter~\ref{ch:wires}).
+\end{itemize}
+
+\paragraph{The tool flow.} AMD's Vivado, Intel's Quartus and the open-source Yosys + nextpnr all follow the same steps:
+\begin{enumerate}
+  \item \textbf{Synthesis}: RTL becomes a netlist of LUTs, flip-flops, carry chains, BRAMs and DSPs. Check the utilization report and the warnings (inferred latches, removed logic, multi-driven nets).
+  \item \textbf{Placement}: each element is assigned a physical site on the chip.
+  \item \textbf{Routing}: connections are made through the programmable interconnect. On an FPGA, routing is often more than half of each path's delay.
+  \item \textbf{Timing analysis}: static timing checks every path against the constraints (Chapter~\ref{ch:timing}). A design is \emph{not done} until timing is met; a failing design may work on the bench today and fail when warm.
+  \item \textbf{Bitstream generation}: the configuration file loaded into the FPGA, through JTAG during development or from flash memory at power-up.
+\end{enumerate}
+Constraints are written in SDC-style Tcl (Vivado calls the files XDC): \code{create\_clock} defines each clock, I/O delays describe the outside world, and false-path or multicycle exceptions mark paths that do not need single-cycle timing. Asynchronous clock groups tell the tool not to time CDC paths, which then must be safe by design (Section~\ref{sec:cdc}).
+
+\paragraph{Closing timing on an FPGA.} When a path fails:
+\begin{itemize}
+  \item add pipeline stages, cutting the LUT levels between registers (registers are free on an FPGA, so this is the first thing to try);
+  \item reduce fanout: a signal driving thousands of loads, such as a reset or an enable, is slow, so register and duplicate it;
+  \item use the hard blocks with their internal registers (BRAM output register, DSP pipeline registers);
+  \item let the tool retime (move registers across logic), or rewrite the logic so the critical path is shorter;
+  \item as a last resort, floorplan related logic into one region.
+\end{itemize}
+
+\paragraph{Resets and initial values on FPGAs.} The configuration process loads a known value into every flip-flop, so on FPGAs \code{initial} blocks or declaration initializers (\code{logic [3:0] cnt = 0;}) really do set power-up values, unlike on an ASIC. Vendors advise using resets only where needed, and synchronous ones: a reset on every flip-flop costs routing and makes BRAMs and DSP registers harder to use.
+
+\begin{bigidea}
+Writing RTL for an FPGA is writing for a fixed set of parts. Know what your code becomes: logic becomes LUTs counted in levels, \code{+} becomes a carry chain, \code{*} becomes a DSP slice, a memory with a registered read becomes block RAM, and every LUT comes with a free flip-flop for pipelining.
+\end{bigidea}
+
 \section{Summary}
 
 \begin{itemize}
@@ -474,6 +662,9 @@ A test without a checker tests nothing. Start every testbench with a reference m
   \item Single bits cross clock domains through two-flop synchronizers; multi-bit values need Gray code, handshakes or asynchronous FIFOs.
   \item FIFO depth $\ge B(1 - r_r/r_w)$, with rates in words per second.
   \item Verification: a self-checking testbench compares the design against a reference model. Directed tests hit known corner cases; constrained-random tests find the unexpected. Assertions catch rule violations where they happen. Code coverage shows what ran; functional coverage shows which planned scenarios occurred; neither replaces checking. Formal tools prove properties for all inputs.
+  \item SystemVerilog: \code{logic}, \code{always\_ff}/\code{always\_comb}, \code{enum} states, \code{unique case}, packed structs, interfaces and packages make intent checkable. Avoid \code{casex}.
+  \item VHDL: entity + architecture; signals (\code{<=}) update at the end of the process like nonblocking assignments, variables (\code{:=}) immediately; conversions are explicit.
+  \item FPGAs: logic becomes $k$-input LUTs counted in levels, adders use carry chains, multipliers DSP slices, registered-read memories block RAM. Flow: synthesis, place, route, timing, bitstream. Close timing by pipelining and cutting fanout.
 \end{itemize}
 
 \section{Exercises}
@@ -493,6 +684,11 @@ A test without a checker tests nothing. Start every testbench with a reference m
   \item What is the difference between an immediate and a concurrent assertion? Write a concurrent assertion that \code{gnt} is never high unless \code{req} is high in the same cycle.
   \item A block reaches 100\% line coverage. Name two kinds of bug that could still be present.
   \item What can formal verification show that simulation cannot?
+  \item Write a SystemVerilog \code{enum} for a four-state machine and the \code{always\_comb} next-state block skeleton that cannot infer a latch.
+  \item Why is \code{casex} discouraged, and what does \code{casez} do differently?
+  \item In VHDL, \code{a} and \code{b} are signals. What do \code{a <= b; b <= a;} inside a clocked process do?
+  \item How many 6-input LUTs, in how many levels, does a 16-input AND need on an FPGA?
+  \item A memory written with an asynchronous read does not map to block RAM. Why, and how do you fix it?
 \end{enumerate}
 
 \subsection*{Answers}
@@ -519,4 +715,9 @@ endmodule
   \item An immediate assertion checks a condition at one instant, like an \code{if}; a concurrent assertion checks a property across clock cycles. For example: \code{assert property (@(posedge clk) gnt |-> req);}
   \item Lines that ran but whose results were never checked (a wrong answer nobody compared), and combinations of conditions that never occurred together (for example, a write and a read in the same cycle while full). Line coverage says nothing about either.
   \item That a property holds for \emph{every} possible input sequence (up to a bound), or an exact counterexample if it does not. Simulation only checks the sequences that were run.
+  \item \code{typedef enum logic [1:0] \{A, B, C, D\} st\_t;} then \code{always\_comb begin next = state; case (state) ... endcase end}. The default assignment at the top covers every path.
+  \item \code{casex} treats \code{x} bits in the case \emph{expression} as don't-cares, so an unknown input silently matches a branch and hides bugs in simulation. \code{casez} only treats \code{z}/\code{?} as don't-care.
+  \item They swap: signals take their new values when the process finishes, like nonblocking assignments.
+  \item 3 LUTs in the first level (6 + 6 + 4 inputs), then 1 to combine: 4 LUTs, 2 levels.
+  \item Block RAM reads are synchronous: the address (or data) is registered. Register the read (\code{always\_ff @(posedge clk) dout <= mem[addr];}) and accept one cycle of read latency.
 \end{enumerate}

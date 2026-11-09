@@ -150,6 +150,70 @@ Here the simple estimate $\lceil 202/64 \rceil = 4$ happens to agree, but not al
 A reported question asked for the number of completion packets for a 202-byte read at address \code{0x31121133} with a 64-byte maximum payload. The method above, with alignment, gives 4.
 \end{onoa}
 
+\section{Signal integrity on the board}
+\label{sec:si}
+
+A board trace carrying a fast signal is a transmission line (Section~\ref{sec:tline}), and \term{signal integrity} is the work of getting a clean edge from one chip to another.
+
+\paragraph{Controlled impedance and reflections.} A wave on a line sees the line's \term{characteristic impedance} $Z_0$, set by the trace's width, its height above the ground plane and the board material, not by its length. Boards are built to a target, typically 50\,$\Omega$ for a single-ended trace and 100\,$\Omega$ across a differential pair. Wherever the impedance changes (a connector, a via, a load that does not match), part of the wave reflects. The fraction reflected is the reflection coefficient
+\[ \Gamma = \frac{Z_L - Z_0}{Z_L + Z_0}. \]
+A matched termination ($Z_L = Z_0$) gives $\Gamma = 0$; an open end gives $\Gamma = +1$ (the whole wave returns); a short gives $\Gamma = -1$.
+
+\begin{worked}{a mismatched load}
+A 50\,$\Omega$ trace ends in a 75\,$\Omega$ load. $\Gamma = (75-50)/(75+50) = 0.2$, so 20\% of each edge's voltage reflects back toward the driver, where it can reflect again and appear as ringing.
+\end{worked}
+
+\paragraph{Losses and equalization.} Copper resistance (worse at high frequency, where current crowds to the surface) and the board's dielectric absorb more of the high-frequency content than the low. A sharp edge arrives rounded, and each bit's energy leaks into the next bits (\term{inter-symbol interference}). Links fight this with \term{equalization}: the transmitter boosts each transition (\term{pre-emphasis} or de-emphasis), and the receiver applies continuous-time linear equalization (CTLE, a high-frequency boost) and a decision-feedback equalizer (DFE), which subtracts the expected leftover of bits already received.
+
+\paragraph{Via stubs and crosstalk.} A via that goes through the whole board but is used only between two upper layers leaves an unused stub hanging below. The stub is a short open-ended line that resonates, notching out frequencies near where it is a quarter wavelength long; fast boards \term{back-drill} stubs away. Neighboring traces couple like on-chip wires, so fast traces are spaced apart, routed over a solid ground plane, and never cross a split in it, because the return current flows in the plane right under the trace (Chapter~\ref{ch:electricity} explains why).
+
+\paragraph{Recovering the clock.} A SerDes receiver has no separate clock wire. A \term{clock and data recovery} (CDR) circuit, a kind of PLL, locks onto the transitions in the data and places the sampling point in the middle of each bit, the center of the eye. That is why the data must be encoded to guarantee transitions. The \term{eye diagram} measures what is left: its height is the voltage margin and its width the timing margin, and a closing eye means loss, reflections, crosstalk or jitter are eating the margin.
+
+\paragraph{Power integrity.} The supply network has to hold its voltage while the chip's current jumps. Its design target is an impedance: if the current can step by $\Delta I$ and the supply may move by at most $\Delta V$, the network's impedance must stay below
+\[ Z_{\text{target}} = \frac{\Delta V}{\Delta I} \]
+at every frequency up to the fastest current change. A 0.8\,V rail with a 3\% tolerance (24\,mV) and a 60\,A step needs $Z \le 0.4$\,m$\Omega$. Voltage regulators handle slow changes, bulk and ceramic capacitors on the board middle frequencies, and capacitors in the package and on the die the fastest ones (the decoupling capacitors of Chapter~\ref{ch:capind}).
+
+\section{Networking: Ethernet, IP and UDP}
+\label{sec:net}
+
+Network hardware, from switches to SmartNICs to trading FPGAs, handles data as \term{packets} wrapped in layers of headers. Each layer adds a header in front and is handled by its own piece of logic. In a hardware datapath the bytes arrive a word at a time, and the design must find each field by its byte offset.
+
+\paragraph{The layers.} From the outside in:
+\begin{itemize}
+  \item \textbf{Ethernet} (layer 2) moves a frame between two directly connected devices. It is identified by 48-bit \term{MAC addresses}.
+  \item \textbf{IP} (layer 3) carries a packet across networks, from a 32-bit IPv4 source address to a destination address.
+  \item \textbf{UDP} or \textbf{TCP} (layer 4) delivers the data to a numbered \term{port} on the destination machine.
+  \item The application's own message is inside, for example a market-data update saying a price changed.
+\end{itemize}
+
+\begin{center}
+\begin{tabular}{l l p{0.62\linewidth}}
+\toprule
+\textbf{Header} & \textbf{Bytes} & \textbf{Main fields, in order} \\
+\midrule
+Ethernet & 14 & destination MAC (6), source MAC (6), EtherType (2; \code{0x0800} means IPv4) \\
+IPv4 & 20 & version and header length, total length, protocol (17 = UDP, 6 = TCP), header checksum, source IP (4), destination IP (4) \\
+UDP & 8 & source port (2), destination port (2), length (2), checksum (2) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+On the wire, the frame is preceded by a 7-byte preamble and a 1-byte start-of-frame delimiter, and followed by a 4-byte \term{frame check sequence} (FCS), a CRC-32 over the frame that lets the receiver drop corrupted frames. Between frames the line stays idle for at least 12 byte times (the inter-packet gap). The smallest legal frame is 64 bytes including the FCS, so short messages are padded.
+
+\begin{worked}{where is the UDP payload?}
+With no VLAN tag and no IP options, the UDP payload starts at byte $14 + 20 + 8 = 42$ of the frame (counting from the destination MAC). On a datapath that delivers 8 bytes per clock, bytes 0--7 arrive in the first cycle, so byte 42 is in the sixth word (bytes 40--47), at byte position 2 within it. A parser that knows this can start decoding the message in that cycle, before the rest of the frame has even arrived; this is \term{cut-through} processing, the basis of low-latency designs.
+\end{worked}
+
+\paragraph{Byte order.} Network headers are \term{big-endian} (``network byte order''): the most significant byte of a multi-byte field comes first. EtherType \code{0x0800} arrives as \code{0x08} then \code{0x00}. A little-endian CPU must swap bytes to read it (Section~\ref{sec:endian}); hardware just wires the bytes in the right order.
+
+\paragraph{UDP versus TCP.} UDP sends independent datagrams with no connection, no acknowledgment and no retransmission: a lost packet is simply lost. That makes it simple and fast, and it supports \term{multicast}, one sender to many receivers, which is how exchanges publish market data. TCP provides a reliable, ordered byte stream: it numbers bytes, acknowledges them, retransmits losses and controls its sending rate. All that state makes TCP far harder to build in hardware, so it appears in FPGA designs only as dedicated TCP-offload engines, used for example to send orders to an exchange.
+
+\paragraph{Rates and latency.} A 10\,Gb/s Ethernet link moves 1.25 bytes per nanosecond. It is usually handled 64 bits at a time at 156.25\,MHz, the clock of the standard 64b/66b-encoded 10G interface; 25\,Gb/s uses the same width at about 390\,MHz. Just receiving a 64-byte frame takes $64 \times 8 / 10 = 51.2$\,ns at 10\,Gb/s, so a design that waits for the whole frame and its CRC before acting has already lost that time. Low-latency designs start acting on the early fields and discard the result if the CRC later fails.
+
+\begin{remember}
+Ethernet 14 + IPv4 20 + UDP 8 = 42 bytes of headers, all big-endian. UDP: no connection, no retransmission, multicast; TCP: reliable stream with much more state. At 10\,Gb/s a byte takes 0.8\,ns.
+\end{remember}
+
 \section{Summary}
 
 \begin{itemize}
@@ -160,6 +224,8 @@ A reported question asked for the number of completion packets for a 202-byte re
   \item Fast chip-to-chip links are differential, serial (SerDes) and encoded.
   \item Bandwidth $=$ width $\times$ transfer rate $/ 8 \times$ efficiency; DDR doubles transfers per clock.
   \item Reads are split into packets at the maximum payload size and at aligned boundaries.
+  \item Board traces have a characteristic impedance (50\,$\Omega$ single-ended, 100\,$\Omega$ differential). Mismatches reflect $\Gamma = (Z_L - Z_0)/(Z_L + Z_0)$. Equalization undoes frequency-dependent loss; CDR recovers the clock; $Z_{\text{target}} = \Delta V/\Delta I$.
+  \item Packets: Ethernet (14 bytes) + IPv4 (20) + UDP (8) = 42 header bytes, big-endian. UDP is connectionless and supports multicast; TCP is a reliable stream. At 10\,Gb/s one byte takes 0.8\,ns.
 \end{itemize}
 
 \section{Exercises}
@@ -173,6 +239,10 @@ A reported question asked for the number of completion packets for a 202-byte re
   \item A PCIe link has 8 lanes at 8\,GT/s with 128b/130b encoding. What is its bandwidth per direction?
   \item A device reads 100 bytes starting at address \code{0x1030}, with 64-byte maximum payloads that cannot cross 64-byte boundaries. How many packets?
   \item Why does differential signaling resist noise?
+  \item A 50\,$\Omega$ line drives a 150\,$\Omega$ load. What fraction of the voltage reflects?
+  \item A 1.0\,V rail may move 2\% when the current steps by 40\,A. What is the target impedance?
+  \item With no VLAN tag and no IP options, at what byte offset does a UDP payload start in an Ethernet frame?
+  \item Why do exchanges publish market data over UDP multicast rather than TCP?
 \end{enumerate}
 
 \subsection*{Answers}
@@ -185,4 +255,8 @@ A reported question asked for the number of completion packets for a 202-byte re
   \item $8 \times 8 \times (128/130)/8 \approx 7.9$\,GB/s.
   \item Offset of \code{0x1030} in its 64-byte block is \code{0x30} $= 48$, so the first packet carries 16 bytes; the remaining 84 bytes need 2 more (64 and 20). Total 3 packets.
   \item Noise usually couples equally onto both wires of the pair, and the receiver only looks at the difference between them, so the common noise cancels.
+  \item $\Gamma = (150 - 50)/(150 + 50) = 0.5$.
+  \item $20\,\text{mV}/40\,\text{A} = 0.5\,\text{m}\Omega$.
+  \item $14 + 20 + 8 = 42$.
+  \item One multicast packet reaches every subscriber at once with no per-receiver connection, acknowledgment or retransmission delay; TCP would need a separate connection per receiver and stalls to retransmit lost data.
 \end{enumerate}

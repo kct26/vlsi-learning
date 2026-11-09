@@ -7,14 +7,15 @@ const DIFF = {E:'Easy', M:'Medium', H:'Hard'};
 const ROMAN = ['I','II','III','IV','V','VI','VII','VIII'];
 const BANK = RAW.map((r, i) => {
   const [id, d, q, ans, e, tags] = r, t = tags || '';
-  const Q = {id, n:i + 1, ch:parseInt(id.slice(0, 2), 10), d, q, e, tags:t, oa:t.includes('o'), beyond:t.includes('b')};
+  const Q = {id, n:i + 1, ch:MOVED[id] || parseInt(id.slice(0, 2), 10), d, q, e, tags:t, oa:t.includes('o'), beyond:t.includes('b')};
   if (Array.isArray(ans)) { Q.k = 'm'; Q.o = ans; } else { Q.k = 't'; Q.a = ans; }
   Q.hay = (q + ' ' + (Q.o ? Q.o.join(' ') : '') + ' ' + e + ' ' + TOPICS[Q.ch]).toLowerCase();
   return Q;
 });
 const BY_ID = Object.fromEntries(BANK.map(q => [q.id, q]));
 const CH_IDS = {};
-BANK.forEach(q => (CH_IDS[q.ch] = CH_IDS[q.ch] || []).push(q.id));
+// A chapter's own questions first, then any moved into it from an earlier chapter's ids.
+[...BANK.filter(q => !MOVED[q.id]), ...BANK.filter(q => MOVED[q.id])].forEach(q => (CH_IDS[q.ch] = CH_IDS[q.ch] || []).push(q.id));
 const MOCK_N = 15, MOCK_MIN = 50, UNIT_N = 5, UNIT_PASS = 4;
 const MUX_NAMES = {OR:'OR', AND:'AND', NOTA:'NOT A', NAND:'NAND', NOR:'NOR', XOR:'XOR'};
 
@@ -1142,16 +1143,17 @@ const KW = {
   perl:'my our sub if elsif else unless foreach for while return print use strict warnings open close next last',
   cuda:'__global__ __device__ __host__ __shared__ __syncthreads threadIdx blockIdx blockDim gridDim dim3 cudaMalloc cudaMemcpy cudaFree',
   matlab:'function end if elseif else for while return switch case otherwise',
+  vhdl:'library use all entity is port in out inout end architecture of begin signal variable constant process if then elsif else case when others downto to type subtype std_logic std_logic_vector unsigned signed integer boolean rising_edge falling_edge and or not xor nand nor generic map component for generate loop while range array record package body function procedure return wait until after select with',
 };
 const KW_SET = {};
 const kwFor = lang => KW_SET[lang] || (KW_SET[lang] = new Set((KW[lang] + ' ' + ({cpp:KW.c, cuda:KW.c + ' ' + KW.cpp, sv:KW.verilog}[lang] || '')).split(/\s+/)));
 function highlight(src, lang){
-  const hash = ['python', 'bash', 'tcl', 'perl'].includes(lang), pct = lang === 'matlab', hdl = lang === 'verilog' || lang === 'sv';
+  const hash = ['python', 'bash', 'tcl', 'perl'].includes(lang), pct = lang === 'matlab', hdl = lang === 'verilog' || lang === 'sv', vh = lang === 'vhdl';
   const re = new RegExp([
-    hash ? '#[^\\n]*' : pct ? '%[^\\n]*' : '\\/\\*[\\s\\S]*?(?:\\*\\/|$)|\\/\\/[^\\n]*',
+    hash ? '#[^\\n]*' : pct ? '%[^\\n]*' : vh ? '--[^\\n]*' : '\\/\\*[\\s\\S]*?(?:\\*\\/|$)|\\/\\/[^\\n]*',
     hdl ? '"(?:\\\\.|[^"\\\\\\n])*"' : '"(?:\\\\.|[^"\\\\\\n])*"|\'(?:\\\\.|[^\'\\\\\\n])*\'',
     hdl ? "\\d*'[sS]?[bBoOdDhH][0-9a-fA-FxXzZ_]+|\\b\\d[\\d_]*(?:\\.\\d+)?\\b" : '\\b0[xX][0-9a-fA-F]+[uUlL]*\\b|\\b\\d+(?:\\.\\d+)?[uUlLfF]*\\b',
-    '[A-Za-z_$][\\w$]*', hash || pct ? '(?!)' : '^[ \\t]*#\\s*\\w+'].map(x => '(' + x + ')').join('|'), 'gm');
+    '[A-Za-z_$][\\w$]*', hash || pct || vh ? '(?!)' : '^[ \\t]*#\\s*\\w+'].map(x => '(' + x + ')').join('|'), 'gm');
   const kw = kwFor(lang);
   let out = '', last = 0, m;
   while ((m = re.exec(src))) {
@@ -1781,7 +1783,6 @@ function viewLesson(){
   const short = x => x.badge && isNaN(+x.badge) ? x.badge : 'Ch ' + x.n;
   const side = `<aside class="lside panel"><div class="lside-h"><button type="button" class="linkbtn small" data-act="learn-home">← All chapters</button>
       <p class="eyebrow">${esc(chLabel(c))}</p><b>${esc(c.title)}</b><span class="cobar"><i style="width:${pct(P.done, P.total)}%"></i></span><small class="muted">${P.read}/${P.lessons} ${P.lessons === 1 ? 'page' : 'lessons'}${P.probs ? ` · ${P.solved}/${P.probs} problems` : ''}</small></div>
-    ${UNITS[c.n - 1] && c.n <= 23 ? (() => { const U = UNITS[c.n - 1], ok = unitPassed(c.n); return `<button type="button" class="litem lquest${ok ? ' done' : ''}" data-act="learn-quest" data-v="${c.n}"><i class="lchk">${ok ? '✓' : '⚡'}</i><span>Interactive quest<small>${U.cards.length} lessons with widgets · checkpoint</small></span><em>${ok ? 'passed' : cardsDone(U) + '/' + U.cards.length}</em></button>`; })() : ''}
     <nav class="litems" aria-label="Lessons">${items}</nav>
     <div class="lside-f">${prevCh ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${prevCh.n}">‹ ${esc(short(prevCh))}</button>` : '<span></span>'}${nextCh ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${nextCh.n}">${esc(short(nextCh))} ›</button>` : ''}</div></aside>`;
   const step = lessonStep(1), back = lessonStep(-1);
@@ -2743,7 +2744,6 @@ function act(a){
   const S = ui.session, P = ui.pv;
   switch (a.dataset.act) {
     case 'open-unit': ui.unitFrom = null; openUnit(+a.dataset.u); break;
-    case 'learn-quest': ui.unitFrom = ui.lesson ? {ch:ui.lesson.ch, sec:ui.lesson.sec} : null; openUnit(+a.dataset.v); break;
     case 'go': goTab(a.dataset.v); break;
     case 'settings-back': settingsBack(); break;
     case 'learn-home': goTab('learn'); break;

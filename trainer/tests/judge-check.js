@@ -77,6 +77,10 @@ console.log(`C/C++: ${CODING.filter(p => p.run && p.run.kind === 'c').length} pr
     'rtl-14':s => s.replace('count = 15 - i;', 'count = 16 - i;'),
     'rtl-15':s => s.replace("assign full  = (wgray == {~rgray_w2[AW:AW-1], rgray_w2[AW-2:0]});", "assign full = 1'b0;"),
     'rtl-16':s => s.replace('assign s_ready = !full;', 'assign s_ready = !full && m_ready;'),
+    'rtl-17':s => s.replace("8'b1???_????: idx = 3'd7;", "8'b1???_????: idx = 3'd6;"),
+    'rtl-18':s => s.replace("y <= {1'b0, prod} + c1;", "y <= {1'b0, prod} + c;"),
+    'rtl-19':s => s.replace('wire xfer = tvalid && tready;', 'wire xfer = tvalid;'),
+    'rtl-20':s => s.replace("4'd9: begin", "4'd8: begin"),
   };
   for (const p of CODING.filter(p => p.run && p.run.kind === 'v')) {
     try {

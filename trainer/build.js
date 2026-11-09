@@ -12,8 +12,8 @@ const SCRIPTS = ['questions.js', 'lessons.js', 'widgets.js', 'coding.js', 'hidde
 const ctx = {};
 vm.createContext(ctx);
 const PRIV = path.join(__dirname, 'private', 'premium-data.js'), hasPremium = fs.existsSync(PRIV);
-vm.runInContext(SCRIPTS.slice(0, 7).map(read).join('\n') + (hasPremium ? '\n' + fs.readFileSync(PRIV, 'utf8') : '\nconst PREMIUM_DATA = {companies:{}, assessments:[]};') + '\n;this.PREMIUM_DATA = PREMIUM_DATA; this.COMPANY_NAMES = COMPANY_NAMES; this.POS_ROLES = POS_ROLES; this.POS_LEVELS = POS_LEVELS; this.HIDDEN = HIDDEN; this.V_CHECKS = V_CHECKS; this.RAW = RAW; this.PARTS = PARTS; this.UNITS = UNITS; this.WIDGETS = WIDGETS; this.CODING = CODING; this.LANGS = LANGS; this.CODE_AREAS = CODE_AREAS;', ctx);
-const {RAW, PARTS, UNITS, WIDGETS, CODING, LANGS, CODE_AREAS, HIDDEN, V_CHECKS, COMPANY_NAMES, POS_ROLES, POS_LEVELS, PREMIUM_DATA} = ctx;
+vm.runInContext(SCRIPTS.slice(0, 7).map(read).join('\n') + (hasPremium ? '\n' + fs.readFileSync(PRIV, 'utf8') : '\nconst PREMIUM_DATA = {companies:{}, assessments:[]};') + '\n;this.PREMIUM_DATA = PREMIUM_DATA; this.COMPANY_NAMES = COMPANY_NAMES; this.POS_ROLES = POS_ROLES; this.POS_LEVELS = POS_LEVELS; this.HIDDEN = HIDDEN; this.V_CHECKS = V_CHECKS; this.RAW = RAW; this.MOVED = MOVED; this.PARTS = PARTS; this.UNITS = UNITS; this.WIDGETS = WIDGETS; this.CODING = CODING; this.LANGS = LANGS; this.CODE_AREAS = CODE_AREAS;', ctx);
+const {RAW, MOVED, PARTS, UNITS, WIDGETS, CODING, LANGS, CODE_AREAS, HIDDEN, V_CHECKS, COMPANY_NAMES, POS_ROLES, POS_LEVELS, PREMIUM_DATA} = ctx;
 // Premium interview questions, one file per company in private/interviews/ (written from each role's job posting).
 const IV_DIR = path.join(__dirname, 'private', 'interviews');
 const INTERVIEWS = {};
@@ -26,7 +26,8 @@ RAW.forEach((r, i) => {
   if (ids.has(id)) errs.push(where + ': duplicate id');
   ids.add(id);
   if (i > 0 && RAW[i - 1][0] >= id) errs.push(where + ': ids out of order');
-  const ch = parseInt(id, 10);
+  const ch = MOVED[id] || parseInt(id, 10);
+  if (MOVED[id] && !(MOVED[id] > parseInt(id, 10))) errs.push(where + ': MOVED must name a later chapter');
   if (ch < 1 || ch > UNITS.length) errs.push(where + ': chapter has no matching quest');
   perCh[ch] = (perCh[ch] || 0) + 1;
   if (!['E', 'M', 'H'].includes(d)) errs.push(where + ': difficulty must be E, M or H');
@@ -129,6 +130,7 @@ const scripts = SCRIPTS.map(read).join('\n');
 if (/<\/script/i.test(scripts)) errs.push('a script contains </script, which would end the inline script early');
 if (errs.length) { console.error(errs.join('\n')); process.exit(1); }
 
+Object.keys(MOVED).forEach(id => { if (!ids.has(id)) errs.push(`MOVED ${id}: no such question`); });
 const count = f => RAW.filter(f).length, tag = t => count(r => (r[5] || '').includes(t));
 const cards = UNITS.reduce((n, U) => n + U.cards.length, 0);
 console.log(`ok: ${RAW.length} problems (E ${count(r => r[1] === 'E')}, M ${count(r => r[1] === 'M')}, H ${count(r => r[1] === 'H')}); ` +

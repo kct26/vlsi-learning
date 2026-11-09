@@ -2,8 +2,17 @@
 // Each problem: id, d (E/M/H), lang, area, title, p (statement paragraphs; `code` in backticks),
 // ex (example, optional), starter, hints, sol (reference solution), why (explanation paragraphs),
 // run (Python only: {fn, tests: [[args], expected]} checked in the browser).
-const LANGS = {verilog:'Verilog', sv:'SystemVerilog', c:'C', cpp:'C++', python:'Python', bash:'Bash', tcl:'Tcl', perl:'Perl', cuda:'CUDA', matlab:'MATLAB'};
+const LANGS = {verilog:'Verilog', sv:'SystemVerilog', vhdl:'VHDL', c:'C', cpp:'C++', python:'Python', bash:'Bash', tcl:'Tcl', perl:'Perl', cuda:'CUDA', matlab:'MATLAB'};
 const CODE_AREAS = ['RTL design', 'Verification', 'C and C++', 'Python and MATLAB', 'Linux and scripting', 'Physical design', 'GPU and CUDA'];
+// An Ethernet + IPv4 + UDP frame as a list of bytes, for the packet-parsing problems.
+// opts: bytes of IPv4 options (a multiple of 4); pad: zero bytes after the packet; proto, etype: to make non-UDP frames.
+function UDP_FRAME(src, dst, payload, o = {}){
+  const opts = o.opts || 0, ihl = 5 + opts / 4, ulen = 8 + payload.length, total = ihl * 4 + ulen;
+  const be = v => [v >> 8 & 255, v & 255];
+  return [0x02, 0x00, 0x5e, 0x10, 0x20, 0x30, 0x02, 0x11, 0x22, 0x33, 0x44, 0x55, ...be(o.etype || 0x0800),
+    0x40 | ihl, 0, ...be(total), 0x12, 0x34, 0x40, 0, 64, o.proto || 17, 0, 0, 10, 0, 0, 1, 239, 1, 2, 3,
+    ...Array(opts).fill(1), ...be(src), ...be(dst), ...be(ulen), 0, 0, ...payload, ...Array(o.pad || 0).fill(0)];
+}
 const CODING = [
 // ---------------- RTL design (Verilog) ----------------
 {id:'rtl-01', d:'E', lang:'verilog', area:'RTL design', title:'Parameterized 2:1 multiplexer',
@@ -434,6 +443,239 @@ endmodule`,
 endmodule`,
  why:["Registering `s_ready` breaks the long combinational ready path that would otherwise run backward through every pipeline stage. The price is one extra register to catch the word already in flight when the stall arrives. This pattern appears in nearly every high-speed datapath."]},
 
+{id:'rtl-17', d:'E', lang:'verilog', area:'RTL design', title:'Priority encoder with casez',
+ p:["Write `prio8` in SystemVerilog: `idx` is the index of the highest set bit of `req`, and `any` is 1 when at least one bit is set. When `req` is 0, `idx` is 0.", "Use an `always_comb` block with `casez`, writing don't-care bits as `?`."],
+ ex:"req = 8'b0010_0110  →  idx = 5, any = 1",
+ starter:`module prio8 (
+  input  logic [7:0] req,
+  output logic [2:0] idx,
+  output logic       any
+);
+  // your code
+endmodule`,
+ hints:["List the patterns from the top bit down: `8'b1???_????` first.", "Assign defaults before the `casez` so every path sets both outputs."],
+ sol:`module prio8 (
+  input  logic [7:0] req,
+  output logic [2:0] idx,
+  output logic       any
+);
+  always_comb begin
+    idx = 3'd0;                 // defaults: no latch, and idx = 0 when req = 0
+    any = |req;
+    casez (req)
+      8'b1???_????: idx = 3'd7;
+      8'b01??_????: idx = 3'd6;
+      8'b001?_????: idx = 3'd5;
+      8'b0001_????: idx = 3'd4;
+      8'b0000_1???: idx = 3'd3;
+      8'b0000_01??: idx = 3'd2;
+      8'b0000_001?: idx = 3'd1;
+      default:      idx = 3'd0;
+    endcase
+  end
+endmodule`,
+ why:["In `casez`, a `?` in a case item matches anything, so each line names only the bits that matter. The items are checked in order, which is what gives the top bit priority. `casex` would also treat an `x` on `req` as a match, hiding an uninitialized input in simulation, which is why it is avoided.", "A loop works too: `for (int i = 0; i < 8; i++) if (req[i]) idx = i;` (the last assignment wins, so the highest set bit is kept). Both describe the same parallel logic."]},
+{id:'rtl-18', d:'M', lang:'verilog', area:'RTL design', title:'Two-stage multiply-add pipeline',
+ p:["Write `mac_pipe` in SystemVerilog: it computes `y = a * b + c` (all unsigned) in a two-stage pipeline. Stage 1 registers the product `a * b` and a copy of `c`; stage 2 registers the sum. `out_valid` is `in_valid` delayed by the same two cycles, so a result appears two clock edges after its inputs.", "Every register, data included, clears to 0 while the active-low asynchronous reset `rst_n` is low. The data registers load on every clock edge, whether or not `in_valid` is high."],
+ ex:"in_valid = 1, a = 3, b = 4, c = 5 before edge 1  →  after edge 2: out_valid = 1, y = 17",
+ starter:`module mac_pipe (
+  input  logic        clk, rst_n, in_valid,
+  input  logic [7:0]  a, b,
+  input  logic [15:0] c,
+  output logic        out_valid,
+  output logic [16:0] y
+);
+  // your code
+endmodule`,
+ hints:["Stage 1 needs three registers: the valid bit, the 16-bit product and `c`.", "If stage 2 adds the live `c` instead of the registered copy, it pairs each product with the next cycle's `c`.", "255 × 255 + 65535 needs 17 bits, so extend before adding."],
+ sol:`module mac_pipe (
+  input  logic        clk, rst_n, in_valid,
+  input  logic [7:0]  a, b,
+  input  logic [15:0] c,
+  output logic        out_valid,
+  output logic [16:0] y
+);
+  logic        v1;
+  logic [15:0] prod, c1;
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      v1 <= 1'b0; prod <= '0; c1 <= '0;
+      out_valid <= 1'b0; y <= '0;
+    end else begin
+      v1 <= in_valid;  prod <= a * b;            c1 <= c;   // stage 1
+      out_valid <= v1; y <= {1'b0, prod} + c1;              // stage 2
+    end
+  end
+endmodule`,
+ why:["Each pipeline stage is a set of registers, and every value a later stage needs travels with its own register so that it stays lined up with the data computed from it. Forgetting to delay `c` is the classic pipeline bug: the design still runs, but each product is added to the wrong `c`.", "The latency is two cycles, but a new input is accepted every cycle, so the throughput is one result per cycle. On an FPGA, the multiply and its registers fit in one DSP slice."]},
+{id:'rtl-19', d:'M', lang:'verilog', area:'RTL design', title:'AXI-Stream packet counter',
+ p:["Write `axis_count`, which watches an AXI4-Stream interface (`tvalid`, `tready`, `tlast`). A beat transfers on a clock edge where `tvalid` and `tready` are both 1; the beat with `tlast = 1` ends a packet.", "On each edge where a beat transfers: if it is the last beat, `pkts` (8 bits) increments and `last_len` (8 bits) becomes the number of beats in the packet just finished, this one included. Both wrap around naturally. Beats where only one of `tvalid` and `tready` is high are not transfers. The active-low asynchronous reset `rst_n` clears everything to 0."],
+ ex:"Beats (valid & ready): 1, 1, 1 with tlast on the third  →  pkts = 1, last_len = 3",
+ starter:`module axis_count (
+  input  logic       clk, rst_n,
+  input  logic       tvalid, tready, tlast,
+  output logic [7:0] pkts,
+  output logic [7:0] last_len
+);
+  // your code
+endmodule`,
+ hints:["Keep a private counter of beats seen so far in the current packet.", "On the last beat, report the counter plus one, and clear the counter for the next packet."],
+ sol:`module axis_count (
+  input  logic       clk, rst_n,
+  input  logic       tvalid, tready, tlast,
+  output logic [7:0] pkts,
+  output logic [7:0] last_len
+);
+  logic [7:0] beats;                       // beats so far in this packet
+  wire xfer = tvalid && tready;
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      beats <= '0; pkts <= '0; last_len <= '0;
+    end else if (xfer) begin
+      if (tlast) begin
+        pkts     <= pkts + 8'd1;
+        last_len <= beats + 8'd1;
+        beats    <= '0;
+      end else
+        beats <= beats + 8'd1;
+    end
+  end
+endmodule`,
+ why:["Every AXI channel is a valid/ready handshake: nothing moves unless both are high on the same edge. Counting on `tvalid` alone double-counts a beat that waits several cycles for `tready`, the most common bug in stream monitors.", "AXI4-Stream has no addresses; `tlast` alone marks packet boundaries, which is why it is the usual way to pass network packets between blocks in an FPGA design."]},
+{id:'rtl-20', d:'H', lang:'verilog', area:'RTL design', title:'Find the UDP port in an Ethernet frame',
+ p:["Write `udp_port`, which watches an Ethernet frame arriving 4 bytes per beat on `data[31:0]`, first byte in `data[31:24]`. A beat is a cycle with `valid = 1`. A beat with `sop = 1` is word 0 of a new frame, even in the middle of another one. Beats before the first `sop`, and beats after word 9 of a frame, are ignored.", "Frames have no VLAN tag. Word 3 holds the EtherType (bytes 12–13, in `data[31:16]`) followed by the first IPv4 byte (`data[15:8]`, 0x45 for IPv4 with no options). Word 5 ends with the IPv4 protocol byte (byte 23, in `data[7:0]`; 17 means UDP). Word 9 starts with the UDP destination port (bytes 36–37, in `data[31:16]`).", "On the clock edge that receives word 9: if word 3 had EtherType 0x0800 and first IPv4 byte 0x45, and word 5 had protocol 17, set `port_valid` to 1 for that one cycle and load the port into `dst_port`. `dst_port` holds its value until the next match. The active-low asynchronous reset `rst_n` clears everything to 0."],
+ ex:"An IPv4/UDP frame to port 0x3039 (12345): one cycle after word 9 arrives, port_valid = 1 and dst_port = 12345",
+ starter:`module udp_port (
+  input  logic        clk, rst_n,
+  input  logic        valid, sop,
+  input  logic [31:0] data,
+  output logic        port_valid,
+  output logic [15:0] dst_port
+);
+  // your code
+endmodule`,
+ hints:["Count words with a small counter that the `sop` beat sets so the next beat is word 1.", "You cannot look back at word 3 when word 9 arrives, so store one bit for each check when its word goes by.", "Clear `port_valid` by default every cycle, and set it only on the word-9 edge."],
+ sol:`module udp_port (
+  input  logic        clk, rst_n,
+  input  logic        valid, sop,
+  input  logic [31:0] data,
+  output logic        port_valid,
+  output logic [15:0] dst_port
+);
+  logic [3:0] w;          // index of the next word
+  logic       active, eth_ok, ip_ok;
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      w <= '0; active <= 1'b0; eth_ok <= 1'b0; ip_ok <= 1'b0;
+      port_valid <= 1'b0; dst_port <= '0;
+    end else begin
+      port_valid <= 1'b0;
+      if (valid) begin
+        if (sop) begin
+          w <= 4'd1; active <= 1'b1;        // this beat was word 0
+        end else if (active) begin
+          w <= w + 4'd1;
+          case (w)
+            4'd3: eth_ok <= data[31:16] == 16'h0800 && data[15:8] == 8'h45;
+            4'd5: ip_ok  <= data[7:0] == 8'd17;
+            4'd9: begin
+              active <= 1'b0;               // ignore the rest of the frame
+              if (eth_ok && ip_ok) begin
+                port_valid <= 1'b1;
+                dst_port   <= data[31:16];
+              end
+            end
+            default: ;
+          endcase
+        end
+      end
+    end
+  end
+endmodule`,
+ why:["This is the core of a hardware packet parser: a word counter tells you which header fields are on the bus right now, and a bit of state remembers each check until the decision. The port is known the moment word 9 arrives, long before the frame's CRC at the end, which is how low-latency FPGA designs react in tens of nanoseconds.", "Offsets come straight from the header sizes: Ethernet 14 bytes, IPv4 20, so UDP starts at byte 34 and its destination port is bytes 36–37, which is word 36 / 4 = 9. Network fields are big-endian, so the first byte on the wire is the high byte of the port."]},
+{id:'vhd-01', d:'E', lang:'vhdl', area:'RTL design', title:'VHDL: counter with enable and synchronous reset',
+ p:["Write the VHDL entity and architecture `counter8`: on each rising edge of `clk`, if `rst` is '1' the count `q` becomes 0; otherwise, if `en` is '1', it increments, wrapping from 255 to 0. Use `numeric_std`."],
+ starter:`library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity counter8 is
+  port ( clk, rst, en : in  std_logic;
+         q            : out std_logic_vector(7 downto 0) );
+end entity;
+
+architecture rtl of counter8 is
+begin
+  -- your code
+end architecture;`,
+ hints:["Keep the count in an internal `unsigned(7 downto 0)` signal, because you cannot read an `out` port in VHDL-93 and cannot add 1 to a `std_logic_vector`.", "Convert on the way out: `q <= std_logic_vector(cnt);`."],
+ sol:`library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity counter8 is
+  port ( clk, rst, en : in  std_logic;
+         q            : out std_logic_vector(7 downto 0) );
+end entity;
+
+architecture rtl of counter8 is
+  signal cnt : unsigned(7 downto 0);
+begin
+  process (clk)
+  begin
+    if rising_edge(clk) then
+      if rst = '1' then
+        cnt <= (others => '0');
+      elsif en = '1' then
+        cnt <= cnt + 1;            -- unsigned arithmetic wraps at 8 bits
+      end if;
+    end if;
+  end process;
+  q <= std_logic_vector(cnt);
+end architecture;`,
+ why:["This is the Verilog `always @(posedge clk)` counter in VHDL form: `process (clk)` with `if rising_edge(clk)` makes flip-flops, and the reset is checked inside the edge, so it is synchronous.", "VHDL's types are strict: `std_logic_vector` is just bits, and arithmetic needs `unsigned` or `signed` from `numeric_std`. The explicit conversions are the price of catching width and sign mistakes at compile time."]},
+{id:'vhd-02', d:'M', lang:'vhdl', area:'RTL design', title:'VHDL: translate a Verilog state machine',
+ p:["Translate this Verilog Moore machine into VHDL, using an enumerated type for the state. `busy` is 1 in state RUN; the machine leaves RUN when `done` is 1.", "`always @(posedge clk or negedge rst_n) if (!rst_n) s <= IDLE; else case (s) IDLE: if (go) s <= RUN; RUN: if (done) s <= IDLE; endcase` and `assign busy = (s == RUN);`"],
+ starter:`library ieee;
+use ieee.std_logic_1164.all;
+
+entity ctrl is
+  port ( clk, rst_n, go, done : in  std_logic;
+         busy                 : out std_logic );
+end entity;
+
+architecture rtl of ctrl is
+  -- declare the state type and signal
+begin
+  -- your code
+end architecture;`,
+ hints:["`type state_t is (IDLE, RUN);` then `signal s : state_t;`.", "An asynchronous reset is checked before `rising_edge`, with `rst_n` in the sensitivity list."],
+ sol:`library ieee;
+use ieee.std_logic_1164.all;
+
+entity ctrl is
+  port ( clk, rst_n, go, done : in  std_logic;
+         busy                 : out std_logic );
+end entity;
+
+architecture rtl of ctrl is
+  type state_t is (IDLE, RUN);
+  signal s : state_t;
+begin
+  process (clk, rst_n)
+  begin
+    if rst_n = '0' then
+      s <= IDLE;                           -- asynchronous reset
+    elsif rising_edge(clk) then
+      case s is
+        when IDLE => if go = '1' then s <= RUN; end if;
+        when RUN  => if done = '1' then s <= IDLE; end if;
+      end case;
+    end if;
+  end process;
+  busy <= '1' when s = RUN else '0';
+end architecture;`,
+ why:["An asynchronous reset in VHDL is the `if` before `elsif rising_edge(clk)`, with the reset in the sensitivity list; that matches Verilog's `or negedge rst_n`. VHDL requires a `case` to cover every value, so with an enumerated type the compiler checks that no state is forgotten.", "The conditional signal assignment `busy <= '1' when ... else '0';` is VHDL's form of `assign busy = cond;`, describing combinational logic outside any process."]},
 // ---------------- Verification (SystemVerilog, cocotb) ----------------
 {id:'ver-01', d:'E', lang:'sv', area:'Verification', title:'Self-checking testbench for an adder',
  p:["`adder8` has inputs `a`, `b` (8 bits) and output `sum` (9 bits). Write `tb_adder8` that checks the corner cases 0+0, 255+1 and 255+255, then 10,000 random pairs, counts mismatches and prints the total."],
@@ -605,6 +847,26 @@ async def counts_up(dut):
         assert got == expected % 16, f"cycle {expected}: q={got}, expected {expected % 16}"`,
  why:["cocotb drives a Verilog simulation from Python, so the reference model can be any Python code. It is popular for open-source flows and is a quick way to build self-checking tests without SystemVerilog classes."]},
 
+{id:'ver-07', d:'M', lang:'sv', area:'Verification', title:'Assertions for the valid/ready rules',
+ p:["Write a checker `vr_checks` (inputs `clk`, `rst_n`, `valid`, `ready`, `data[31:0]`) with SystemVerilog Assertions for the AXI-style handshake rules: (1) once `valid` is high, it stays high until a transfer (`valid && ready`) happens; (2) while `valid` is high and `ready` is low, `data` must not change; (3) after reset, `valid` is never X or Z."],
+ starter:`module vr_checks (input logic clk, rst_n, valid, ready,
+                  input logic [31:0] data);
+  // your assertions
+endmodule`,
+ hints:["'Stays high until' is: `valid && !ready |=> valid`.", "`$stable(data)` compares `data` with its value at the previous sampled edge.", "`$isunknown(valid)` is true for X or Z."],
+ sol:`module vr_checks (input logic clk, rst_n, valid, ready,
+                  input logic [31:0] data);
+  // (1) a waiting valid may not be withdrawn
+  a_hold_valid: assert property (@(posedge clk) disable iff (!rst_n)
+                                 valid && !ready |=> valid);
+  // (2) a waiting beat keeps its data
+  a_hold_data:  assert property (@(posedge clk) disable iff (!rst_n)
+                                 valid && !ready |=> $stable(data));
+  // (3) no unknown on valid once out of reset
+  a_known:      assert property (@(posedge clk) disable iff (!rst_n)
+                                 !$isunknown(valid));
+endmodule`,
+ why:["`|=>` means 'then on the next cycle': if a beat is waiting in this cycle, it must still be offered, unchanged, in the next. These two rules are what let the receiver take its time without losing or corrupting data, and breaking them is a common source of lost packets.", "The rules check the source only. A receiver is free to hold `ready` low as long as it likes, so there is no assertion on `ready`, except perhaps a liveness check that each transfer eventually happens."]},
 // ---------------- C and C++ ----------------
 {id:'c-01', d:'E', lang:'c', area:'C and C++', title:'Count the set bits',
  p:["Write `int popcount(unsigned int x)` returning the number of 1 bits in `x`, using the `x & (x - 1)` trick."],
@@ -1171,6 +1433,32 @@ def latest_arrival(gates, delays):
  why:["This is the core of static timing analysis: arrival times propagate forward through the graph, and the latest arrival at a flip-flop compared with the clock period gives the slack."],
  run:{fn:'latest_arrival', tests:[[[{"g1": ["a", "b"], "g2": ["g1", "c"], "g3": ["g1"]}, {"g1": 2, "g2": 3, "g3": 1}], 5], [[{"x": ["i"]}, {"x": 7}], 7], [[{"n1": ["i1"], "n2": ["i2"], "n3": ["n1", "n2"], "n4": ["n3", "n1"]}, {"n1": 1, "n2": 4, "n3": 2, "n4": 3}], 9], [[{}, {}], 0]]}},
 
+{id:'py-13', d:'M', lang:'python', area:'Python and MATLAB', title:'Parse Ethernet, IPv4 and UDP headers',
+ p:["Write `parse_udp(frame)`. `frame` is a list of byte values (0–255) starting at the destination MAC address, with no preamble and no VLAN tag. If it is IPv4 (EtherType 0x0800) carrying UDP (protocol 17), return `[src_port, dst_port, payload]`, where `payload` is the list of UDP payload bytes. Otherwise return `None`.", "The IPv4 header length is the low 4 bits of its first byte, in 32-bit words (5 means 20 bytes); options may be present. The payload length is the UDP length field minus its 8-byte header. Fields are big-endian. The frame may be longer than the packet (padding), so use the length field, not the frame size."],
+ ex:"parse_udp(<frame to port 53 with payload [1, 2]>)  →  [40000, 53, [1, 2]]",
+ starter:`def parse_udp(frame):
+    # your code
+    pass`,
+ hints:["A big-endian 16-bit field at offset i is `frame[i] << 8 | frame[i + 1]`.", "The UDP header starts at 14 + 4 * (frame[14] & 0x0F)."],
+ sol:`def parse_udp(frame):
+    be16 = lambda i: frame[i] << 8 | frame[i + 1]
+    if len(frame) < 34 or be16(12) != 0x0800:
+        return None                       # not IPv4
+    ihl = (frame[14] & 0x0F) * 4          # IPv4 header length in bytes
+    if frame[23] != 17:
+        return None                       # not UDP
+    u = 14 + ihl                          # start of the UDP header
+    length = be16(u + 4)                  # UDP header + payload
+    return [be16(u), be16(u + 2), frame[u + 8 : u + length]]`,
+ run:{fn:'parse_udp', tests:[
+   [[UDP_FRAME(40000, 53, [1, 2])], [40000, 53, [1, 2]]],
+   [[UDP_FRAME(1234, 12345, [9, 8, 7, 6, 5])], [1234, 12345, [9, 8, 7, 6, 5]]],
+   [[UDP_FRAME(5000, 6000, [])], [5000, 6000, []]],
+   [[UDP_FRAME(7, 8, [0xAA, 0xBB, 0xCC], {pad:20})], [7, 8, [0xAA, 0xBB, 0xCC]]],
+   [[UDP_FRAME(31337, 443, [4, 3, 2, 1], {opts:8})], [31337, 443, [4, 3, 2, 1]]],
+   [[UDP_FRAME(80, 81, [1], {proto:6})], null],
+   [[UDP_FRAME(80, 81, [1], {etype:0x0806})], null]]},
+ why:["Each layer's header tells you where the next one starts: Ethernet is always 14 bytes, IPv4 gives its own length, and UDP is 8 bytes plus a length field. Parsers that hard-code byte 42 work until a packet with IP options arrives.", "Ethernet frames shorter than 64 bytes are padded, so the frame can be longer than the packet; trusting the length field instead of the frame size is what keeps the padding out of the payload. Hardware parsers make the same calculations with counters and comparators."]},
 // ---------------- Linux and scripting ----------------
 {id:'sh-01', d:'E', lang:'bash', area:'Linux and scripting', title:'Count lines of SystemVerilog',
  p:["From the top of a project, print the total number of lines in all `.sv` files in every subdirectory."],
@@ -1299,6 +1587,21 @@ foreach_in_collection p $paths {
     puts [format "%-40s %-40s %8.3f" $sp $ep $sl]
 }`,
  why:["Engineers script reports like this to sort failures by block, find common startpoints, and track progress across runs. Command names differ slightly between tools (OpenSTA, Tempus), but the pattern is the same."]},
+{id:'tcl-04', d:'M', lang:'tcl', area:'Physical design', title:'FPGA constraints for two clock domains',
+ p:["Write the Vivado (XDC) constraints for a design with a 100 MHz clock on port `clk_a` and a 156.25 MHz clock on port `clk_b`. The two are unrelated, and every crossing between them goes through a synchronizer or an asynchronous FIFO. Input `din` is clocked by `clk_a` and arrives up to 2 ns after its clock edge; output `dout`, clocked by `clk_b`, must be valid 1.5 ns before the next edge at the receiver."],
+ starter:`# your constraints`,
+ hints:["`create_clock -period <ns> -name <name> [get_ports <port>]`.", "`set_clock_groups -asynchronous -group ... -group ...` stops timing between unrelated clocks.", "Output delay is how much of the period the outside world needs."],
+ sol:`# The two clocks
+create_clock -period 10.000 -name clk_a [get_ports clk_a]
+create_clock -period 6.400  -name clk_b [get_ports clk_b]
+
+# Unrelated clocks: crossings are made safe by design, not by timing
+set_clock_groups -asynchronous -group [get_clocks clk_a] -group [get_clocks clk_b]
+
+# The outside world's share of each I/O path
+set_input_delay  -clock clk_a -max 2.0 [get_ports din]
+set_output_delay -clock clk_b -max 1.5 [get_ports dout]`,
+ why:["Timing analysis only knows what the constraints say. Without `create_clock` the paths are not checked at all, and without the clock groups the tool tries to time paths between unrelated clocks, reports failures that cannot be fixed, and may waste effort on them.", "Declaring clocks asynchronous is safe only when every crossing really is synchronized; the constraint switches checking off, so a missing synchronizer becomes a silent bug. CDC checking tools exist to catch exactly that."]},
 {id:'pl-01', d:'M', lang:'perl', area:'Linux and scripting', title:'Perl: errors per module',
  p:["Write a Perl script that reads a log from standard input (or files given on the command line), counts lines starting with `ERROR [module]` per module, and prints each module and count, largest first."],
  starter:`#!/usr/bin/env perl

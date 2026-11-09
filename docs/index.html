@@ -458,13 +458,15 @@ table.wave td.hi.q2 { background: var(--ok); }
   .chiprow { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px 2px; }
   .navlinks button { padding: 0 7px; min-height: 44px; font-size: 0.95rem; }
   .ptable .c-tp, .ptable .c-ty, .ptable .c-co { display: none; }
-  .ptable .c-st { width: 40px; }
+  .ptable .c-st { width: 30px; }
   .ptable th.c-st { font-size: 0; }
   .codecount { display: none; }
   .ceditor { height: 700px; }
   .ptable .c-df { width: 70px; }
   .ptable td, .ptable th { padding-left: 8px; padding-right: 8px; }
   .ptable .c-ti .tags { display: none; }
+  .ptable .c-ti { white-space: normal; }
+  .ptable .c-ti a, .ptable .c-ti .plain { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35; }
   .hero { flex-direction: column; align-items: flex-start; }
   .path.qgrid { grid-template-columns: 1fr; }
   .wrow { grid-template-columns: 1fr auto; }
@@ -1234,6 +1236,7 @@ body.dragging .ed-area textarea { pointer-events: none; }
 }
 @media (max-width: 900px) {
   .cpv, .oacode { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .cpv-wrap > .pvbar { padding: 0 12px; }
   .gsplit.v { display: none; }
 }
 
@@ -1342,11 +1345,6 @@ sub.sym { font-size: 0.75em; line-height: 0; }   /* VDD, tcq and R1 written in p
 
 /* ---------- Learn: chapters and roadmap together ---------- */
 .learnseg { align-self: flex-start; margin-bottom: 2px; }
-.litem.lquest { margin: 4px 10px 2px; padding: 10px 12px; border: 1px solid var(--accent-line); background: var(--accent-soft); color: var(--ink); }
-.litem.lquest span { display: flex; flex-direction: column; gap: 2px; font-weight: 600; }
-.litem.lquest small { font-weight: 400; color: var(--muted); font-size: 0.76rem; }
-.litem.lquest .lchk { border-color: var(--accent); color: var(--accent); }
-.litem.lquest.done .lchk { color: var(--accent-ink); }
 .node .qbook { display: block; margin: 6px 0 0 4px; }
 .unitv .crumbs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .coreports .srcline { margin: 12px 0 0; line-height: 1.8; }
@@ -1380,7 +1378,8 @@ sub.sym { font-size: 0.75em; line-height: 0; }   /* VDD, tcq and R1 written in p
 //   answer: [correct, distractor, distractor, distractor] for multiple choice, or true/false
 //   tags: o = from a real OA, v = variant of an OA question, r = reported online,
 //         b = beyond the book (the explanation teaches it), a = computer arithmetic
-// The id prefix is the chapter of "Hardware from the Ground Up" that teaches the topic.
+// The id prefix is the chapter of "Hardware from the Ground Up" that teaches the topic, except for the few
+// questions listed in MOVED (after RAW), which are taught in a later chapter.
 const RAW = [
 // 1 Electricity
 ["01-01","E","A 1 kΩ resistor is connected across a 5 V supply. What current flows?",["5 mA","0.2 mA","5 A","50 mA"],"Ohm's law: I = V/R = 5 V / 1000 Ω = 5 mA."],
@@ -1421,7 +1420,7 @@ const RAW = [
 ["02-13","E","With a steady DC voltage across it, a capacitor behaves like:",["An open circuit","A short circuit","A resistor","An inductor"],"Once charged, no current flows into it. Its reactance 1/(2πfC) is infinite at f = 0."],
 ["02-14","M","For an RC circuit, the 10% to 90% rise time is about:",["2.2 RC","0.69 RC","1 RC","5 RC"],"0.69RC is the 50% point, RC is 63%, and about 5RC is fully settled."],
 ["02-15","E","Every on-chip wire and every transistor gate acts as a capacitor.",true,"Conductors separated by insulation form capacitors, which is why switching costs time and energy."],
-["02-16","H","A decoupling capacitor has C = 100 nF and a series inductance (ESL) of 1 nH. Above roughly what frequency does it stop behaving like a capacitor?",["About 16 MHz, its self-resonant frequency","About 1.6 GHz","About 160 kHz","It always behaves like a capacitor"],"f = 1/(2π√(LC)) = 1/(2π√(10⁻⁹ × 10⁻⁷)) ≈ 16 MHz. Above it the inductance dominates, which is why smaller, lower-ESL capacitors are added for higher frequencies.","r"],
+["02-16","H","A decoupling capacitor has C = 100 nF and a series inductance (ESL) of 1 nH. Above roughly what frequency does it stop behaving like a capacitor?",["About 16 MHz, its self-resonant frequency","About 1.6 GHz","About 160 kHz","It always behaves like a capacitor"],"f = 1/(2π√(LC)) = 1/(2π√(10⁻⁹ × 10⁻⁷)) ≈ 16 MHz. Above it the inductance dominates, which is why smaller, lower-ESL capacitors are added for higher frequencies.","rb"],
 ["02-17","M","Placing a decoupling capacitor farther from the power pins mainly hurts it by:",["Adding loop inductance between the capacitor and the pins","Reducing its capacitance, since long traces discharge it","Raising its ESR so it can no longer store charge","Raising the chip's clock frequency through extra coupling"],"The extra trace and via length adds inductance, which limits how fast the capacitor can deliver current.","r"],
 ["02-18","H","A 10 fF capacitor charged to 1 V is connected to an uncharged 30 fF capacitor. The final shared voltage is:",["0.25 V","0.5 V","0.75 V","0.33 V"],"Charge is conserved: 10 fC spread over 40 fF gives 0.25 V. Charge sharing like this limits DRAM reads and troubles dynamic logic."],
 ["02-19","M","A signal travels about 15 cm per ns on a circuit board. A trace needs transmission-line treatment when its delay exceeds about a sixth of the rise time. For a 0.6 ns rise time, the critical length is about:",["1.5 cm","15 cm","9 cm","0.15 cm"],"A sixth of 0.6 ns is 0.1 ns, and 0.1 ns × 15 cm/ns = 1.5 cm. Longer traces need controlled impedance and termination."],
@@ -1465,8 +1464,8 @@ const RAW = [
 ["04-13","E","Pure (undoped) silicon is a good conductor at room temperature.",false,"Fewer than one atom in a trillion has a freed electron, so it conducts poorly. Doping makes it useful."],
 ["04-14","M","As temperature rises, the number of thermally generated (intrinsic) carriers in silicon:",["Increases exponentially","Decreases, as the lattice traps them","Stays constant, set by the doping","Drops toward zero as atoms vibrate"],"More thermal energy breaks more bonds. This is one reason leakage and junction currents rise quickly when hot.","v"],
 ["04-15","H","Copper's resistance rises with temperature. The resistance of pure (intrinsic) silicon:",["Falls, because far more carriers are generated","Also rises, for the same scattering reason","Stays the same, since it has no dopants","Becomes infinite, since no carriers remain"],"In a metal the number of carriers is fixed and extra scattering wins. In intrinsic silicon the carrier count grows exponentially and outweighs the mobility loss.","v"],
-["04-16","M","At a constant current, a silicon diode's forward voltage changes with temperature by about:",["−2 mV per °C (it falls)","+2 mV per °C","+0.4% per °C","It does not change"],"This negative temperature coefficient is used in on-chip temperature sensors."],
-["04-17","M","Heavier doping makes carrier mobility:",["Lower, because carriers scatter off more ionized dopant atoms","Higher, because more carriers share the current","Unchanged, since mobility depends only on temperature","Zero, because the dopants trap every carrier"],"Impurity scattering adds to lattice (phonon) scattering."],
+["04-16","M","At a constant current, a silicon diode's forward voltage changes with temperature by about:",["−2 mV per °C (it falls)","+2 mV per °C","+0.4% per °C","It does not change"],"It falls by about 2 mV for every °C. A hotter junction makes more carriers thermally, so the same current needs less forward voltage. Chips use this steady, predictable drift in their on-die temperature sensors.","b"],
+["04-17","M","Heavier doping makes carrier mobility:",["Lower, because carriers scatter off more ionized dopant atoms","Higher, because more carriers share the current","Unchanged, since mobility depends only on temperature","Zero, because the dopants trap every carrier"],"Each dopant atom gives up its carrier and is left as a charged ion fixed in the crystal. Moving carriers are deflected by these charges (impurity scattering), on top of the lattice-vibration scattering in Chapter 4, so more doping means lower mobility.","b"],
 ["04-18","H","In a very strong electric field, carrier drift velocity:",["Saturates at a maximum value","Keeps rising in proportion to the field","Falls to zero","Reverses direction"],"This is velocity saturation. It is why short-channel transistors deliver less current than the square law predicts."],
 ["04-19","M","The band gap of silicon is about:",["1.12 eV","0.026 eV","3.4 eV","0.7 eV"],"It is the energy needed to free an electron from a bond, and it shrinks slightly as temperature rises."],
 ["04-20","E","When silicon gets hotter, the loss of mobility affects:",["Both electrons and holes, so both NMOS and PMOS get weaker","Only electrons, so only NMOS gets weaker","Only holes, so only PMOS gets weaker","Neither carrier; only the wires get slower"],"Phonon scattering affects every carrier.","v"],
@@ -1547,7 +1546,7 @@ const RAW = [
 ["07-19","M","When adding two 8-bit two's-complement numbers, signed overflow has occurred when:",["The carry into the sign bit differs from the carry out of it","There is any carry out of the sign bit","The result's sign bit is 1 (negative)","Both inputs are negative, whatever the result"],"Equivalently, two operands of the same sign produce a result of the opposite sign.","a"],
 ["07-22","E","Shifting an unsigned binary number left by 3 bits:",["Multiplies it by 8","Divides it by 8","Adds 3 to it","Multiplies it by 3"],"Each left shift multiplies by 2.","a"],
 ["07-23","M","An arithmetic right shift of the 8-bit value 1111 0000 (−16) by 2 gives:",["1111 1100 (−4)","0011 1100 (60)","1100 0000","0000 1111"],"Arithmetic shifts copy the sign bit in from the left, so a right shift divides signed values by 2 per step.","a"],
-["07-24","M","In BCD (binary-coded decimal), decimal 59 is stored as:",["0101 1001","0011 1011","0101 0101","1001 0101"],"Each decimal digit gets its own 4 bits.","a"],
+["07-24","M","In BCD (binary-coded decimal), decimal 59 is stored as:",["0101 1001","0011 1011","0101 0101","1001 0101"],"BCD stores each decimal digit in its own 4 bits instead of converting the whole number to binary. 5 = 0101 and 9 = 1001, so 59 = 0101 1001. It wastes some codes (1010 to 1111 are unused) but makes decimal displays easy.","ab"],
 ["07-25","M","A mask with 1s in bits 3 through 6 (bit 0 is the LSB) is:",["0x78","0x3C","0xF0","0x7F"],"Width 6 − 3 + 1 = 4, so ((1 << 4) − 1) << 3 = 1111 000₂ = 0x78.","r"],
 ["07-26","M","Which address is on the same 4 KB page as 0x00005ABC?",["0x00005000","0x00006ABC","0x00004FFF","0x00015ABC"],"The page number is the address shifted right by 12 bits: 0x5 for both 0x00005ABC and 0x00005000. The others are on pages 0x6, 0x4 and 0x15.","r"],
 // 8 CMOS gates
@@ -1579,8 +1578,8 @@ const RAW = [
 ["08-26","H","On a real chip, the VDD and ground pins are accidentally swapped. The most likely result is:",["Forward-biased well and ESD diodes conduct large current","The chip runs as a non-inverting version of itself","Nothing; CMOS is symmetric, so it runs normally","The logic runs with every output inverted"],"The p-substrate is tied to the ground pin and the n-wells to VDD. Reversing the supply forward-biases those junctions.","vb"],
 ["08-27","E","A normal CMOS inverter has its PMOS connected to ___ and its NMOS connected to ___.",["VDD; ground","ground; VDD","VDD; VDD","ground; ground"],"PMOS passes a strong 1 and NMOS a strong 0, so each sits on the rail it passes well.","v"],
 ["08-28","M","An NMOS on the VDD side of a circuit pulls its output up as a source follower. The output can rise at most to:",["VG − Vtn","VG","VDD + Vtn","0 V"],"The output is the source, and the transistor turns off when VGS falls to Vtn.","v"],
-["08-29","M","A ring oscillator has 5 inverters, each with 20 ps of delay. Its frequency is:",["5 GHz","10 GHz","2.5 GHz","1 GHz"],"f = 1/(2·N·td) = 1/(2 × 5 × 20 ps) = 5 GHz. An edge must travel around the ring twice per period."],
-["08-30","M","A ring oscillator needs an odd number of inverters because:",["An even number has a stable state and will not oscillate","An even number oscillates too fast to measure","Odd numbers use less power per stage","It is only a convention; any count oscillates"],"With an odd count, the signal returns inverted and can never settle."],
+["08-29","M","A ring oscillator has 5 inverters, each with 20 ps of delay. Its frequency is:",["5 GHz","10 GHz","2.5 GHz","1 GHz"],"f = 1/(2·N·td) = 1/(2 × 5 × 20 ps) = 5 GHz. An edge must travel around the ring twice per period.","b"],
+["08-30","M","A ring oscillator needs an odd number of inverters because:",["An even number has a stable state and will not oscillate","An even number oscillates too fast to measure","Odd numbers use less power per stage","It is only a convention; any count oscillates"],"With an odd count, the signal returns inverted and can never settle.","b"],
 ["08-31","M","On an inverter's voltage transfer curve, the switching threshold VM is the point where:",["Vout = Vin","Vout = VDD","Vin = 0","Vout = 0"],"It is also where the gain is highest."],
 ["08-32","M","VOH = 0.95 V, VIH = 0.65 V, VIL = 0.35 V and VOL = 0.05 V. The low noise margin NML is:",["0.30 V","0.60 V","0.35 V","0.05 V"],"NML = VIL − VOL = 0.35 − 0.05 = 0.30 V."],
 ["08-33","E","How many transistors are in a static CMOS 3-input NAND gate?",["6","8","3","9"],"Three NMOS in series and three PMOS in parallel."],
@@ -1664,7 +1663,7 @@ const RAW = [
 ["10-25","M","An SR latch built from NAND gates is set by driving:",["S′ low (inputs are active-low)","S′ high (inputs are active-high)","Both inputs high at once","Both inputs low at once"],"NAND latches have active-low set and reset, and both low is the forbidden state."],
 ["10-26","M","A scan flip-flop adds a 2:1 mux in front of D so that, in test mode, it can:",["Shift in a test value from the previous flip-flop in the chain","Run at double speed during manufacturing test","Ignore the clock and hold its value during test","Store two bits, one functional and one for test"],"The scan-enable selects between functional data and the scan input."],
 ["10-27","E","A flip-flop with a synchronous reset clears its output:",["At the next active clock edge while reset is asserted","Immediately, without waiting for a clock edge","Only once, at power-up","At the first falling edge after reset is released"],"An asynchronous reset acts immediately, independent of the clock."],
-["10-28","H","In a two-phase latch design with non-overlapping clocks φ1 and φ2, the non-overlap gap exists to:",["Keep the two latches from being transparent at the same time","Raise the clock frequency by shortening each phase","Save leakage power while both clocks are low","Give the latches time to go metastable and recover"],"Even with some clock skew, the gap keeps one latch closed while the other opens.","v"],
+["10-28","H","In a two-phase latch design with non-overlapping clocks φ1 and φ2, the non-overlap gap exists to:",["Keep the two latches from being transparent at the same time","Raise the clock frequency by shortening each phase","Save leakage power while both clocks are low","Give the latches time to go metastable and recover"],"Two-phase latch designs clock alternate latches with φ1 and φ2. If both were transparent at once, data could race through two latches in one phase. Leaving a gap where neither clock is high keeps one latch closed while the other opens, even with some clock skew.","vb"],
 ["10-29","E","A glitch on a latch's D input while the latch is transparent:",["Appears on Q","Is always filtered out","Resets the latch","Is stored only at the falling edge"],"A transparent latch behaves like a buffer from D to Q.","v"],
 ["10-30","M","Compared with a flip-flop-based design, a latch-based design is generally:",["Smaller and lower power, but harder to time","Easier to design and verify than flip-flop designs","Impossible to synthesize with standard tools","Free of hold constraints, since latches are transparent"],"Transparent phases complicate timing analysis, but time borrowing and smaller cells help fast and low-power designs.","v"],
 ["10-31","E","How many 2:1 muxes does a positive-edge D flip-flop built from mux latches need?",["2","1","4","3"],"Two mux latches, master and slave, enabled on opposite clock phases.","r"],
@@ -1842,12 +1841,29 @@ const RAW = [
 ["16-22","E","Running grounded shield wires on both sides of a clock wire mainly:",["Reduces coupling noise and makes delay predictable","Speeds up the clock source driving the wire","Lowers the clock wire's own resistance","Removes the need for a clock tree entirely"],"The cost is extra routing tracks."],
 ["16-23","M","Net A switches 2.0–3.5 ns after the clock, and its neighbour, net B, 3.0–4.2 ns after the clock. During which window can A's switching add crosstalk delay to B?",["3.0–3.5 ns","2.0–4.2 ns","3.5–4.2 ns","Never; they do not overlap"],"Only the overlap of the two switching windows matters.","r"],
 ["16-24","H","Net A's edge reaches a shared stretch of wire 1.0–1.4 ns after the clock (driver delay plus wire delay). Net B switches 1.2–1.5 ns after the clock there. The crosstalk window is:",["1.2–1.4 ns","1.0–1.5 ns","0.8–1.5 ns","1.4–1.5 ns"],"Intersect the arrival windows where the wires run side by side: 1.2 to 1.4 ns.","r"],
-["16-25","M","An eye diagram that is closing (shrinking in height and width) indicates:",["Growing noise, jitter or interference between bits","A perfectly clean signal with extra margin","A lower supply voltage and nothing else","Too much termination at the receiver"],"The eye overlays every bit period; the receiver needs an open region to sample correctly.","b"],
-["16-26","M","A chip draws a 50 A current step and its supply may move by at most 25 mV. The power delivery network's target impedance is:",["0.5 mΩ","2 Ω","50 mΩ","1.25 mΩ"],"Z_target = ΔV/ΔI = 0.025/50 = 0.5 mΩ, across the frequency range of the current step.","b"],
-["16-27","M","A via stub on a high-speed board trace mainly causes:",["Reflections that degrade the signal","Lower DC resistance on the net","Better shielding from neighbours","Less crosstalk between layers"],"The unused via length acts as a small open transmission line; back-drilling removes it.","b"],
-["16-28","M","A clock-and-data-recovery (CDR) circuit in a SerDes receiver:",["Recovers the sampling clock from the data's own edges","Generates the data that the transmitter sends","Adds error-correcting codes to each packet","Stores received packets until software reads them"],"No separate clock wire is sent; the receiver locks onto the data edges, which is why line codes guarantee transitions.","b"],
-["16-29","E","Board traces for high-speed signals are designed with a controlled impedance (for example 50 Ω single-ended or 85–100 Ω differential) to:",["Match drivers and terminations, avoiding reflections","Reduce the board's weight and its cost","Lower the chip's leakage current","Make every high-speed trace shorter"],"Trace width, dielectric thickness and material set the impedance.","b"],
-["16-30","M","Pre-emphasis or equalization on a long link compensates for:",["Frequency-dependent loss that smears fast edges","A supply voltage that is set too high","Clock skew between flip-flops inside the chip","Antenna effects during board manufacture"],"Boosting high frequencies (or attenuating low ones) reopens the eye.","b"],
+["16-25","M","An eye diagram that is closing (shrinking in height and width) indicates:",["Growing noise, jitter or interference between bits","A perfectly clean signal with extra margin","A lower supply voltage and nothing else","Too much termination at the receiver"],"The eye overlays every bit period; the receiver needs an open region to sample correctly."],
+["16-26","M","A chip draws a 50 A current step and its supply may move by at most 25 mV. The power delivery network's target impedance is:",["0.5 mΩ","2 Ω","50 mΩ","1.25 mΩ"],"Z_target = ΔV/ΔI = 0.025/50 = 0.5 mΩ, across the frequency range of the current step."],
+["16-27","M","A via stub on a high-speed board trace mainly causes:",["Reflections that degrade the signal","Lower DC resistance on the net","Better shielding from neighbours","Less crosstalk between layers"],"The unused via length acts as a small open transmission line; back-drilling removes it."],
+["16-28","M","A clock-and-data-recovery (CDR) circuit in a SerDes receiver:",["Recovers the sampling clock from the data's own edges","Generates the data that the transmitter sends","Adds error-correcting codes to each packet","Stores received packets until software reads them"],"No separate clock wire is sent; the receiver locks onto the data edges, which is why line codes guarantee transitions."],
+["16-29","E","Board traces for high-speed signals are designed with a controlled impedance (for example 50 Ω single-ended or 85–100 Ω differential) to:",["Match drivers and terminations, avoiding reflections","Reduce the board's weight and its cost","Lower the chip's leakage current","Make every high-speed trace shorter"],"Trace width, dielectric thickness and material set the impedance."],
+["16-30","M","Pre-emphasis or equalization on a long link compensates for:",["Frequency-dependent loss that smears fast edges","A supply voltage that is set too high","Clock skew between flip-flops inside the chip","Antenna effects during board manufacture"],"Boosting high frequencies (or attenuating low ones) reopens the eye."],
+["16-31", "M", "A 50 Ω trace drives a 75 Ω load. The reflection coefficient at the load is:", ["0.2", "0.5", "−0.2", "0.33"], "Γ = (Z_L − Z₀)/(Z_L + Z₀) = (75 − 50)/(75 + 50) = 0.2, so 20% of the arriving voltage reflects back toward the driver."],
+["16-32", "E", "At the open (unterminated) end of a transmission line, the reflection coefficient is:", ["+1: the whole wave reflects with the same polarity", "0: nothing reflects", "−1: the wave reflects inverted", "0.5: half of it reflects"], "With Z_L infinite, Γ = (∞ − Z₀)/(∞ + Z₀) = 1. A short gives −1, and a matched load gives 0."],
+["16-33", "E", "A board trace's characteristic impedance is set by:", ["Its width, its height above the ground plane and the board material", "Its length", "The signal's frequency alone", "The load at its far end"], "Z₀ depends on the cross-section of the line and the dielectric, not on its length. That is why boards are built to an impedance target such as 50 Ω."],
+["16-34", "M", "A 0.8 V rail may move 3% when the chip's current steps by 60 A. The power network's target impedance is:", ["0.4 mΩ", "13 mΩ", "2.5 mΩ", "48 mΩ"], "ΔV = 0.03 × 0.8 = 24 mV, and Z = ΔV/ΔI = 24 mV/60 A = 0.4 mΩ, which must hold at every frequency the current step contains."],
+["16-35", "M", "Inter-symbol interference on a long serial link is caused mainly by:", ["Loss that grows with frequency, smearing each bit into the following bits", "The receiver's clock running slightly fast", "Too many transitions in the encoded data", "Using differential signaling"], "Copper and dielectric losses remove high frequencies, so edges arrive slow and rounded and each bit's energy spills into its neighbors. Equalization undoes it."],
+["16-36", "M", "A decision-feedback equalizer (DFE) in a SerDes receiver:", ["Subtracts the expected leftover of bits already received from the current bit", "Boosts the transmitted signal at every transition", "Encodes the data to guarantee transitions", "Matches the trace impedance at the receiver"], "Once the receiver has decided a bit, it knows how much that bit will spill into the next ones, and subtracts it. Transmitter pre-emphasis and receiver CTLE are the other equalizers."],
+["16-37", "M", "Back-drilling the vias on a high-speed board:", ["Removes the unused via stub, which would otherwise resonate and notch out a band of frequencies", "Adds a ground return path beside the signal", "Lowers the trace's characteristic impedance", "Connects the via to every layer"], "The unused part of a through-hole via is an open-ended stub. Near the frequency where it is a quarter wavelength long, it reflects strongly and cancels the signal. Drilling it out removes the problem."],
+["16-38", "E", "How many bytes is an Ethernet header without a VLAN tag?", ["14", "20", "8", "64"], "Destination MAC (6) + source MAC (6) + EtherType (2) = 14 bytes. 20 is the IPv4 header, 8 the UDP header, and 64 the minimum frame size."],
+["16-39", "M", "With no VLAN tag and no IP options, the UDP payload begins at which byte of an Ethernet frame (counting from the destination MAC as byte 0)?", ["42", "34", "28", "50"], "Ethernet 14 + IPv4 20 + UDP 8 = 42. Byte 34 is where the UDP header starts."],
+["16-40", "M", "An Ethernet frame arrives on a 64-bit (8-byte) datapath, starting with the destination MAC. Byte 42 arrives in which word?", ["The sixth word (bytes 40–47)", "The fifth word (bytes 32–39)", "The seventh word (bytes 48–55)", "The forty-second word"], "Word k holds bytes 8k to 8k + 7. Byte 42 is in word 5 counting from 0, which is the sixth word, at byte position 2."],
+["16-41", "E", "Network protocol headers send multi-byte fields:", ["Most significant byte first (big-endian, 'network byte order')", "Least significant byte first (little-endian)", "In whichever order the sending CPU uses", "With the bits of each byte reversed"], "All IP-suite headers are big-endian. A little-endian CPU must swap bytes (ntohs, ntohl); hardware just wires the bytes in the right order."],
+["16-42", "M", "Which statement about UDP is true?", ["It has no connection, acknowledgments or retransmission, and it supports multicast", "It guarantees delivery in order, retransmitting lost packets", "It works only within a single Ethernet segment", "It uses MAC addresses to route between networks"], "UDP adds only ports, a length and a checksum to IP. A lost datagram is simply gone. That simplicity, plus multicast, is why exchanges publish market data over UDP."],
+["16-43", "M", "TCP is much harder than UDP to implement in FPGA logic because it:", ["Keeps state for every connection: sequence numbers, acknowledgments, retransmission buffers and flow control", "Has a header longer than an Ethernet frame", "Cannot be carried over Ethernet", "Needs floating-point arithmetic for its checksum"], "TCP must remember and possibly resend everything not yet acknowledged, track the window, and handle timeouts. Hardware TCP exists, as dedicated offload engines, but it is far larger than a UDP parser."],
+["16-44", "M", "At 10 Gb/s, how long does it take just to receive a minimum-size 64-byte frame?", ["51.2 ns", "6.4 ns", "512 ns", "5.12 ns"], "64 bytes × 8 = 512 bits; 512 / 10 Gb/s = 51.2 ns (the preamble and gap add more). A byte takes 0.8 ns."],
+["16-45", "M", "The frame check sequence at the end of each Ethernet frame is:", ["A CRC-32 over the frame, so the receiver can drop corrupted frames", "A count of the bytes in the frame", "The sender's IP address", "A timestamp for measuring latency"], "The receiver recomputes the CRC and discards the frame on a mismatch. Because it comes last, a design that waits for it pays the full reception time."],
+["16-46", "H", "A low-latency FPGA parser starts acting on a frame's fields before the frame's CRC has arrived. This is safe only if:", ["Whatever it starts can be cancelled or ignored if the CRC later fails", "The frame is shorter than 64 bytes", "Software recomputes the CRC afterward", "The frame carries a VLAN tag"], "Cut-through designs speculate: they act on early fields, then drop or abort the result if the frame turns out to be corrupt. Without a way to undo, a corrupted frame could trigger a real action."],
+["16-47", "M", "An IPv4 header's protocol field is 17. The packet carries:", ["UDP", "TCP", "ICMP", "IPv6"], "Protocol numbers: 1 = ICMP, 6 = TCP, 17 = UDP."],
 // 17 Manufacturing and reliability
 ["17-01","M","For the antenna rule, as long as the metal wire is safe, a small connected transistor is good.",false,"The risk depends on the ratio of metal area to gate area. A smaller gate means a larger ratio, so more charge per unit of oxide.","o"],
 ["17-02","M","The antenna ratio compares:",["The metal area connected to a gate with that gate's area","Wire length with wire width","Gate length with gate width","The number of vias with the number of wires"],"More metal collects more charge; more gate area spreads it out.","v"],
@@ -1884,7 +1900,7 @@ const RAW = [
 ["17-33","M","A scan chain lets a tester:",["Load and read back every flip-flop directly","Measure each transistor's threshold voltage","Run the functional clock at a higher speed","Repair broken wires found on the die"],"In test mode the flip-flops are connected into shift registers, turning a sequential circuit into easily testable combinational logic."],
 ["17-34","M","At-speed (transition-fault) testing exists because:",["Some defects make a node slow rather than stuck","Stuck-at tests are not allowed on modern chips","Testers cannot apply patterns at low speed","Scan chains only shift at the full clock rate"],"Launch a transition and capture it one functional clock period later; a slow-to-rise or slow-to-fall node fails.","b"],
 ["17-35","M","Memory BIST (MBIST) is:",["On-chip logic that tests the memories by itself","A manual inspection of memory under a microscope","A special kind of DRAM used for testing","A software checker that runs on the host"],"Memories are too dense to test through scan, so built-in test engines run march algorithms on them."],
-["17-36","M","JTAG (IEEE 1149.1) boundary scan is used to:",["Test board connections through a few test pins","Raise the chip's maximum clock speed","Program the DRAM timing parameters","Measure the chip's power consumption"],"Boundary-scan cells at each pin can drive and capture values, checking solder joints without physical probes.","b"],
+["17-36","M","JTAG (IEEE 1149.1) boundary scan is used to:",["Test board connections through a few test pins","Raise the chip's maximum clock speed","Program the DRAM timing parameters","Measure the chip's power consumption"],"Boundary-scan cells at each pin can drive and capture values, checking solder joints without physical probes."],
 ["17-37","M","Fault coverage of 99% means:",["The test patterns detect 99% of the modeled faults","99% of manufactured chips pass the test","The design is 99% functionally verified","99% of the scan chains are working"],"Escapes (bad chips that pass) are reduced by high coverage of stuck-at and transition faults.","b"],
 ["17-38","E","The usual order of the physical design flow is:",["Floorplan, placement, clock-tree synthesis, routing, sign-off","Routing, placement, floorplan, sign-off","Sign-off, routing, synthesis, floorplan","Clock-tree synthesis, floorplan, synthesis, routing"],"Synthesis produces the netlist first; after routing come extraction, timing, power and physical verification."],
 ["17-39","M","Clock-tree synthesis (CTS) builds a buffered clock network that:",["Delivers the clock to every flip-flop with small skew","Removes the need for flip-flops in the design","Generates the clock frequency from a crystal","Routes the data signals between blocks"],"Before CTS, timing assumes an ideal clock; after it, real skew and clock latency are included."],
@@ -1892,6 +1908,9 @@ const RAW = [
 ["17-41","M","After routing, parasitic extraction produces:",["Each wire's resistance and capacitance (SPEF)","The gate-level netlist from RTL","The floorplan and its block outlines","The manufacturing test patterns"],"Sign-off timing uses extracted parasitics instead of estimates.","b"],
 ["17-42","M","An ECO (engineering change order) late in a project is:",["A small, targeted fix to the netlist or layout","The start of a new chip project","A design rule check on the layout","A change to the target clock frequency"],"Metal-only ECOs can even be made after tape-out by changing only a few mask layers.","b"],
 ["17-43","M","A standard-cell library's .lib (Liberty) file describes:",["Each cell's timing, power and pin capacitance","Each cell's exact layout shapes","The chip's floorplan and pin placement","The manufacturing test patterns"],"Timing tools read .lib for delays; LEF describes the cells' physical outlines for placement and routing.","b"],
+["17-44", "M", "Boundary scan (JTAG) testing of an assembled board finds faults such as:", ["Open or shorted solder joints between chips", "Setup-time violations inside a chip's logic", "Bugs in the RTL", "Aging from hot carrier injection"], "A boundary-scan cell beside every pin lets the tester drive one chip's outputs and read the next chip's inputs, checking each board connection without physical probes."],
+["17-45", "E", "Which signals make up the basic JTAG test port?", ["TCK, TMS, TDI and TDO", "SCL and SDA", "MOSI, MISO, SCK and CS", "TX and RX"], "Test clock, test mode select, test data in and test data out, plus an optional reset. SCL/SDA is I²C, MOSI/MISO is SPI, TX/RX is a UART."],
+["17-46", "M", "Besides board testing, the JTAG port is commonly used to:", ["Program FPGAs during development and connect debuggers to processors", "Carry the chip's main data traffic", "Distribute the clock to every flip-flop", "Supply power during wafer test"], "JTAG gives access to internal registers through a few pins, so it is also the standard way to load an FPGA bitstream from a laptop and to halt, step and inspect a CPU."],
 // 18 Memory circuits
 ["18-01","H","For a 6T SRAM cell to be read without flipping, which must be stronger?",["The pull-down NMOS, compared with the access NMOS","The access NMOS, compared with the pull-down","The pull-up PMOS, compared with the pull-down","All transistors equally"],"During a read, the node storing 0 is a voltage divider between them."],
 ["18-02","H","For a 6T SRAM cell to be writable, which must be stronger?",["The access NMOS, compared with the pull-up PMOS","The pull-up PMOS, compared with the access NMOS","The pull-down, compared with the access transistor","None of them"],"The access transistor must overpower the PMOS that holds the node at 1."],
@@ -1936,7 +1955,7 @@ const RAW = [
 ["19-18","H","Initially a = 0. At each rising edge, the block runs begin a <= a + 1; $display(a); end. What prints at the first and second edges?",["0, then 1","1, then 2","0, then 0","1, then 1"],"$display runs before the nonblocking update takes effect, so it shows the old value each time.","r"],
 ["19-19","M","In Verilog, a variable assigned inside an always block must be declared as:",["reg (or logic in SystemVerilog)","wire (or net in SystemVerilog)","parameter (a constant)","tri (a tristate net)"],"wire is for continuous assignments and connections; SystemVerilog's logic works in both places."],
 ["19-20","M","A case statement in a combinational always block that leaves some input values uncovered, with no default:",["Infers a latch","Infers a flip-flop","Is always a compile error","Becomes a mux that outputs Z"],"The output must hold its old value for the missing cases."],
-["19-21","M","SystemVerilog's always_ff and always_comb blocks help because:",["Tools check the code really is flip-flops or pure logic","They simulate faster than plain always blocks","They remove the need for a clock signal","They make the code unsynthesizable on purpose"],"For example, always_comb warns if a latch would be inferred."],
+["19-21","M","SystemVerilog's always_ff and always_comb blocks help because:",["Tools check the code really is flip-flops or pure logic","They simulate faster than plain always blocks","They remove the need for a clock signal","They make the code unsynthesizable on purpose"],"always_ff tells tools the block must be flip-flops, and always_comb that it must be pure combinational logic. The tools then check the code really does that; for example, always_comb warns if a missing else or default would infer a latch."],
 ["19-22","H","Glitches up to 25 ns wide must be filtered by ORing a signal with a delayed copy of itself. Buffers delay 2 ns each, and the OR gate delays 4 ns. How many buffers are needed?",["13","11","15","12"],"The OR gate sits on both paths, so only the buffers count. The delay must exceed 25 ns: 13 × 2 = 26 ns.","r"],
 ["19-23","H","A writer at 100 MHz sends a 120-word burst, back to back. The reader at 80 MHz reads one word per cycle. What is the minimum FIFO depth?",["24","120","96","20"],"The burst lasts 1.2 μs, during which the reader takes 96 words, leaving 24.","r"],
 ["19-24","H","A writer at 50 MHz sends a 64-word burst. The reader at 100 MHz reads one word every 4 cycles. What is the minimum FIFO depth?",["32","64","16","48"],"The burst lasts 64 × 20 ns = 1.28 μs. At 25 M words/s, the reader takes 32 in that time, leaving 32.","r"],
@@ -1966,9 +1985,49 @@ const RAW = [
 ["19-48","M","A CDC (clock domain crossing) checking tool is used to:",["Find unsynchronized clock domain crossings","Measure each clock's frequency","Generate the clock trees","Replace static timing analysis"],"Simulation rarely catches CDC bugs because metastability is not modeled; structural CDC tools do.","b"],
 ["19-49","M","A regression's pass rate is 100%, but functional coverage is 60%. The right conclusion is:",["40% of the planned scenarios are untested","The design is now fully verified","The coverage tool must be broken","The passing tests should be removed"],"Passing only says nothing failed in what ran. Coverage closure needs new or better-steered tests."],
 ["19-50","M","A lint tool (for example Verilator --lint-only or Spyglass) on RTL finds:",["Width mismatches, latches and undriven signals","Timing violations found after routing","Manufacturing defects on the wafer","Thermal hotspots in the floorplan"],"Lint is fast static checking, run on every change before simulation.","b"],
-["19-51","M","In Verilog, casez treats ___ as don't-care, while casex treats ___ as don't-care.",["z (and ?) only; both x and z","x only; z only","both x and z; z only","nothing; everything"],"casex also matches an x on the case expression, so an unknown input can silently pick a branch in simulation and hide a bug that the synthesized logic will not share. Most style guides use casez, with ? for the don't-care bits, or SystemVerilog's case inside.","b"],
-["19-52","M","In SystemVerilog, logic [7:0] mem [0:255]; declares:",["256 unpacked elements, each an 8-bit packed vector","8 unpacked elements, each a 256-bit packed vector","One 2048-bit packed vector","A 256-bit vector of 8 unpacked bits"],"Dimensions before the name are packed: they form one contiguous vector that can be sliced and used in arithmetic. Dimensions after the name are unpacked: an array of separate elements, like the words of a memory. mem[3] is one byte, and mem[3][0] is its low bit.","b"],
-["19-53","E","Compared with building the same design as an ASIC, putting it on an FPGA usually:",["Runs at a lower clock and uses more power, but can be changed after it is built, with no mask cost","Runs faster and uses less power, but cannot be changed once built","Gives the same speed and power at a lower cost per chip in high volume","Needs no synthesis or timing closure"],"An FPGA builds logic from lookup tables and programmable routing, so the same design is slower, larger and more power-hungry than custom cells. But it needs no masks, so a fix is a new bitstream instead of a new tapeout. FPGAs suit prototypes, low volumes and changing standards; ASICs win in high volume, where the mask cost is spread over millions of chips.","b"],
+["19-51","M","In Verilog, casez treats ___ as don't-care, while casex treats ___ as don't-care.",["z (and ?) only; both x and z","x only; z only","both x and z; z only","nothing; everything"],"casex also matches an x on the case expression, so an unknown input can silently pick a branch in simulation and hide a bug that the synthesized logic will not share. Most style guides use casez, with ? for the don't-care bits, or SystemVerilog's case inside."],
+["19-52","M","In SystemVerilog, logic [7:0] mem [0:255]; declares:",["256 unpacked elements, each an 8-bit packed vector","8 unpacked elements, each a 256-bit packed vector","One 2048-bit packed vector","A 256-bit vector of 8 unpacked bits"],"Dimensions before the name are packed: they form one contiguous vector that can be sliced and used in arithmetic. Dimensions after the name are unpacked: an array of separate elements, like the words of a memory. mem[3] is one byte, and mem[3][0] is its low bit."],
+["19-53","E","Compared with building the same design as an ASIC, putting it on an FPGA usually:",["Runs at a lower clock and uses more power, but can be changed after it is built, with no mask cost","Runs faster and uses less power, but cannot be changed once built","Gives the same speed and power at a lower cost per chip in high volume","Needs no synthesis or timing closure"],"An FPGA builds logic from lookup tables and programmable routing, so the same design is slower, larger and more power-hungry than custom cells. But it needs no masks, so a fix is a new bitstream instead of a new tapeout. FPGAs suit prototypes, low volumes and changing standards; ASICs win in high volume, where the mask cost is spread over millions of chips."],
+["19-54", "E", "SystemVerilog's logic type replaces:", ["Both wire and reg, for signals with a single driver", "Only wire, so reg is still needed for flip-flops", "Only reg, so wire is still needed for assign statements", "integer, for loop counters and array indices"], "A logic signal can be driven by an assign or by one procedural block. It removes Verilog's confusing rule that anything assigned in an always block must be a reg, whether or not it becomes a register. (Signals with several drivers, such as tristate buses, still use wire.)"],
+["19-55", "M", "An always_comb block differs from always @(*) in that it:", ["Needs no sensitivity list, runs once at time zero, and lets tools flag a latch it would infer", "Builds flip-flops whenever the block contains an if without an else", "Is accepted by simulators but ignored by synthesis tools", "Updates its outputs only at the next rising clock edge"], "always_comb is sensitive to everything it reads, evaluates once at time zero so its outputs start correct, and states the intent 'pure combinational logic', so tools warn when a path leaves an output unassigned."],
+["19-56", "M", "typedef enum logic [1:0] {IDLE, LOAD, RUN, DONE} state_t; With no values given, RUN is encoded as:", ["2'b10", "2'b11", "2'b01", "Nothing until a value is assigned"], "Enum values start at 0 and count up in order: IDLE = 0, LOAD = 1, RUN = 2, DONE = 3."],
+["19-57", "M", "The main benefit of declaring FSM states with an enum type is that:", ["States appear by name in waveforms, and assigning an arbitrary number to the state is a compile error", "Synthesis always produces a smaller state register than with parameters", "The state machine no longer needs a reset to start in a known state", "The next-state logic is guaranteed to be free of glitches"], "An enum is a named, checked type. Waveforms and messages show RUN instead of 2'b10, and the compiler rejects state = 3 without a cast, catching typos. The hardware is the same as with parameters."],
+["19-58", "H", "In an always_comb next-state block, writing next = state; as the first statement:", ["Assigns next on every path, so no latch is inferred, and makes 'stay in this state' the default", "Adds a flip-flop that holds next for one extra cycle", "Creates a combinational loop, because next depends on itself", "Has no effect, because the case statement overwrites next on every path"], "A default at the top of a combinational block means every path assigns next, the standard cure for accidental latches. It is not a loop: next depends on state, a register output, not on itself. Each case branch then only says where to go when the machine moves."],
+["19-59", "M", "unique case tells the tools that:", ["Exactly one item matches, so the branches can be built as parallel logic, and simulation warns otherwise", "The first matching item wins, so the items form a priority chain", "Each item value appears only once in the whole design", "The statement must be synthesized as a ROM"], "unique asserts that the items are mutually exclusive and complete. Synthesis may then build a parallel mux, and simulation reports a violation if no item or several items match. priority case is the version where the first match wins."],
+["19-60", "M", "The old // synopsys full_case parallel_case comments are considered dangerous because they:", ["Change the synthesized hardware without changing the simulation, so the two can disagree", "Are ignored by every modern synthesis tool", "Make simulation treat every x as 0, hiding reset bugs", "Force every case statement into a slow priority chain"], "A comment cannot affect a simulator, but these ones told synthesis to assume things (no other values occur, items never overlap). If the assumption was false, the gates behaved differently from the RTL that passed simulation. unique and priority express the same intent in the language itself, so simulation checks it."],
+["19-61", "M", "Which casez item matches every 4-bit value whose top bit is 1?", ["4'b1???", "4'b1000", "4'b?001", "4'b1111"], "In casez, ? (or z) in an item is a don't-care, so 4'b1??? matches 1000 through 1111. This is how priority encoders are usually written."],
+["19-62", "H", "casex is usually avoided because:", ["An x on the value being tested also counts as don't-care, so an unknown input silently matches a branch", "It cannot describe a priority encoder", "Synthesis tools reject it", "It simulates far more slowly than an if-else chain"], "With casex, an uninitialized (x) select can match the first item, so simulation shows sensible behavior while the real hardware does something else. casez only treats z/? as don't-care, so x still shows up as a problem."],
+["19-63", "M", "typedef struct packed { logic [3:0] kind; logic [3:0] id; logic [31:0] data; } pkt_t; Which bits of a pkt_t hold kind?", ["39:36", "3:0", "7:4", "35:32"], "A packed struct is one bit vector of 4 + 4 + 32 = 40 bits, and the first field is the most significant: kind is bits 39:36, id 35:32, data 31:0."],
+["19-64", "M", "logic [3:0][7:0] w; declares:", ["One 32-bit vector made of four bytes, where w[2] is bits 23:16", "Four separate 8-bit registers that cannot be used as one value", "A memory of 8 entries, each 4 bits wide", "A memory of 4 entries that maps to block RAM"], "Both dimensions come before the name, so both are packed: it is a single 32-bit vector, indexed by byte. w[0] is bits 7:0, w[2] bits 23:16. Dimensions after the name, as in logic [7:0] mem [0:255], are unpacked and make a memory."],
+["19-65", "E", "$clog2(17) returns:", ["5", "4", "17", "8"], "$clog2 rounds the base-2 logarithm up: 4 bits hold 16 values, so 17 values need 5 bits. $clog2(16) is 4."],
+["19-66", "M", "A FIFO has DEPTH = 32 entries. Its pointers carry one extra wrap bit so full can be told from empty. How wide is each pointer?", ["6 bits", "5 bits", "32 bits", "4 bits"], "Addressing 32 entries takes $clog2(32) = 5 bits, plus 1 wrap bit, so 6. When the pointers are equal except for the wrap bit, the FIFO is full."],
+["19-67", "M", "A generate for loop in a module:", ["Builds one copy of the hardware per iteration when the design is elaborated", "Runs its body once per clock cycle, like a software loop", "Can only appear in testbenches", "Builds the hardware once and reuses it on successive cycles"], "generate loops are unrolled at elaboration: a loop of 8 iterations makes 8 instances or 8 sets of logic, all working in parallel."],
+["19-68", "M", "A for loop inside always_comb ORs together the 16 bits of a bus. It synthesizes to:", ["Parallel logic: one 16-input OR, evaluated continuously", "A sequential circuit that takes 16 cycles, with a counter", "Nothing, because loops cannot be synthesized", "One latch per loop iteration"], "Loops in RTL describe structure, not time. The tool unrolls the loop into 16 OR terms and builds a tree of gates (or LUTs)."],
+["19-69", "M", "A SystemVerilog interface with modports is used to:", ["Bundle the signals of one connection and give each side its own directions", "Move data safely between two clock domains", "Describe the timing constraints of a port", "Store a module's parameters in a separate file"], "An interface groups, say, valid, ready and data into one port. A modport for the source makes valid and data outputs and ready an input; the sink's modport is the reverse."],
+["19-70", "E", "A SystemVerilog package is used to:", ["Share types, parameters and functions among many modules", "Combine several modules into one synthesized netlist", "Pack a struct's fields into one bit vector", "Bundle a design's files for delivery to a customer"], "Modules import a package (import my_pkg::*;) so that, for example, every block uses the same packet struct and opcode enum."],
+["19-71", "H", "A two-stage pipeline computes y = a*b + c. Stage 1 registers prod <= a*b; stage 2 does y <= prod + c, using the input c directly. What is wrong?", ["c is not delayed alongside prod, so each product is added to the next cycle's c", "Nonblocking assignments cannot be used for arithmetic", "Stage 2 must use a blocking assignment", "Nothing: c does not change within a cycle"], "prod holds a*b from the previous cycle, but c is the current input, one cycle newer. Every value used in a later stage must be carried forward in its own register (c1 <= c in stage 1) so it lines up with the data computed from it."],
+["19-72", "M", "A 4-stage pipeline accepts a new input every cycle. Its latency and throughput are:", ["4 cycles, and one result per cycle", "1 cycle, and one result every 4 cycles", "4 cycles, and one result every 4 cycles", "1 cycle, and four results per cycle"], "Each input takes 4 cycles to come out (latency), but because 4 inputs are in flight at once, one result emerges every cycle (throughput)."],
+["19-73", "E", "A VHDL design is written as:", ["An entity, which declares the ports, and an architecture, which describes the behavior", "A module and an endmodule, as in Verilog", "A header file and an implementation file", "A package and a testbench"], "The entity is the outside view (ports and generics); the architecture is the implementation. One entity can have several architectures."],
+["19-74", "M", "Inside a clocked VHDL process, a and b are signals. After a <= b; b <= a; runs at a clock edge:", ["a and b have swapped", "Both hold b's old value", "Both hold a's old value", "Nothing changes until the next edge"], "Signal assignments take effect when the process finishes, so both right-hand sides use the old values, exactly like Verilog's nonblocking <=."],
+["19-75", "M", "A VHDL variable assigned with := inside a process:", ["Takes its new value immediately, like a blocking assignment", "Updates when the process finishes, like a nonblocking assignment", "Always becomes a flip-flop", "Can only be read outside the process"], "Variables are local to the process and update at once, so the next statement sees the new value, like Verilog's blocking =. Signals (<=) update at the end of the process."],
+["19-76", "E", "The VHDL construct if rising_edge(clk) then ... inside a process corresponds to which SystemVerilog block?", ["always_ff @(posedge clk)", "always_comb", "always @(clk)", "always_latch"], "Both describe flip-flops that capture on the rising edge of clk."],
+["19-77", "M", "The VHDL statement y <= a when s = '1' else b; is equivalent to:", ["assign y = s ? a : b;", "assign y = s ? b : a;", "always_ff @(posedge s) y <= a;", "assign y = s & b;"], "It is a conditional signal assignment, VHDL's form of a mux outside any process: a when s is 1, otherwise b."],
+["19-78", "M", "VHDL rejects adding 1 to a std_logic_vector. The usual fix is to:", ["Do the arithmetic on unsigned from numeric_std, for example cnt <= cnt + 1 with cnt declared unsigned", "Declare the signal as std_logic instead", "Use a variable instead of a signal", "Add the value one bit at a time"], "std_logic_vector is just a group of bits with no numeric meaning. numeric_std's unsigned and signed types define arithmetic, and explicit conversions such as std_logic_vector(cnt) move between them."],
+["19-79", "E", "In a VHDL simulation, a register shows 'U' in the waveform. This usually means it:", ["Was never initialized or reset, so it has never been given a value", "Is being driven by two sources at once", "Is in the high-impedance state", "Holds an unsigned number"], "'U' (uninitialized) is std_logic's starting value. A register still at 'U' after reset is missing from the reset logic, or its clock or enable never arrived. A conflict between drivers shows as 'X'; high impedance as 'Z'."],
+["19-80", "E", "A 6-input LUT on an FPGA can implement:", ["Any Boolean function of its 6 inputs, all with the same delay", "Only AND, OR and XOR of its inputs", "Any function of up to 64 inputs", "Only functions that fit in one 2:1 multiplexer"], "A LUT is a 64-bit memory addressed by its 6 inputs. Its contents are the truth table, so any 6-input function fits, and the delay does not depend on the function."],
+["19-81", "M", "How many configuration bits does one 6-input LUT store?", ["64", "6", "36", "12"], "One bit per row of the truth table: 2⁶ = 64."],
+["19-82", "H", "On an FPGA with 6-input LUTs, how many LUT levels does a 32-input AND need at minimum?", ["2", "1", "3", "6"], "Level 1: ⌈32/6⌉ = 6 LUTs reduce 32 signals to 6. Level 2: one LUT combines those 6. A function of up to 36 inputs fits in two levels."],
+["19-83", "M", "A 32-bit adder on an FPGA is fast mainly because synthesis uses:", ["The dedicated carry chain in the logic blocks", "The multiplier in a DSP slice", "Block RAM as a lookup table", "A single very wide LUT"], "Each logic block has hard-wired carry logic linking it to its neighbor, so the carry does not travel through LUTs and general routing. That makes adders and counters much faster than generic logic of the same size."],
+["19-84", "M", "RTL describes a 1024 × 32 memory whose read data comes straight from the address, with no register (an asynchronous read). On most FPGAs this:", ["Cannot use block RAM, whose reads are synchronous, so it is built from LUTs or flip-flops instead", "Maps to block RAM unchanged", "Stops synthesis with an error", "Is built from DSP slices"], "Block RAM registers its address, so data appears the cycle after. A combinational read can only be built from distributed (LUT) RAM or registers, which is much bigger at this size. Registering the read lets the tool use block RAM."],
+["19-85", "M", "An 18 × 18-bit multiply written as a * b in FPGA RTL is normally implemented in:", ["A DSP slice", "The carry chain", "Block RAM", "An I/O cell"], "DSP slices are hard multiply-accumulate blocks. Using their internal pipeline registers lets a multiply run at the full clock rate."],
+["19-86", "E", "The usual order of the FPGA implementation flow is:", ["Synthesis, placement, routing, timing analysis, bitstream generation", "Placement, synthesis, bitstream generation, routing, timing analysis", "Routing, placement, synthesis, timing analysis, bitstream generation", "Synthesis, bitstream generation, placement, routing, timing analysis"], "RTL becomes a netlist of FPGA primitives (synthesis), each primitive gets a site (placement), the wires are connected (routing), the result is checked against the constraints (timing), and finally the configuration file is written."],
+["19-87", "M", "An FPGA path misses timing by 0.4 ns, with 7 LUT levels between two registers. The first fix to try is usually:", ["Add a pipeline register partway through the logic", "Lower the FPGA's core voltage", "Delay the capturing clock by routing it through a LUT", "Use LUTs with more inputs"], "Every LUT already has a spare flip-flop beside it, so pipelining is cheap on an FPGA: cutting 7 levels to two stages of 3 or 4 removes far more than 0.4 ns. Routing clocks through logic causes skew and is never the answer."],
+["19-88", "M", "A reset net drives 20,000 flip-flops and fails timing. A standard fix is to:", ["Register and duplicate the reset, so each copy drives fewer loads", "Route the reset through block RAM", "Remove the reset synchronizer", "Generate the reset from a combinational OR of the clock enables"], "A huge fanout means a long, slow net. Replicated registers, each placed near its group of loads, split it into short nets. Better still, reset only the flip-flops that need it."],
+["19-89", "M", "On an FPGA, the declaration logic [3:0] cnt = 4'd5; (an initializer):", ["Sets the register's power-up value, because configuration loads every flip-flop", "Is ignored by synthesis, just as on an ASIC", "Resets cnt to 5 on every clock edge", "Creates a latch"], "FPGA configuration writes a known value into every flip-flop, so initial values are real hardware there. On an ASIC they are ignored and a reset is needed."],
+["19-90", "M", "In an FPGA constraints file, create_clock:", ["Tells timing analysis the period of a clock arriving on a port or net", "Builds a new clock signal inside the FPGA", "Sets the frequency of the board's oscillator", "Places the clock on a global buffer"], "Constraints describe, they do not build. create_clock tells the timing tools how fast a clock is so they can check every path it drives. New clocks are made by PLLs or MMCMs."],
+["19-91", "H", "Two clocks in an FPGA design are unrelated, and the timing report shows failing paths between them. The right response is:", ["Check that each crossing uses a synchronizer or asynchronous FIFO, then declare the clocks asynchronous so those paths are not timed", "Raise both clock frequencies until the paths pass", "Add a multicycle constraint of 2 to the crossing paths and leave them unsynchronized", "Ignore the report, because crossing paths never fail in hardware"], "Paths between unrelated clocks can never meet timing, because the phase between the clocks is arbitrary. They must be made safe by design (Section 19.6) and then excluded with set_clock_groups -asynchronous. Excluding them without synchronizers hides real bugs."],
+["19-92", "E", "On an FPGA, the programmable routing between logic blocks:", ["Is often more than half of each path's delay", "Is negligible compared with the LUT delay", "Has no delay, because the switches are already set", "Matters only for clock signals"], "Each connection passes through several programmable switches and wire segments, so routing typically dominates FPGA path delay. Keeping related logic close helps."],
+["19-93", "M", "Low-latency trading firms use FPGAs mainly because they:", ["Can parse and act on network packets in hardware, without a CPU, in well under a microsecond", "Run at higher clock frequencies than CPUs", "Cost less per chip than CPUs at any volume", "Need no timing analysis"], "An FPGA can decode market data as the bytes arrive and send a response in tens to hundreds of nanoseconds, with no operating system, interrupts or cache misses in the path, and the logic can be changed whenever the strategy or the exchange's protocol changes."],
 // 20 Architecture
 ["20-01","E","The stages of the classic 5-stage pipeline, in order, are:",["IF, ID, EX, MEM, WB","ID, IF, EX, WB, MEM","IF, EX, ID, MEM, WB","IF, ID, MEM, EX, WB"],"Fetch, decode and read registers, execute, access memory, write back.","r"],
 ["20-02","M","A load followed immediately by an instruction that uses its result needs:",["A one-cycle stall, even with forwarding","No stall, thanks to forwarding","A pipeline flush","Two cycles of branch delay"],"The loaded data arrives at the end of MEM, too late for the next instruction's EX."],
@@ -1988,7 +2047,7 @@ const RAW = [
 ["20-16","E","A write-back cache marks modified lines with:",["A dirty bit","Only a valid bit","A parity bit","The LRU bit"],"Dirty lines are written back to memory when they are evicted."],
 ["20-17","M","A 2-bit saturating-counter branch predictor in the 'strongly taken' state must mispredict how many times in a row before it predicts 'not taken'?",["2","1","3","4"],"Strongly taken → weakly taken → weakly not taken."],
 ["20-18","M","In the MESI coherence protocol, the state meaning 'only this cache holds the line, and it has been modified' is:",["M (Modified)","E (Exclusive)","S (Shared)","I (Invalid)"],"E means the only copy and still clean; S means it may be in several caches."],
-["20-19","M","Out-of-order processors use register renaming to remove:",["False dependences (WAR, WAW)","True dependences (RAW)","Cache misses on loads","Branch mispredictions"],"Each new result gets a fresh physical register.","b"],
+["20-19","M","Out-of-order processors use register renaming to remove:",["False dependences (WAR, WAW)","True dependences (RAW)","Cache misses on loads","Branch mispredictions"],"Each new result gets a fresh physical register."],
 ["20-20","E","A page table maps:",["Virtual page numbers to physical frame numbers","Physical addresses to cache lines","Instructions to opcodes","Threads to cores"],"The TLB caches recently used entries."],
 ["20-21","M","With 4 KB pages and 32-bit virtual addresses, how many virtual pages are there?",["2²⁰","2¹²","2³²","2¹⁶"],"12 offset bits leave 20 bits of page number."],
 ["20-22","E","A write-through cache differs from a write-back cache in that it:",["Updates memory on every write","Never updates main memory","Needs a dirty bit on every line","Is always faster on writes"],"A write-back cache updates memory only when it evicts a dirty line."],
@@ -2000,7 +2059,19 @@ const RAW = [
 ["20-28","M","A cycle-accurate performance model differs from an analytical model in that it:",["Simulates cycle by cycle, catching contention, but runs slowly","Uses only a formula, so it is instant but approximate","Runs on the real chip to measure performance","Ignores the memory system entirely"],"Architects use fast analytical models to explore and cycle-accurate models to confirm.","b"],
 ["20-29","M","IPC (instructions per cycle) and CPI are related by:",["IPC = 1 / CPI","IPC = CPI","IPC = CPI × clock frequency","IPC = CPI − 1"],"A processor finishing 2 instructions per cycle has CPI 0.5."],
 ["20-30","M","A CPI stack breaks the cycles per instruction into:",["Base cycles plus stalls from each cause","A list of the separate instructions","The pipeline stages and nothing else","The clock domains on the chip"],"It shows which bottleneck to attack first.","b"],
-["20-31","E","On an AMBA AXI bus, the masters (managers) are:",["The components that start transactions, such as CPU cores and DMA engines","The memories and peripherals that answer requests","The interconnect's clock and reset generators","Whichever component has the fastest clock"],"A master issues reads and writes; a slave (subordinate), such as a memory controller or a UART, responds. The interconnect routes each request by address and arbitrates when several masters want the same slave. A DMA engine is a master on the bus it copies over, even though the CPU programs it through its slave registers.","b"],
+["20-31","E","On an AMBA AXI bus, the masters (managers) are:",["The components that start transactions, such as CPU cores and DMA engines","The memories and peripherals that answer requests","The interconnect's clock and reset generators","Whichever component has the fastest clock"],"A master issues reads and writes; a slave (subordinate), such as a memory controller or a UART, responds. The interconnect routes each request by address and arbitrates when several masters want the same slave. A DMA engine is a master on the bus it copies over, even though the CPU programs it through its slave registers."],
+["20-32", "M", "In MESI, a core holds a line in the Exclusive state and writes to it. What coherence traffic is needed?", ["None: the line changes from E to M without telling anyone", "An invalidate sent to every other cache", "A write-back of the line to memory first", "A fresh read of the line from memory"], "Exclusive means no other cache has the line, so nobody needs to be told. That silent upgrade is the reason the E state exists."],
+["20-33", "M", "A core wants to write a line it holds in the Shared state. It must first:", ["Invalidate the other caches' copies, then move to Modified", "Write the line back to memory", "Wait until the line is evicted", "Nothing: Shared lines may be written"], "Shared copies are read-only. Writing requires ownership, so the core broadcasts an invalidate (or sends it through the directory), every other copy becomes Invalid, and the line becomes Modified."],
+["20-34", "M", "Another core reads a line that this core holds in the Modified state. Afterward:", ["The owner supplies the data (or writes it back) and both copies are Shared", "Both copies are Modified", "The reader gets the stale copy from memory", "The owner's copy becomes Exclusive"], "Only the Modified copy is correct, so it must be supplied to the reader and the line can no longer be owned privately: both end up Shared (in MOESI, the owner can keep a dirty Owned copy)."],
+["20-35", "M", "Large many-core chips use directory-based coherence rather than snooping because:", ["Snooping sends every request to every cache, which does not scale with core count", "Directories need no storage", "Snooping cannot handle writes", "Directories remove the need for invalidations"], "A directory records which caches hold each line, so requests go only to those caches. Broadcasting to every cache on each miss saturates the interconnect as cores are added."],
+["20-36", "H", "Two threads on different cores each increment their own counter, but the two counters sit in the same 64-byte cache line. The likely result is:", ["Slow progress, as the line bounces between the caches on every write (false sharing)", "Wrong counts, because coherence fails for neighboring variables", "No effect, because the threads share no data", "A deadlock between the two caches"], "Coherence works on whole lines, so each write invalidates the other core's copy. The answers stay correct, but every increment becomes a cache miss. Padding each counter to its own line fixes it."],
+["20-37", "M", "In an out-of-order core, the reorder buffer:", ["Holds instructions in program order so their results become permanent in order", "Holds instructions that are waiting for their operands", "Predicts branch directions", "Replaces the register file"], "Instructions may finish in any order, but they retire from the head of the reorder buffer in program order, which makes speculation and precise exceptions possible."],
+["20-38", "M", "An out-of-order core can run instructions past a predicted branch safely because:", ["Results become permanent only at in-order retirement, so wrong-path work can be thrown away", "Branch predictors are always right inside loops", "It executes both paths and keeps both results", "It stops fetching until the branch resolves"], "On a misprediction, every instruction younger than the branch is still unretired in the reorder buffer and is simply discarded, with no effect on the architectural state."],
+["20-39", "E", "In an out-of-order core, an instruction issues from the reservation stations when:", ["Its operands are ready and an execution unit is free", "Every older instruction has retired", "The branch predictor approves it", "It reaches the head of the reorder buffer"], "Issue is driven by data readiness, not program order. Retirement is what happens in order."],
+["20-40", "M", "Register renaming maps each new write of an architectural register to:", ["A fresh physical register from a larger pool", "The same register, after a stall", "A location in the L1 cache", "The entry at the head of the reorder buffer"], "Giving every write its own physical register removes write-after-read and write-after-write hazards, leaving only true read-after-write dependences."],
+["20-41", "M", "On an AXI channel, a transfer happens on a clock edge where:", ["VALID and READY are both high", "VALID is high, whatever READY is", "READY goes from low to high", "VALID goes from high to low"], "Every AXI channel is a valid/ready handshake: the source offers with VALID, the destination accepts with READY, and data moves only on an edge where both are high."],
+["20-42", "M", "Which AXI rule prevents a handshake deadlock?", ["A source must not wait for READY before asserting VALID", "A destination must assert READY before VALID", "VALID may be withdrawn before the transfer if the data changes", "READY and VALID must rise in the same cycle"], "If the source waited for READY and the destination waited for VALID, neither would move. So the source raises VALID as soon as it has data and holds it, with the data stable, until the transfer; the destination may wait for VALID."],
+["20-43", "E", "AXI4-Stream is used to:", ["Pass a stream of data between blocks with no addresses, marking packet ends with TLAST", "Read and write control registers one word at a time", "Connect a CPU to DRAM with bursts and transaction IDs", "Carry the clock between chips"], "AXI4-Stream keeps only the handshake, the data and TLAST. It is the usual way to move packets through an FPGA pipeline. AXI4-Lite is the register-access version, full AXI4 the memory-mapped one with bursts."],
 // 21 GPUs and number formats
 ["21-01","E","How many threads are in an NVIDIA warp?",["32","16","64","1024"],"All 32 execute the same instruction together (SIMT)."],
 ["21-02","E","Which best contrasts CPUs with GPUs?",["CPUs cut latency; GPUs maximize throughput","GPUs have bigger caches per thread","CPUs have thousands of simple cores","GPUs predict branches much better"],"GPUs spend their transistors on many arithmetic units."],
@@ -2105,6 +2176,23 @@ const RAW = [
 ["23-34","M","In C, which declaration reads a 32-bit hardware status register at address 0x40001000 correctly?",["volatile uint32_t *status = (volatile uint32_t *)0x40001000;","uint32_t status = (uint32_t)0x40001000;","int *status = (int *)0x40001000;","const uint8_t *status = (const uint8_t *)0x40001000;"],"Casting the address to a pointer to volatile 32-bit data makes every access a real 32-bit read."]
 ];
 
+// Questions taught in a later chapter than their id says. They keep their id, so progress already saved still counts,
+// and each is practised with the chapter that teaches it, after that chapter's own questions.
+const MOVED = {
+  '01-19': 2, '01-20': 2,      // ground bounce and return current need inductance
+  '04-10': 5,                  // the NMOS body comes with the MOSFET
+  '04-20': 15, '04-21': 15,    // how NMOS, PMOS and a whole chip respond to heat
+  '05-26': 14,                 // the stack effect is taught with leakage power
+  '06-17': 11, '06-18': 11,    // PLLs and jitter are taught with the clock
+  '07-19': 22,                 // the carry-in/carry-out overflow rule
+  '09-36': 22,                 // product width is taught with multiplication
+  '10-21': 14,                 // clock-gating cells
+  '11-20': 15,                 // on-chip variation
+  '15-20': 18,                 // DRAM refresh
+  '15-23': 17,                 // hot carrier injection is taught with aging
+  '20-26': 21,                 // the roofline
+};
+
 // Learning path: one unit per hardware chapter of "Hardware from the Ground Up".
 // Each card: t = title, b = paragraphs, w = interactive widget (optional), q = check question id (optional).
 const PARTS = [
@@ -2207,7 +2295,9 @@ const UNITS = [
 {id:16, title:"Wires and links", goal:"Compute wire resistance, crosstalk windows and link bandwidth.", cards:[
   {t:"Wire resistance", b:["A wire's resistance is its sheet resistance times length divided by width (R = R□ × L/W).","Thin lower layers are very resistive, so the thick top layers carry power, clocks and long routes."], q:"16-01"},
   {t:"Crosstalk", b:["Coupling capacitance lets a switching wire glitch or slow its neighbour, but only where their switching windows overlap."], q:"16-04"},
-  {t:"Bandwidth math", b:["Bytes per second = width × transfers per second / 8 × efficiency. DDR moves data on both clock edges, so it makes two transfers per cycle."], q:"16-07"}
+  {t:"Bandwidth math", b:["Bytes per second = width × transfers per second / 8 × efficiency. DDR moves data on both clock edges, so it makes two transfers per cycle."], q:"16-07"},
+  {t:"Signal integrity", b:["Board traces are built to an impedance, usually 50 Ω. Wherever it changes, part of the wave reflects: Γ = (Z_L − Z₀)/(Z_L + Z₀).","Loss smears fast edges into the next bits, so links equalize, and the receiver recovers its clock from the data."], q:"16-31"},
+  {t:"Ethernet, IP and UDP", b:["Ethernet (14 bytes) + IPv4 (20) + UDP (8) = 42 header bytes, all big-endian. UDP has no connection or retransmission and supports multicast, which is why market data uses it.","At 10 Gb/s a byte takes 0.8 ns, so low-latency hardware acts on the early fields as they arrive."], q:"16-39"}
 ]},
 {id:17, title:"Manufacturing and reliability", goal:"Explain the antenna rule, electromigration, latch-up and yield.", cards:[
   {t:"How chips are made", b:["Chips are printed one layer at a time with light, then etched with plasma, doped, and polished flat. Dummy fill keeps the metal density even so polishing works."], q:"17-10"},
@@ -2223,12 +2313,17 @@ const UNITS = [
   {t:"Blocking vs nonblocking", b:["A nonblocking assignment (<=) updates everything together at the end of the time step, like flip-flops. A blocking assignment (=) takes effect immediately."], q:"19-02"},
   {t:"Crossing clock domains", b:["A single bit crosses through a two-flop synchronizer. A counter crosses in Gray code. A stream of data crosses through an asynchronous FIFO."], q:"19-05"},
   {t:"FIFO depth", b:["Depth ≥ burst length × (1 − read rate / write rate), with both rates in words per second."], q:"19-07"},
-  {t:"Verifying a design", b:["A testbench drives the design and checks every output automatically against a reference model: a simple, trusted description of the right answer.","Directed tests hit known corner cases; constrained-random tests find the bugs nobody thought of. Assertions flag a broken rule the moment it happens. Coverage tells you which scenarios you actually reached, but only checkers find bugs."], q:"19-34"}
+  {t:"Verifying a design", b:["A testbench drives the design and checks every output automatically against a reference model: a simple, trusted description of the right answer.","Directed tests hit known corner cases; constrained-random tests find the bugs nobody thought of. Assertions flag a broken rule the moment it happens. Coverage tells you which scenarios you actually reached, but only checkers find bugs."], q:"19-34"},
+  {t:"SystemVerilog for design", b:["logic replaces wire and reg; always_ff and always_comb state your intent so tools can check it.","Name FSM states with an enum, give always_comb a default assignment at the top, and use casez with ? for don't-cares (never casex)."], q:"19-58"},
+  {t:"Reading VHDL", b:["An entity declares the ports; an architecture describes the logic. Signals (<=) update when the process ends, like nonblocking assignments; variables (:=) update at once.","Arithmetic needs unsigned or signed from numeric_std, with explicit conversions."], q:"19-74"},
+  {t:"FPGAs", b:["Logic becomes 6-input LUTs counted in levels, adders use carry chains, multipliers use DSP slices, and memories with a registered read become block RAM.","Every LUT has a spare flip-flop beside it, so pipelining is the first fix for a failing path."], q:"19-82"}
 ]},
 {id:20, title:"Computer architecture", goal:"Walk through the pipeline, hazards and caches with numbers.", cards:[
   {t:"The five-stage pipeline", b:["IF, ID, EX, MEM, WB: five instructions are in flight at once, and one finishes every cycle."], q:"20-01"},
   {t:"Hazards", b:["Forwarding fixes most data hazards, but a load followed immediately by its use still stalls one cycle. Branch prediction handles control hazards."], q:"20-02"},
-  {t:"Caches", b:["An address splits into tag, index and offset. AMAT = hit time + miss rate × miss penalty.","Change the cache shape and watch the fields resize."], w:"cache", q:"20-06"}
+  {t:"Caches", b:["An address splits into tag, index and offset. AMAT = hit time + miss rate × miss penalty.","Change the cache shape and watch the fields resize."], w:"cache", q:"20-06"},
+  {t:"Coherence and out-of-order cores", b:["MESI: write only in M or E; writing a Shared line first invalidates every other copy. Two cores writing different variables in one line still fight over it (false sharing).","Out-of-order cores rename registers, run instructions when their operands are ready, and retire them in order."], q:"20-36"},
+  {t:"AXI handshakes", b:["Every AXI channel moves data only on an edge where VALID and READY are both high. A source raises VALID without waiting for READY and holds it until the transfer."], q:"20-41"}
 ]},
 {id:21, title:"GPUs", goal:"Explain how GPUs get throughput and what number formats trade off.", cards:[
   {t:"Throughput machines", b:["Warps of 32 threads run in lockstep (SIMT). The GPU hides memory latency by switching to another ready warp."], q:"21-01"},
@@ -2635,8 +2730,17 @@ function mountWidget(el, spec, ctx){
 // Each problem: id, d (E/M/H), lang, area, title, p (statement paragraphs; `code` in backticks),
 // ex (example, optional), starter, hints, sol (reference solution), why (explanation paragraphs),
 // run (Python only: {fn, tests: [[args], expected]} checked in the browser).
-const LANGS = {verilog:'Verilog', sv:'SystemVerilog', c:'C', cpp:'C++', python:'Python', bash:'Bash', tcl:'Tcl', perl:'Perl', cuda:'CUDA', matlab:'MATLAB'};
+const LANGS = {verilog:'Verilog', sv:'SystemVerilog', vhdl:'VHDL', c:'C', cpp:'C++', python:'Python', bash:'Bash', tcl:'Tcl', perl:'Perl', cuda:'CUDA', matlab:'MATLAB'};
 const CODE_AREAS = ['RTL design', 'Verification', 'C and C++', 'Python and MATLAB', 'Linux and scripting', 'Physical design', 'GPU and CUDA'];
+// An Ethernet + IPv4 + UDP frame as a list of bytes, for the packet-parsing problems.
+// opts: bytes of IPv4 options (a multiple of 4); pad: zero bytes after the packet; proto, etype: to make non-UDP frames.
+function UDP_FRAME(src, dst, payload, o = {}){
+  const opts = o.opts || 0, ihl = 5 + opts / 4, ulen = 8 + payload.length, total = ihl * 4 + ulen;
+  const be = v => [v >> 8 & 255, v & 255];
+  return [0x02, 0x00, 0x5e, 0x10, 0x20, 0x30, 0x02, 0x11, 0x22, 0x33, 0x44, 0x55, ...be(o.etype || 0x0800),
+    0x40 | ihl, 0, ...be(total), 0x12, 0x34, 0x40, 0, 64, o.proto || 17, 0, 0, 10, 0, 0, 1, 239, 1, 2, 3,
+    ...Array(opts).fill(1), ...be(src), ...be(dst), ...be(ulen), 0, 0, ...payload, ...Array(o.pad || 0).fill(0)];
+}
 const CODING = [
 // ---------------- RTL design (Verilog) ----------------
 {id:'rtl-01', d:'E', lang:'verilog', area:'RTL design', title:'Parameterized 2:1 multiplexer',
@@ -3067,6 +3171,239 @@ endmodule`,
 endmodule`,
  why:["Registering `s_ready` breaks the long combinational ready path that would otherwise run backward through every pipeline stage. The price is one extra register to catch the word already in flight when the stall arrives. This pattern appears in nearly every high-speed datapath."]},
 
+{id:'rtl-17', d:'E', lang:'verilog', area:'RTL design', title:'Priority encoder with casez',
+ p:["Write `prio8` in SystemVerilog: `idx` is the index of the highest set bit of `req`, and `any` is 1 when at least one bit is set. When `req` is 0, `idx` is 0.", "Use an `always_comb` block with `casez`, writing don't-care bits as `?`."],
+ ex:"req = 8'b0010_0110  →  idx = 5, any = 1",
+ starter:`module prio8 (
+  input  logic [7:0] req,
+  output logic [2:0] idx,
+  output logic       any
+);
+  // your code
+endmodule`,
+ hints:["List the patterns from the top bit down: `8'b1???_????` first.", "Assign defaults before the `casez` so every path sets both outputs."],
+ sol:`module prio8 (
+  input  logic [7:0] req,
+  output logic [2:0] idx,
+  output logic       any
+);
+  always_comb begin
+    idx = 3'd0;                 // defaults: no latch, and idx = 0 when req = 0
+    any = |req;
+    casez (req)
+      8'b1???_????: idx = 3'd7;
+      8'b01??_????: idx = 3'd6;
+      8'b001?_????: idx = 3'd5;
+      8'b0001_????: idx = 3'd4;
+      8'b0000_1???: idx = 3'd3;
+      8'b0000_01??: idx = 3'd2;
+      8'b0000_001?: idx = 3'd1;
+      default:      idx = 3'd0;
+    endcase
+  end
+endmodule`,
+ why:["In `casez`, a `?` in a case item matches anything, so each line names only the bits that matter. The items are checked in order, which is what gives the top bit priority. `casex` would also treat an `x` on `req` as a match, hiding an uninitialized input in simulation, which is why it is avoided.", "A loop works too: `for (int i = 0; i < 8; i++) if (req[i]) idx = i;` (the last assignment wins, so the highest set bit is kept). Both describe the same parallel logic."]},
+{id:'rtl-18', d:'M', lang:'verilog', area:'RTL design', title:'Two-stage multiply-add pipeline',
+ p:["Write `mac_pipe` in SystemVerilog: it computes `y = a * b + c` (all unsigned) in a two-stage pipeline. Stage 1 registers the product `a * b` and a copy of `c`; stage 2 registers the sum. `out_valid` is `in_valid` delayed by the same two cycles, so a result appears two clock edges after its inputs.", "Every register, data included, clears to 0 while the active-low asynchronous reset `rst_n` is low. The data registers load on every clock edge, whether or not `in_valid` is high."],
+ ex:"in_valid = 1, a = 3, b = 4, c = 5 before edge 1  →  after edge 2: out_valid = 1, y = 17",
+ starter:`module mac_pipe (
+  input  logic        clk, rst_n, in_valid,
+  input  logic [7:0]  a, b,
+  input  logic [15:0] c,
+  output logic        out_valid,
+  output logic [16:0] y
+);
+  // your code
+endmodule`,
+ hints:["Stage 1 needs three registers: the valid bit, the 16-bit product and `c`.", "If stage 2 adds the live `c` instead of the registered copy, it pairs each product with the next cycle's `c`.", "255 × 255 + 65535 needs 17 bits, so extend before adding."],
+ sol:`module mac_pipe (
+  input  logic        clk, rst_n, in_valid,
+  input  logic [7:0]  a, b,
+  input  logic [15:0] c,
+  output logic        out_valid,
+  output logic [16:0] y
+);
+  logic        v1;
+  logic [15:0] prod, c1;
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      v1 <= 1'b0; prod <= '0; c1 <= '0;
+      out_valid <= 1'b0; y <= '0;
+    end else begin
+      v1 <= in_valid;  prod <= a * b;            c1 <= c;   // stage 1
+      out_valid <= v1; y <= {1'b0, prod} + c1;              // stage 2
+    end
+  end
+endmodule`,
+ why:["Each pipeline stage is a set of registers, and every value a later stage needs travels with its own register so that it stays lined up with the data computed from it. Forgetting to delay `c` is the classic pipeline bug: the design still runs, but each product is added to the wrong `c`.", "The latency is two cycles, but a new input is accepted every cycle, so the throughput is one result per cycle. On an FPGA, the multiply and its registers fit in one DSP slice."]},
+{id:'rtl-19', d:'M', lang:'verilog', area:'RTL design', title:'AXI-Stream packet counter',
+ p:["Write `axis_count`, which watches an AXI4-Stream interface (`tvalid`, `tready`, `tlast`). A beat transfers on a clock edge where `tvalid` and `tready` are both 1; the beat with `tlast = 1` ends a packet.", "On each edge where a beat transfers: if it is the last beat, `pkts` (8 bits) increments and `last_len` (8 bits) becomes the number of beats in the packet just finished, this one included. Both wrap around naturally. Beats where only one of `tvalid` and `tready` is high are not transfers. The active-low asynchronous reset `rst_n` clears everything to 0."],
+ ex:"Beats (valid & ready): 1, 1, 1 with tlast on the third  →  pkts = 1, last_len = 3",
+ starter:`module axis_count (
+  input  logic       clk, rst_n,
+  input  logic       tvalid, tready, tlast,
+  output logic [7:0] pkts,
+  output logic [7:0] last_len
+);
+  // your code
+endmodule`,
+ hints:["Keep a private counter of beats seen so far in the current packet.", "On the last beat, report the counter plus one, and clear the counter for the next packet."],
+ sol:`module axis_count (
+  input  logic       clk, rst_n,
+  input  logic       tvalid, tready, tlast,
+  output logic [7:0] pkts,
+  output logic [7:0] last_len
+);
+  logic [7:0] beats;                       // beats so far in this packet
+  wire xfer = tvalid && tready;
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      beats <= '0; pkts <= '0; last_len <= '0;
+    end else if (xfer) begin
+      if (tlast) begin
+        pkts     <= pkts + 8'd1;
+        last_len <= beats + 8'd1;
+        beats    <= '0;
+      end else
+        beats <= beats + 8'd1;
+    end
+  end
+endmodule`,
+ why:["Every AXI channel is a valid/ready handshake: nothing moves unless both are high on the same edge. Counting on `tvalid` alone double-counts a beat that waits several cycles for `tready`, the most common bug in stream monitors.", "AXI4-Stream has no addresses; `tlast` alone marks packet boundaries, which is why it is the usual way to pass network packets between blocks in an FPGA design."]},
+{id:'rtl-20', d:'H', lang:'verilog', area:'RTL design', title:'Find the UDP port in an Ethernet frame',
+ p:["Write `udp_port`, which watches an Ethernet frame arriving 4 bytes per beat on `data[31:0]`, first byte in `data[31:24]`. A beat is a cycle with `valid = 1`. A beat with `sop = 1` is word 0 of a new frame, even in the middle of another one. Beats before the first `sop`, and beats after word 9 of a frame, are ignored.", "Frames have no VLAN tag. Word 3 holds the EtherType (bytes 12–13, in `data[31:16]`) followed by the first IPv4 byte (`data[15:8]`, 0x45 for IPv4 with no options). Word 5 ends with the IPv4 protocol byte (byte 23, in `data[7:0]`; 17 means UDP). Word 9 starts with the UDP destination port (bytes 36–37, in `data[31:16]`).", "On the clock edge that receives word 9: if word 3 had EtherType 0x0800 and first IPv4 byte 0x45, and word 5 had protocol 17, set `port_valid` to 1 for that one cycle and load the port into `dst_port`. `dst_port` holds its value until the next match. The active-low asynchronous reset `rst_n` clears everything to 0."],
+ ex:"An IPv4/UDP frame to port 0x3039 (12345): one cycle after word 9 arrives, port_valid = 1 and dst_port = 12345",
+ starter:`module udp_port (
+  input  logic        clk, rst_n,
+  input  logic        valid, sop,
+  input  logic [31:0] data,
+  output logic        port_valid,
+  output logic [15:0] dst_port
+);
+  // your code
+endmodule`,
+ hints:["Count words with a small counter that the `sop` beat sets so the next beat is word 1.", "You cannot look back at word 3 when word 9 arrives, so store one bit for each check when its word goes by.", "Clear `port_valid` by default every cycle, and set it only on the word-9 edge."],
+ sol:`module udp_port (
+  input  logic        clk, rst_n,
+  input  logic        valid, sop,
+  input  logic [31:0] data,
+  output logic        port_valid,
+  output logic [15:0] dst_port
+);
+  logic [3:0] w;          // index of the next word
+  logic       active, eth_ok, ip_ok;
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      w <= '0; active <= 1'b0; eth_ok <= 1'b0; ip_ok <= 1'b0;
+      port_valid <= 1'b0; dst_port <= '0;
+    end else begin
+      port_valid <= 1'b0;
+      if (valid) begin
+        if (sop) begin
+          w <= 4'd1; active <= 1'b1;        // this beat was word 0
+        end else if (active) begin
+          w <= w + 4'd1;
+          case (w)
+            4'd3: eth_ok <= data[31:16] == 16'h0800 && data[15:8] == 8'h45;
+            4'd5: ip_ok  <= data[7:0] == 8'd17;
+            4'd9: begin
+              active <= 1'b0;               // ignore the rest of the frame
+              if (eth_ok && ip_ok) begin
+                port_valid <= 1'b1;
+                dst_port   <= data[31:16];
+              end
+            end
+            default: ;
+          endcase
+        end
+      end
+    end
+  end
+endmodule`,
+ why:["This is the core of a hardware packet parser: a word counter tells you which header fields are on the bus right now, and a bit of state remembers each check until the decision. The port is known the moment word 9 arrives, long before the frame's CRC at the end, which is how low-latency FPGA designs react in tens of nanoseconds.", "Offsets come straight from the header sizes: Ethernet 14 bytes, IPv4 20, so UDP starts at byte 34 and its destination port is bytes 36–37, which is word 36 / 4 = 9. Network fields are big-endian, so the first byte on the wire is the high byte of the port."]},
+{id:'vhd-01', d:'E', lang:'vhdl', area:'RTL design', title:'VHDL: counter with enable and synchronous reset',
+ p:["Write the VHDL entity and architecture `counter8`: on each rising edge of `clk`, if `rst` is '1' the count `q` becomes 0; otherwise, if `en` is '1', it increments, wrapping from 255 to 0. Use `numeric_std`."],
+ starter:`library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity counter8 is
+  port ( clk, rst, en : in  std_logic;
+         q            : out std_logic_vector(7 downto 0) );
+end entity;
+
+architecture rtl of counter8 is
+begin
+  -- your code
+end architecture;`,
+ hints:["Keep the count in an internal `unsigned(7 downto 0)` signal, because you cannot read an `out` port in VHDL-93 and cannot add 1 to a `std_logic_vector`.", "Convert on the way out: `q <= std_logic_vector(cnt);`."],
+ sol:`library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity counter8 is
+  port ( clk, rst, en : in  std_logic;
+         q            : out std_logic_vector(7 downto 0) );
+end entity;
+
+architecture rtl of counter8 is
+  signal cnt : unsigned(7 downto 0);
+begin
+  process (clk)
+  begin
+    if rising_edge(clk) then
+      if rst = '1' then
+        cnt <= (others => '0');
+      elsif en = '1' then
+        cnt <= cnt + 1;            -- unsigned arithmetic wraps at 8 bits
+      end if;
+    end if;
+  end process;
+  q <= std_logic_vector(cnt);
+end architecture;`,
+ why:["This is the Verilog `always @(posedge clk)` counter in VHDL form: `process (clk)` with `if rising_edge(clk)` makes flip-flops, and the reset is checked inside the edge, so it is synchronous.", "VHDL's types are strict: `std_logic_vector` is just bits, and arithmetic needs `unsigned` or `signed` from `numeric_std`. The explicit conversions are the price of catching width and sign mistakes at compile time."]},
+{id:'vhd-02', d:'M', lang:'vhdl', area:'RTL design', title:'VHDL: translate a Verilog state machine',
+ p:["Translate this Verilog Moore machine into VHDL, using an enumerated type for the state. `busy` is 1 in state RUN; the machine leaves RUN when `done` is 1.", "`always @(posedge clk or negedge rst_n) if (!rst_n) s <= IDLE; else case (s) IDLE: if (go) s <= RUN; RUN: if (done) s <= IDLE; endcase` and `assign busy = (s == RUN);`"],
+ starter:`library ieee;
+use ieee.std_logic_1164.all;
+
+entity ctrl is
+  port ( clk, rst_n, go, done : in  std_logic;
+         busy                 : out std_logic );
+end entity;
+
+architecture rtl of ctrl is
+  -- declare the state type and signal
+begin
+  -- your code
+end architecture;`,
+ hints:["`type state_t is (IDLE, RUN);` then `signal s : state_t;`.", "An asynchronous reset is checked before `rising_edge`, with `rst_n` in the sensitivity list."],
+ sol:`library ieee;
+use ieee.std_logic_1164.all;
+
+entity ctrl is
+  port ( clk, rst_n, go, done : in  std_logic;
+         busy                 : out std_logic );
+end entity;
+
+architecture rtl of ctrl is
+  type state_t is (IDLE, RUN);
+  signal s : state_t;
+begin
+  process (clk, rst_n)
+  begin
+    if rst_n = '0' then
+      s <= IDLE;                           -- asynchronous reset
+    elsif rising_edge(clk) then
+      case s is
+        when IDLE => if go = '1' then s <= RUN; end if;
+        when RUN  => if done = '1' then s <= IDLE; end if;
+      end case;
+    end if;
+  end process;
+  busy <= '1' when s = RUN else '0';
+end architecture;`,
+ why:["An asynchronous reset in VHDL is the `if` before `elsif rising_edge(clk)`, with the reset in the sensitivity list; that matches Verilog's `or negedge rst_n`. VHDL requires a `case` to cover every value, so with an enumerated type the compiler checks that no state is forgotten.", "The conditional signal assignment `busy <= '1' when ... else '0';` is VHDL's form of `assign busy = cond;`, describing combinational logic outside any process."]},
 // ---------------- Verification (SystemVerilog, cocotb) ----------------
 {id:'ver-01', d:'E', lang:'sv', area:'Verification', title:'Self-checking testbench for an adder',
  p:["`adder8` has inputs `a`, `b` (8 bits) and output `sum` (9 bits). Write `tb_adder8` that checks the corner cases 0+0, 255+1 and 255+255, then 10,000 random pairs, counts mismatches and prints the total."],
@@ -3238,6 +3575,26 @@ async def counts_up(dut):
         assert got == expected % 16, f"cycle {expected}: q={got}, expected {expected % 16}"`,
  why:["cocotb drives a Verilog simulation from Python, so the reference model can be any Python code. It is popular for open-source flows and is a quick way to build self-checking tests without SystemVerilog classes."]},
 
+{id:'ver-07', d:'M', lang:'sv', area:'Verification', title:'Assertions for the valid/ready rules',
+ p:["Write a checker `vr_checks` (inputs `clk`, `rst_n`, `valid`, `ready`, `data[31:0]`) with SystemVerilog Assertions for the AXI-style handshake rules: (1) once `valid` is high, it stays high until a transfer (`valid && ready`) happens; (2) while `valid` is high and `ready` is low, `data` must not change; (3) after reset, `valid` is never X or Z."],
+ starter:`module vr_checks (input logic clk, rst_n, valid, ready,
+                  input logic [31:0] data);
+  // your assertions
+endmodule`,
+ hints:["'Stays high until' is: `valid && !ready |=> valid`.", "`$stable(data)` compares `data` with its value at the previous sampled edge.", "`$isunknown(valid)` is true for X or Z."],
+ sol:`module vr_checks (input logic clk, rst_n, valid, ready,
+                  input logic [31:0] data);
+  // (1) a waiting valid may not be withdrawn
+  a_hold_valid: assert property (@(posedge clk) disable iff (!rst_n)
+                                 valid && !ready |=> valid);
+  // (2) a waiting beat keeps its data
+  a_hold_data:  assert property (@(posedge clk) disable iff (!rst_n)
+                                 valid && !ready |=> $stable(data));
+  // (3) no unknown on valid once out of reset
+  a_known:      assert property (@(posedge clk) disable iff (!rst_n)
+                                 !$isunknown(valid));
+endmodule`,
+ why:["`|=>` means 'then on the next cycle': if a beat is waiting in this cycle, it must still be offered, unchanged, in the next. These two rules are what let the receiver take its time without losing or corrupting data, and breaking them is a common source of lost packets.", "The rules check the source only. A receiver is free to hold `ready` low as long as it likes, so there is no assertion on `ready`, except perhaps a liveness check that each transfer eventually happens."]},
 // ---------------- C and C++ ----------------
 {id:'c-01', d:'E', lang:'c', area:'C and C++', title:'Count the set bits',
  p:["Write `int popcount(unsigned int x)` returning the number of 1 bits in `x`, using the `x & (x - 1)` trick."],
@@ -3804,6 +4161,32 @@ def latest_arrival(gates, delays):
  why:["This is the core of static timing analysis: arrival times propagate forward through the graph, and the latest arrival at a flip-flop compared with the clock period gives the slack."],
  run:{fn:'latest_arrival', tests:[[[{"g1": ["a", "b"], "g2": ["g1", "c"], "g3": ["g1"]}, {"g1": 2, "g2": 3, "g3": 1}], 5], [[{"x": ["i"]}, {"x": 7}], 7], [[{"n1": ["i1"], "n2": ["i2"], "n3": ["n1", "n2"], "n4": ["n3", "n1"]}, {"n1": 1, "n2": 4, "n3": 2, "n4": 3}], 9], [[{}, {}], 0]]}},
 
+{id:'py-13', d:'M', lang:'python', area:'Python and MATLAB', title:'Parse Ethernet, IPv4 and UDP headers',
+ p:["Write `parse_udp(frame)`. `frame` is a list of byte values (0–255) starting at the destination MAC address, with no preamble and no VLAN tag. If it is IPv4 (EtherType 0x0800) carrying UDP (protocol 17), return `[src_port, dst_port, payload]`, where `payload` is the list of UDP payload bytes. Otherwise return `None`.", "The IPv4 header length is the low 4 bits of its first byte, in 32-bit words (5 means 20 bytes); options may be present. The payload length is the UDP length field minus its 8-byte header. Fields are big-endian. The frame may be longer than the packet (padding), so use the length field, not the frame size."],
+ ex:"parse_udp(<frame to port 53 with payload [1, 2]>)  →  [40000, 53, [1, 2]]",
+ starter:`def parse_udp(frame):
+    # your code
+    pass`,
+ hints:["A big-endian 16-bit field at offset i is `frame[i] << 8 | frame[i + 1]`.", "The UDP header starts at 14 + 4 * (frame[14] & 0x0F)."],
+ sol:`def parse_udp(frame):
+    be16 = lambda i: frame[i] << 8 | frame[i + 1]
+    if len(frame) < 34 or be16(12) != 0x0800:
+        return None                       # not IPv4
+    ihl = (frame[14] & 0x0F) * 4          # IPv4 header length in bytes
+    if frame[23] != 17:
+        return None                       # not UDP
+    u = 14 + ihl                          # start of the UDP header
+    length = be16(u + 4)                  # UDP header + payload
+    return [be16(u), be16(u + 2), frame[u + 8 : u + length]]`,
+ run:{fn:'parse_udp', tests:[
+   [[UDP_FRAME(40000, 53, [1, 2])], [40000, 53, [1, 2]]],
+   [[UDP_FRAME(1234, 12345, [9, 8, 7, 6, 5])], [1234, 12345, [9, 8, 7, 6, 5]]],
+   [[UDP_FRAME(5000, 6000, [])], [5000, 6000, []]],
+   [[UDP_FRAME(7, 8, [0xAA, 0xBB, 0xCC], {pad:20})], [7, 8, [0xAA, 0xBB, 0xCC]]],
+   [[UDP_FRAME(31337, 443, [4, 3, 2, 1], {opts:8})], [31337, 443, [4, 3, 2, 1]]],
+   [[UDP_FRAME(80, 81, [1], {proto:6})], null],
+   [[UDP_FRAME(80, 81, [1], {etype:0x0806})], null]]},
+ why:["Each layer's header tells you where the next one starts: Ethernet is always 14 bytes, IPv4 gives its own length, and UDP is 8 bytes plus a length field. Parsers that hard-code byte 42 work until a packet with IP options arrives.", "Ethernet frames shorter than 64 bytes are padded, so the frame can be longer than the packet; trusting the length field instead of the frame size is what keeps the padding out of the payload. Hardware parsers make the same calculations with counters and comparators."]},
 // ---------------- Linux and scripting ----------------
 {id:'sh-01', d:'E', lang:'bash', area:'Linux and scripting', title:'Count lines of SystemVerilog',
  p:["From the top of a project, print the total number of lines in all `.sv` files in every subdirectory."],
@@ -3932,6 +4315,21 @@ foreach_in_collection p $paths {
     puts [format "%-40s %-40s %8.3f" $sp $ep $sl]
 }`,
  why:["Engineers script reports like this to sort failures by block, find common startpoints, and track progress across runs. Command names differ slightly between tools (OpenSTA, Tempus), but the pattern is the same."]},
+{id:'tcl-04', d:'M', lang:'tcl', area:'Physical design', title:'FPGA constraints for two clock domains',
+ p:["Write the Vivado (XDC) constraints for a design with a 100 MHz clock on port `clk_a` and a 156.25 MHz clock on port `clk_b`. The two are unrelated, and every crossing between them goes through a synchronizer or an asynchronous FIFO. Input `din` is clocked by `clk_a` and arrives up to 2 ns after its clock edge; output `dout`, clocked by `clk_b`, must be valid 1.5 ns before the next edge at the receiver."],
+ starter:`# your constraints`,
+ hints:["`create_clock -period <ns> -name <name> [get_ports <port>]`.", "`set_clock_groups -asynchronous -group ... -group ...` stops timing between unrelated clocks.", "Output delay is how much of the period the outside world needs."],
+ sol:`# The two clocks
+create_clock -period 10.000 -name clk_a [get_ports clk_a]
+create_clock -period 6.400  -name clk_b [get_ports clk_b]
+
+# Unrelated clocks: crossings are made safe by design, not by timing
+set_clock_groups -asynchronous -group [get_clocks clk_a] -group [get_clocks clk_b]
+
+# The outside world's share of each I/O path
+set_input_delay  -clock clk_a -max 2.0 [get_ports din]
+set_output_delay -clock clk_b -max 1.5 [get_ports dout]`,
+ why:["Timing analysis only knows what the constraints say. Without `create_clock` the paths are not checked at all, and without the clock groups the tool tries to time paths between unrelated clocks, reports failures that cannot be fixed, and may waste effort on them.", "Declaring clocks asynchronous is safe only when every crossing really is synchronized; the constraint switches checking off, so a missing synchronizer becomes a silent bug. CDC checking tools exist to catch exactly that."]},
 {id:'pl-01', d:'M', lang:'perl', area:'Linux and scripting', title:'Perl: errors per module',
  p:["Write a Perl script that reads a log from standard input (or files given on the command line), counts lines starting with `ERROR [module]` per module, and prints each module and count, largest first."],
  starter:`#!/usr/bin/env perl
@@ -4042,6 +4440,17 @@ static struct node *mk(int n, const int *a){ struct node *h = NULL; for (int i =
 static struct node *mkcyc(int n, const int *a, int k){ struct node *h = mk(n, a), *t = h, *j = NULL; for (int i = 0; t; i++) { if (i == k) j = t; if (!t->next) { t->next = j; break; } t = t->next; } return h; }
 static char __sb[8][512]; static int __si;
 static const char *show(struct node *h){ char *b = __sb[__si++ & 7]; int n = 0, k = 0; b[0] = 0; while (h && n < 60) { k += sprintf(b + k, n ? " %d" : "%d", h->val); h = h->next; n++; } if (h) strcat(b, " ... (the list loops)"); return b; }`;
+// A frame's bytes as udp_port beats ('rst_n valid sop data'), 4 bytes per beat with the first byte on top.
+// With gap > 0, an idle cycle follows every gap-th beat.
+function udpBeats(bytes, gap = 0){
+  const rows = [];
+  for (let i = 0, k = 0; i < bytes.length; i += 4, k++) {
+    const w = [0, 1, 2, 3].reduce((s, j) => s * 256 + (bytes[i + j] || 0), 0);
+    rows.push(`1 1 ${i === 0 ? 1 : 0} ${w}`);
+    if (gap && (k + 1) % gap === 0) rows.push('1 0 0 0');
+  }
+  return rows;
+}
 const HIDDEN = {
 'c-01':{kind:'c', tests:[['popcount(0u)', '0'], ['popcount(1u)', '1'], ['popcount(7u)', '3'], ['popcount(0x80000000u)', '1'], ['popcount(0xA5A5A5A5u)', '16'], ['popcount(0x12345678u)', '13'], ['popcount(0xFFFFFFFFu)', '32']]},
 'c-02':{kind:'c', tests:[['is_pow2(0u)', '0'], ['is_pow2(1u)', '1'], ['is_pow2(2u)', '1'], ['is_pow2(3u)', '0'], ['is_pow2(64u)', '1'], ['is_pow2(96u)', '0'], ['is_pow2(0x80000000u)', '1'], ['is_pow2(0xFFFFFFFFu)', '0']]},
@@ -4118,6 +4527,20 @@ static const char *rbtest(int which){
   {name:'300 random inputs', top:'lzc16', in:['x'], rand:{n:300}}]},
 'rtl-15':{kind:'v', top:'async_fifo', check:'afifo'},
 'rtl-16':{kind:'v', top:'skid_buffer', check:'skid'},
+'rtl-17':{kind:'v', benches:[{name:'All 256 inputs', top:'prio8', in:['req'], rows:Array.from({length:256}, (_, i) => String(i))}]},
+'rtl-18':{kind:'v', benches:[{name:'One input, then back-to-back inputs', top:'mac_pipe', clk:'clk', in:['rst_n', 'in_valid', 'a', 'b', 'c'],
+    rows:['0 0 0 0 0', '1 1 3 4 5', '1 0 0 0 0', '1 0 0 0 0', '1 1 255 255 65535', '1 1 10 20 30', '1 1 0 7 9', '1 0 1 1 1', '1 0 0 0 0', '1 0 0 0 0']},
+  {name:'400 random cycles', top:'mac_pipe', clk:'clk', in:['rst_n', 'in_valid', 'a', 'b', 'c'], rows:['0 0 0 0 0'], rand:{n:400, fix:{rst_n:1}}}]},
+'rtl-19':{kind:'v', benches:[{name:'Packets of 3, 1 and 2 beats, with stalls', top:'axis_count', clk:'clk', in:['rst_n', 'tvalid', 'tready', 'tlast'],
+    rows:['0 0 0 0', '1 1 1 0', '1 1 0 0', '1 1 1 0', '1 0 1 1', '1 1 1 1', '1 1 1 1', '1 1 1 0', '1 1 0 1', '1 1 1 1', '1 0 0 0']},
+  {name:'500 random cycles', top:'axis_count', clk:'clk', in:['rst_n', 'tvalid', 'tready', 'tlast'], rows:['0 0 0 0'], rand:{n:500, fix:{rst_n:1}, p:{tvalid:0.7, tready:0.6, tlast:0.25}}}]},
+'rtl-20':{kind:'v', benches:[{name:'A UDP frame, then TCP, ARP and IP-options frames', top:'udp_port', clk:'clk', in:['rst_n', 'valid', 'sop', 'data'],
+    rows:['0 0 0 0', ...udpBeats(UDP_FRAME(40000, 12345, [1, 2, 3, 4])), ...udpBeats(UDP_FRAME(1, 2, [5], {proto:6})),
+      ...udpBeats(UDP_FRAME(3, 4, [6], {etype:0x0806})), ...udpBeats(UDP_FRAME(5, 6, [7], {opts:4})), ...udpBeats(UDP_FRAME(9, 53, [8, 9]))]},
+  {name:'Gaps between beats, junk before the first sop, and a frame cut short', top:'udp_port', clk:'clk', in:['rst_n', 'valid', 'sop', 'data'],
+    rows:['0 0 0 0', '1 1 0 4294967295', '1 1 0 2048', ...udpBeats(UDP_FRAME(7, 8080, [1]), 3), ...udpBeats(UDP_FRAME(7, 1111, [1])).slice(0, 7),
+      ...udpBeats(UDP_FRAME(7, 2222, [1, 2]), 2), ...udpBeats(UDP_FRAME(7, 3333, [1]).concat(Array(40).fill(0x55)))]},
+  {name:'400 random cycles', top:'udp_port', clk:'clk', in:['rst_n', 'valid', 'sop', 'data'], rows:['0 0 0 0'], rand:{n:400, fix:{rst_n:1}, p:{valid:0.8, sop:0.08}}}]},
 };
 CODING.forEach(p => { if (HIDDEN[p.id]) p.run = HIDDEN[p.id]; });
 
@@ -4760,14 +5183,15 @@ const DIFF = {E:'Easy', M:'Medium', H:'Hard'};
 const ROMAN = ['I','II','III','IV','V','VI','VII','VIII'];
 const BANK = RAW.map((r, i) => {
   const [id, d, q, ans, e, tags] = r, t = tags || '';
-  const Q = {id, n:i + 1, ch:parseInt(id.slice(0, 2), 10), d, q, e, tags:t, oa:t.includes('o'), beyond:t.includes('b')};
+  const Q = {id, n:i + 1, ch:MOVED[id] || parseInt(id.slice(0, 2), 10), d, q, e, tags:t, oa:t.includes('o'), beyond:t.includes('b')};
   if (Array.isArray(ans)) { Q.k = 'm'; Q.o = ans; } else { Q.k = 't'; Q.a = ans; }
   Q.hay = (q + ' ' + (Q.o ? Q.o.join(' ') : '') + ' ' + e + ' ' + TOPICS[Q.ch]).toLowerCase();
   return Q;
 });
 const BY_ID = Object.fromEntries(BANK.map(q => [q.id, q]));
 const CH_IDS = {};
-BANK.forEach(q => (CH_IDS[q.ch] = CH_IDS[q.ch] || []).push(q.id));
+// A chapter's own questions first, then any moved into it from an earlier chapter's ids.
+[...BANK.filter(q => !MOVED[q.id]), ...BANK.filter(q => MOVED[q.id])].forEach(q => (CH_IDS[q.ch] = CH_IDS[q.ch] || []).push(q.id));
 const MOCK_N = 15, MOCK_MIN = 50, UNIT_N = 5, UNIT_PASS = 4;
 const MUX_NAMES = {OR:'OR', AND:'AND', NOTA:'NOT A', NAND:'NAND', NOR:'NOR', XOR:'XOR'};
 
@@ -5895,16 +6319,17 @@ const KW = {
   perl:'my our sub if elsif else unless foreach for while return print use strict warnings open close next last',
   cuda:'__global__ __device__ __host__ __shared__ __syncthreads threadIdx blockIdx blockDim gridDim dim3 cudaMalloc cudaMemcpy cudaFree',
   matlab:'function end if elseif else for while return switch case otherwise',
+  vhdl:'library use all entity is port in out inout end architecture of begin signal variable constant process if then elsif else case when others downto to type subtype std_logic std_logic_vector unsigned signed integer boolean rising_edge falling_edge and or not xor nand nor generic map component for generate loop while range array record package body function procedure return wait until after select with',
 };
 const KW_SET = {};
 const kwFor = lang => KW_SET[lang] || (KW_SET[lang] = new Set((KW[lang] + ' ' + ({cpp:KW.c, cuda:KW.c + ' ' + KW.cpp, sv:KW.verilog}[lang] || '')).split(/\s+/)));
 function highlight(src, lang){
-  const hash = ['python', 'bash', 'tcl', 'perl'].includes(lang), pct = lang === 'matlab', hdl = lang === 'verilog' || lang === 'sv';
+  const hash = ['python', 'bash', 'tcl', 'perl'].includes(lang), pct = lang === 'matlab', hdl = lang === 'verilog' || lang === 'sv', vh = lang === 'vhdl';
   const re = new RegExp([
-    hash ? '#[^\\n]*' : pct ? '%[^\\n]*' : '\\/\\*[\\s\\S]*?(?:\\*\\/|$)|\\/\\/[^\\n]*',
+    hash ? '#[^\\n]*' : pct ? '%[^\\n]*' : vh ? '--[^\\n]*' : '\\/\\*[\\s\\S]*?(?:\\*\\/|$)|\\/\\/[^\\n]*',
     hdl ? '"(?:\\\\.|[^"\\\\\\n])*"' : '"(?:\\\\.|[^"\\\\\\n])*"|\'(?:\\\\.|[^\'\\\\\\n])*\'',
     hdl ? "\\d*'[sS]?[bBoOdDhH][0-9a-fA-FxXzZ_]+|\\b\\d[\\d_]*(?:\\.\\d+)?\\b" : '\\b0[xX][0-9a-fA-F]+[uUlL]*\\b|\\b\\d+(?:\\.\\d+)?[uUlLfF]*\\b',
-    '[A-Za-z_$][\\w$]*', hash || pct ? '(?!)' : '^[ \\t]*#\\s*\\w+'].map(x => '(' + x + ')').join('|'), 'gm');
+    '[A-Za-z_$][\\w$]*', hash || pct || vh ? '(?!)' : '^[ \\t]*#\\s*\\w+'].map(x => '(' + x + ')').join('|'), 'gm');
   const kw = kwFor(lang);
   let out = '', last = 0, m;
   while ((m = re.exec(src))) {
@@ -6534,7 +6959,6 @@ function viewLesson(){
   const short = x => x.badge && isNaN(+x.badge) ? x.badge : 'Ch ' + x.n;
   const side = `<aside class="lside panel"><div class="lside-h"><button type="button" class="linkbtn small" data-act="learn-home">← All chapters</button>
       <p class="eyebrow">${esc(chLabel(c))}</p><b>${esc(c.title)}</b><span class="cobar"><i style="width:${pct(P.done, P.total)}%"></i></span><small class="muted">${P.read}/${P.lessons} ${P.lessons === 1 ? 'page' : 'lessons'}${P.probs ? ` · ${P.solved}/${P.probs} problems` : ''}</small></div>
-    ${UNITS[c.n - 1] && c.n <= 23 ? (() => { const U = UNITS[c.n - 1], ok = unitPassed(c.n); return `<button type="button" class="litem lquest${ok ? ' done' : ''}" data-act="learn-quest" data-v="${c.n}"><i class="lchk">${ok ? '✓' : '⚡'}</i><span>Interactive quest<small>${U.cards.length} lessons with widgets · checkpoint</small></span><em>${ok ? 'passed' : cardsDone(U) + '/' + U.cards.length}</em></button>`; })() : ''}
     <nav class="litems" aria-label="Lessons">${items}</nav>
     <div class="lside-f">${prevCh ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${prevCh.n}">‹ ${esc(short(prevCh))}</button>` : '<span></span>'}${nextCh ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${nextCh.n}">${esc(short(nextCh))} ›</button>` : ''}</div></aside>`;
   const step = lessonStep(1), back = lessonStep(-1);
@@ -7496,7 +7920,6 @@ function act(a){
   const S = ui.session, P = ui.pv;
   switch (a.dataset.act) {
     case 'open-unit': ui.unitFrom = null; openUnit(+a.dataset.u); break;
-    case 'learn-quest': ui.unitFrom = ui.lesson ? {ch:ui.lesson.ch, sec:ui.lesson.sec} : null; openUnit(+a.dataset.v); break;
     case 'go': goTab(a.dataset.v); break;
     case 'settings-back': settingsBack(); break;
     case 'learn-home': goTab('learn'); break;

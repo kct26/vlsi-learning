@@ -7,6 +7,17 @@ static struct node *mk(int n, const int *a){ struct node *h = NULL; for (int i =
 static struct node *mkcyc(int n, const int *a, int k){ struct node *h = mk(n, a), *t = h, *j = NULL; for (int i = 0; t; i++) { if (i == k) j = t; if (!t->next) { t->next = j; break; } t = t->next; } return h; }
 static char __sb[8][512]; static int __si;
 static const char *show(struct node *h){ char *b = __sb[__si++ & 7]; int n = 0, k = 0; b[0] = 0; while (h && n < 60) { k += sprintf(b + k, n ? " %d" : "%d", h->val); h = h->next; n++; } if (h) strcat(b, " ... (the list loops)"); return b; }`;
+// A frame's bytes as udp_port beats ('rst_n valid sop data'), 4 bytes per beat with the first byte on top.
+// With gap > 0, an idle cycle follows every gap-th beat.
+function udpBeats(bytes, gap = 0){
+  const rows = [];
+  for (let i = 0, k = 0; i < bytes.length; i += 4, k++) {
+    const w = [0, 1, 2, 3].reduce((s, j) => s * 256 + (bytes[i + j] || 0), 0);
+    rows.push(`1 1 ${i === 0 ? 1 : 0} ${w}`);
+    if (gap && (k + 1) % gap === 0) rows.push('1 0 0 0');
+  }
+  return rows;
+}
 const HIDDEN = {
 'c-01':{kind:'c', tests:[['popcount(0u)', '0'], ['popcount(1u)', '1'], ['popcount(7u)', '3'], ['popcount(0x80000000u)', '1'], ['popcount(0xA5A5A5A5u)', '16'], ['popcount(0x12345678u)', '13'], ['popcount(0xFFFFFFFFu)', '32']]},
 'c-02':{kind:'c', tests:[['is_pow2(0u)', '0'], ['is_pow2(1u)', '1'], ['is_pow2(2u)', '1'], ['is_pow2(3u)', '0'], ['is_pow2(64u)', '1'], ['is_pow2(96u)', '0'], ['is_pow2(0x80000000u)', '1'], ['is_pow2(0xFFFFFFFFu)', '0']]},
@@ -83,5 +94,19 @@ static const char *rbtest(int which){
   {name:'300 random inputs', top:'lzc16', in:['x'], rand:{n:300}}]},
 'rtl-15':{kind:'v', top:'async_fifo', check:'afifo'},
 'rtl-16':{kind:'v', top:'skid_buffer', check:'skid'},
+'rtl-17':{kind:'v', benches:[{name:'All 256 inputs', top:'prio8', in:['req'], rows:Array.from({length:256}, (_, i) => String(i))}]},
+'rtl-18':{kind:'v', benches:[{name:'One input, then back-to-back inputs', top:'mac_pipe', clk:'clk', in:['rst_n', 'in_valid', 'a', 'b', 'c'],
+    rows:['0 0 0 0 0', '1 1 3 4 5', '1 0 0 0 0', '1 0 0 0 0', '1 1 255 255 65535', '1 1 10 20 30', '1 1 0 7 9', '1 0 1 1 1', '1 0 0 0 0', '1 0 0 0 0']},
+  {name:'400 random cycles', top:'mac_pipe', clk:'clk', in:['rst_n', 'in_valid', 'a', 'b', 'c'], rows:['0 0 0 0 0'], rand:{n:400, fix:{rst_n:1}}}]},
+'rtl-19':{kind:'v', benches:[{name:'Packets of 3, 1 and 2 beats, with stalls', top:'axis_count', clk:'clk', in:['rst_n', 'tvalid', 'tready', 'tlast'],
+    rows:['0 0 0 0', '1 1 1 0', '1 1 0 0', '1 1 1 0', '1 0 1 1', '1 1 1 1', '1 1 1 1', '1 1 1 0', '1 1 0 1', '1 1 1 1', '1 0 0 0']},
+  {name:'500 random cycles', top:'axis_count', clk:'clk', in:['rst_n', 'tvalid', 'tready', 'tlast'], rows:['0 0 0 0'], rand:{n:500, fix:{rst_n:1}, p:{tvalid:0.7, tready:0.6, tlast:0.25}}}]},
+'rtl-20':{kind:'v', benches:[{name:'A UDP frame, then TCP, ARP and IP-options frames', top:'udp_port', clk:'clk', in:['rst_n', 'valid', 'sop', 'data'],
+    rows:['0 0 0 0', ...udpBeats(UDP_FRAME(40000, 12345, [1, 2, 3, 4])), ...udpBeats(UDP_FRAME(1, 2, [5], {proto:6})),
+      ...udpBeats(UDP_FRAME(3, 4, [6], {etype:0x0806})), ...udpBeats(UDP_FRAME(5, 6, [7], {opts:4})), ...udpBeats(UDP_FRAME(9, 53, [8, 9]))]},
+  {name:'Gaps between beats, junk before the first sop, and a frame cut short', top:'udp_port', clk:'clk', in:['rst_n', 'valid', 'sop', 'data'],
+    rows:['0 0 0 0', '1 1 0 4294967295', '1 1 0 2048', ...udpBeats(UDP_FRAME(7, 8080, [1]), 3), ...udpBeats(UDP_FRAME(7, 1111, [1])).slice(0, 7),
+      ...udpBeats(UDP_FRAME(7, 2222, [1, 2]), 2), ...udpBeats(UDP_FRAME(7, 3333, [1]).concat(Array(40).fill(0x55)))]},
+  {name:'400 random cycles', top:'udp_port', clk:'clk', in:['rst_n', 'valid', 'sop', 'data'], rows:['0 0 0 0'], rand:{n:400, fix:{rst_n:1}, p:{valid:0.8, sop:0.08}}}]},
 };
 CODING.forEach(p => { if (HIDDEN[p.id]) p.run = HIDDEN[p.id]; });

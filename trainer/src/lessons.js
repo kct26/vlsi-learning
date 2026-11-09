@@ -100,7 +100,9 @@ const UNITS = [
 {id:16, title:"Wires and links", goal:"Compute wire resistance, crosstalk windows and link bandwidth.", cards:[
   {t:"Wire resistance", b:["A wire's resistance is its sheet resistance times length divided by width (R = R□ × L/W).","Thin lower layers are very resistive, so the thick top layers carry power, clocks and long routes."], q:"16-01"},
   {t:"Crosstalk", b:["Coupling capacitance lets a switching wire glitch or slow its neighbour, but only where their switching windows overlap."], q:"16-04"},
-  {t:"Bandwidth math", b:["Bytes per second = width × transfers per second / 8 × efficiency. DDR moves data on both clock edges, so it makes two transfers per cycle."], q:"16-07"}
+  {t:"Bandwidth math", b:["Bytes per second = width × transfers per second / 8 × efficiency. DDR moves data on both clock edges, so it makes two transfers per cycle."], q:"16-07"},
+  {t:"Signal integrity", b:["Board traces are built to an impedance, usually 50 Ω. Wherever it changes, part of the wave reflects: Γ = (Z_L − Z₀)/(Z_L + Z₀).","Loss smears fast edges into the next bits, so links equalize, and the receiver recovers its clock from the data."], q:"16-31"},
+  {t:"Ethernet, IP and UDP", b:["Ethernet (14 bytes) + IPv4 (20) + UDP (8) = 42 header bytes, all big-endian. UDP has no connection or retransmission and supports multicast, which is why market data uses it.","At 10 Gb/s a byte takes 0.8 ns, so low-latency hardware acts on the early fields as they arrive."], q:"16-39"}
 ]},
 {id:17, title:"Manufacturing and reliability", goal:"Explain the antenna rule, electromigration, latch-up and yield.", cards:[
   {t:"How chips are made", b:["Chips are printed one layer at a time with light, then etched with plasma, doped, and polished flat. Dummy fill keeps the metal density even so polishing works."], q:"17-10"},
@@ -116,12 +118,17 @@ const UNITS = [
   {t:"Blocking vs nonblocking", b:["A nonblocking assignment (<=) updates everything together at the end of the time step, like flip-flops. A blocking assignment (=) takes effect immediately."], q:"19-02"},
   {t:"Crossing clock domains", b:["A single bit crosses through a two-flop synchronizer. A counter crosses in Gray code. A stream of data crosses through an asynchronous FIFO."], q:"19-05"},
   {t:"FIFO depth", b:["Depth ≥ burst length × (1 − read rate / write rate), with both rates in words per second."], q:"19-07"},
-  {t:"Verifying a design", b:["A testbench drives the design and checks every output automatically against a reference model: a simple, trusted description of the right answer.","Directed tests hit known corner cases; constrained-random tests find the bugs nobody thought of. Assertions flag a broken rule the moment it happens. Coverage tells you which scenarios you actually reached, but only checkers find bugs."], q:"19-34"}
+  {t:"Verifying a design", b:["A testbench drives the design and checks every output automatically against a reference model: a simple, trusted description of the right answer.","Directed tests hit known corner cases; constrained-random tests find the bugs nobody thought of. Assertions flag a broken rule the moment it happens. Coverage tells you which scenarios you actually reached, but only checkers find bugs."], q:"19-34"},
+  {t:"SystemVerilog for design", b:["logic replaces wire and reg; always_ff and always_comb state your intent so tools can check it.","Name FSM states with an enum, give always_comb a default assignment at the top, and use casez with ? for don't-cares (never casex)."], q:"19-58"},
+  {t:"Reading VHDL", b:["An entity declares the ports; an architecture describes the logic. Signals (<=) update when the process ends, like nonblocking assignments; variables (:=) update at once.","Arithmetic needs unsigned or signed from numeric_std, with explicit conversions."], q:"19-74"},
+  {t:"FPGAs", b:["Logic becomes 6-input LUTs counted in levels, adders use carry chains, multipliers use DSP slices, and memories with a registered read become block RAM.","Every LUT has a spare flip-flop beside it, so pipelining is the first fix for a failing path."], q:"19-82"}
 ]},
 {id:20, title:"Computer architecture", goal:"Walk through the pipeline, hazards and caches with numbers.", cards:[
   {t:"The five-stage pipeline", b:["IF, ID, EX, MEM, WB: five instructions are in flight at once, and one finishes every cycle."], q:"20-01"},
   {t:"Hazards", b:["Forwarding fixes most data hazards, but a load followed immediately by its use still stalls one cycle. Branch prediction handles control hazards."], q:"20-02"},
-  {t:"Caches", b:["An address splits into tag, index and offset. AMAT = hit time + miss rate × miss penalty.","Change the cache shape and watch the fields resize."], w:"cache", q:"20-06"}
+  {t:"Caches", b:["An address splits into tag, index and offset. AMAT = hit time + miss rate × miss penalty.","Change the cache shape and watch the fields resize."], w:"cache", q:"20-06"},
+  {t:"Coherence and out-of-order cores", b:["MESI: write only in M or E; writing a Shared line first invalidates every other copy. Two cores writing different variables in one line still fight over it (false sharing).","Out-of-order cores rename registers, run instructions when their operands are ready, and retire them in order."], q:"20-36"},
+  {t:"AXI handshakes", b:["Every AXI channel moves data only on an edge where VALID and READY are both high. A source raises VALID without waiting for READY and holds it until the transfer."], q:"20-41"}
 ]},
 {id:21, title:"GPUs", goal:"Explain how GPUs get throughput and what number formats trade off.", cards:[
   {t:"Throughput machines", b:["Warps of 32 threads run in lockstep (SIMT). The GPU hides memory latency by switching to another ready warp."], q:"21-01"},
