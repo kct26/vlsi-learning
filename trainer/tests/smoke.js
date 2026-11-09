@@ -7,7 +7,7 @@ const $ = (s, r) => (r || document).querySelector(s), $$ = (s, r) => Array.from(
 const ok = (c, m) => log.push((c ? 'PASS ' : 'FAIL ') + m);
 const st = () => JSON.parse(localStorage.getItem('ground-up-trainer-v1') || 'null');
 const click = sel => { const el = typeof sel === 'string' ? $(sel) : sel; if (!el) { log.push('FAIL missing ' + sel); return false; } el.click(); return true; };
-const tab = t => t === 'profile' ? click('#acct .avatar') : t === 'quest' ? (click('.navlinks button[data-tab="learn"]'), click('.learnseg [data-v="quest"]')) : click(`.navlinks button[data-tab="${t}"]`);
+const tab = t => t === 'profile' ? click('#acct .avatar') : t === 'quest' ? click('.navlinks button[data-tab="learn"]') : click(`.navlinks button[data-tab="${t}"]`);
 const h1 = () => ($('#main h1') || {}).textContent || '';
 function rawIn(container){
   const lab = $$('.qmeta .mono', container).map(s => s.textContent).find(t => /^#\d+$/.test(t));
@@ -73,7 +73,7 @@ async function phase1(){
   ok(/Role: verification/.test($('#rmdetail h3').textContent) && $('#rmdetail [data-v="roles"]'), 'role nodes link to Roles');
   const z0 = $('.rminner').style.transform; click('[data-act="rm-zoom"][data-v="in"]');
   ok($('.rminner').style.transform !== z0, 'roadmap zooms');
-  ok($('.rmtop #rmdetail') && $('.rmtop').compareDocumentPosition($('.rmboard')) & Node.DOCUMENT_POSITION_FOLLOWING, 'details sit above the map');
+  ok($('#rmdetail') && $('.rmboard').compareDocumentPosition($('#rmdetail')) & Node.DOCUMENT_POSITION_FOLLOWING && !$('.rmwho'), 'topic details sit under the map, with no extra cards above it');
   const sc = $('#rmscroll'), rr = sc.getBoundingClientRect(), z1 = $('.rminner').style.transform;
   sc.dispatchEvent(new WheelEvent('wheel', {deltaY:-200, clientX:rr.left + 200, clientY:rr.top + 150, bubbles:true, cancelable:true}));
   ok($('.rminner').style.transform !== z1 && /\d+%/.test($('#rmzoom').textContent), 'wheel zooms the map (' + $('#rmzoom').textContent + ')');
@@ -88,8 +88,8 @@ async function phase1(){
   click('#theme');
   ok(document.documentElement.dataset.theme === 'light', 'and back to light (the default)');
   ok(!/\bXP\b|\bLV\b|Level \d|[Bb]adge|Achievement|streak/.test(visible()), 'no XP, levels, badges, streaks or achievements on the quest map');
-  ok($$('.path > .node').length === UNITS.length, UNITS.length + ' quest nodes on the map');
-  ok($$('.path > .node.locked').length === UNITS.length - 1, 'only quest 1 is open at the start');
+  ok($$('.lquest').length === UNITS.length, UNITS.length + ' quest buttons on Learn');
+  ok($$('.lquest.lock').length === UNITS.length - 1, 'only quest 1 is open at the start');
   ok(new RegExp('0/' + RAW.length).test($('#solved').textContent), 'header shows solved/total: ' + $('#solved').textContent.trim());
   click('[data-act="open-unit"][data-u="1"]');
   ok(/Charge, current and voltage/.test(h1()), 'quest 1 page opens');
@@ -104,8 +104,8 @@ async function phase1(){
   ok(st().learn.units['1'].passed, 'quest 1 saved as passed');
   click('[data-act="done-results"]');
   ok(/Charge, current/.test(h1()), 'done returns to the quest page');
-  click('[data-act="to-quest"]');
-  ok($$('.path > .node.locked').length === UNITS.length - 2, 'quest 2 unlocked');
+  click('[data-act="learn-home"]');
+  ok($$('.lquest.lock').length === UNITS.length - 2 && !$('.lquest[data-u="2"]').classList.contains('lock'), 'quest 2 unlocked');
   const sh = solvedHeader();
   ok(sh >= 5, 'header solved count went up to ' + sh);
 
@@ -251,8 +251,8 @@ async function phase1(){
   // Learn: the book as lessons, then the chapter's problems
   ok($('.navlinks button').dataset.tab === 'learn', 'Learn is the first tab, left of Theory');
   tab('learn');
-  ok($$('.lcard').length === 26 && /Hardware from the/.test($('.lhero').textContent), 'Learn lists the 23 chapters, the C and C++ chapter, the practice assessment and the formula sheet');
-  ok(/Before the assessment/.test($$('.lparth').pop().textContent) && $$('.lpart').pop().querySelectorAll('.lcard').length === 3, 'the last part gathers the pages for before the assessment');
+  ok($$('.lcard').length === 26 && $('.lhero'), 'Learn lists the 23 chapters, the C and C++ chapter, the practice assessment and the formula sheet');
+  ok(/Before the assessment/.test($$('.lpart:not(#rmmap) .lparth').pop().textContent) && $$('.lpart:not(#rmmap)').pop().querySelectorAll('.lcard').length === 3 && $$('.lpart').pop().id === 'rmmap', 'the last part gathers the pages for before the assessment');
   click('[data-act="learn-open"][data-v="27"]');
   ok(/C and C\+\+ for the Online Assessment/.test($('.lside-h').textContent) && /Extra chapter/.test($('.lside-h').textContent), 'the C and C++ chapter opens');
   click('[data-act="learn-go"][data-v="27-3"]');
@@ -297,12 +297,13 @@ async function phase1(){
   ok(/Practice:/.test($('.lmain h1').textContent), 'back returns to the chapter');
   tab('learn');
   ok(/2/.test($('.lstats').textContent) && $('.lcard .cobar i').style.width !== '0%' || true, 'progress shows on the chapter cards');
-  // Roadmap lives inside Learn, and chapters link to their quests both ways
-  ok(!$('.navlinks button[data-tab="quest"]') && $('.learnseg [data-v="quest"]'), 'Roadmap is a view inside Learn, not its own tab');
-  click('.learnseg [data-v="quest"]');
-  ok($('.navlinks button[data-tab="learn"]').getAttribute('aria-current') === 'page' && $$('.node').length === 23 && $$('.node .qbook').length === 23, 'the roadmap keeps Learn highlighted and links every quest to its chapter');
-  click('.node .qbook[data-v="5"]');
-  ok($('.lx') && /Chapter 5/.test($('.lside-h').textContent) && !$('.litem.lquest'), 'a roadmap quest link opens its chapter, whose sidebar has no quest card');
+  // Learn is one page: chapters with their quests, then the topic map
+  ok(!$('.navlinks button[data-tab="quest"]') && !$('.learnseg') && $$('.lcard .lquest').length === 23 && $('#rmmap .rmnode'), 'Learn shows every chapter with its quest and the topic map on one page');
+  ok(!$('.lhero .eyebrow') && !$('.lhero p.muted'), 'Learn has no extra title or description');
+  click('.lcard .lopen[data-v="5"]');
+  ok($('.lx') && /Chapter 5/.test($('.lside-h').textContent) && !$('.litem.lquest'), 'a chapter card opens its lessons, whose sidebar has no quest card');
+  tab('learn'); click('.lquest[data-u="5"]');
+  ok(/Quest 5/.test($('.crumbs').textContent) && !/Roadmap/.test($('.crumbs').textContent), 'a quest button opens its quest, with no Roadmap crumb');
 
   // Account pages have a Back button to where you came from
   tab('theory'); click('.premiumbtn');
@@ -435,7 +436,7 @@ async function phase1(){
 
   // Test out of a locked quest
   tab('quest');
-  click('.path [data-act="open-unit"][data-u="5"]');
+  click('.lquest[data-u="5"]');
   ok(/locked/.test($('#main').textContent), 'locked quest page explains the lock');
   click('[data-act="unit-quiz"]');
   for (let i = 0; i < 5; i++) { answer('quiz', true); click('[data-act="next"]'); }
@@ -455,7 +456,7 @@ function phase2(){
   let total = 0, widgets = 0;
   for (let u = 1; u <= UNITS.length; u++) {
     tab('quest');
-    click(`.path [data-act="open-unit"][data-u="${u}"]`);
+    click(`.lquest[data-u="${u}"]`);
     if (u === 9) {
       let g = 0;
       while ($('#card-next') && !$('#w-mux-t') && g++ < 10) { if ($('#card-check .opts')) answer('card', true); click('#card-next'); }

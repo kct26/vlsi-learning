@@ -96,23 +96,12 @@ const VLSI_AREAS = [
     {key:'va-eda', name:'EDA tools, Linux and scripting', ch:[23]}]}
 ];
 VLSI_AREAS.forEach(g => g.items.forEach(a => { LISTS[a.key] = {name:a.name, test:Q => a.ch.includes(Q.ch)}; }));
-// The quest map as a VLSI theory roadmap: one stage per part of the book, in learning order.
-const ROADMAP = {
-  1:{stage:'Circuit foundations', area:'Analog basics', goal:'Read any circuit: Ohm\'s and Kirchhoff\'s laws, RC time constants, and why chips get hot.'},
-  2:{stage:'Semiconductor devices', area:'Devices', goal:'Explain how a MOSFET switches and amplifies: doping, threshold voltage, operating regions.'},
-  3:{stage:'CMOS logic design', area:'Front-end', goal:'Build any Boolean function in static CMOS and reason about its transistors.'},
-  4:{stage:'Sequential logic and timing', area:'Front-end · STA', goal:'Design with latches, flip-flops and FSMs, and check setup and hold timing.'},
-  5:{stage:'Delay, power and variation', area:'Signoff', goal:'Estimate gate delay and dynamic and leakage power, and how PVT corners move them.'},
-  6:{stage:'Physical design and silicon', area:'Back-end', goal:'Handle interconnect RC and crosstalk, manufacturing, test (DFT) and memory arrays.'},
-  7:{stage:'RTL, architecture and arithmetic', area:'Front-end', goal:'Write and verify RTL, cross clock domains, and design datapaths for CPUs and GPUs.'},
-  8:{stage:'Engineering tools', area:'EDA and CAD', goal:'Automate flows the way design teams do: C, Python, Linux, Tcl and git.'}
-};
 const listIds = key => BANK.filter(LISTS[key].test).map(Q => Q.id);
 
 // What hardware internship and new-grad postings ask for, checked against the book and this trainer.
 const VERDICT = {strong:['Strong match', 'ok'], good:['Good match', 'ok'], partial:['Partial', 'warn'], none:['Not covered', 'bad'], na:['Not study material', '']};
 const SKILL_REVIEW = [
-  {req:'Hardware basics: circuits and digital logic', v:'strong', book:'Chapters 1–12 build hardware from zero', list:'sk-basics', todo:'Work through roadmap stages 1–4, then practice those areas in Theory.'},
+  {req:'Hardware basics: circuits and digital logic', v:'strong', book:'Chapters 1–12 build hardware from zero', list:'sk-basics', todo:'Work through Chapters 1–12 and their quests, then practice those areas in Theory.'},
   {req:'CMOS transistors and circuits', v:'strong', book:'Chapters 4, 5, 6 and 8', list:'sk-cmos', todo:'The most common screening questions live here: inverters, pass transistors, sizing. Keep these sets near 100%.'},
   {req:'VLSI design', v:'strong', book:'Chapters 8, 13, 16, 17 and 18 (gates, delay, wires, manufacturing, memory)', list:'sk-vlsi', todo:'Deeper topics (DIBL, subthreshold slope, CRPR, keepers) are practiced as beyond-the-book problems.'},
   {req:'Static timing and physical design', v:'strong', book:'Chapters 11, 13, 15, 16 and 17', list:'sk-pd', code:['Physical design'], todo:'Run an open flow (OpenLane or Tiny Tapeout) and read its timing reports.'},
@@ -452,6 +441,7 @@ const SETTINGS_TABS = ['profile', 'privacy', 'premium', 'admin'];
 const TAB_LABEL = {home:'Home', learn:'Learn', theory:'Theory', coding:'Coding', quest:'Roadmap', oa:'Online Assessment', companies:'Companies', roles:'Roles'};
 function goTab(t){
   saveEditorNow();
+  if (t === 'quest') t = 'learn';
   if (SETTINGS_TABS.includes(t) && !(SETTINGS_TABS.includes(ui.tab) && ui.view === 'tab')) ui.settingsFrom = {tab:ui.tab, view:ui.view};
   ui.tab = t; ui.view = 'tab'; stopTimer();
   try { if (location.hash !== '#' + t) history.pushState(null, '', '#' + t); } catch (e) { setHash(t); }   // so the browser's Back works too
@@ -547,10 +537,9 @@ function render(){
   else if (ui.view === 'company') m.innerHTML = viewCompany();
   else if (ui.view === 'position') m.innerHTML = viewPosition();
   else if (ui.view === 'lesson') { m.innerHTML = viewLesson(); renderMath(m); }
-  else if (ui.view === 'tab' && ui.tab === 'learn') m.innerHTML = viewLearn();
+  else if (ui.view === 'tab' && ui.tab === 'learn') { m.innerHTML = viewLearn(); if (ui.rm && ui.rm.fit && document.getElementById('rmmap')) { ui.rm.fit = false; rmZoom('fit'); } }
   else if (home) { m.innerHTML = viewHome(); homeStart(); }
   else if (ui.tab === 'coding') m.innerHTML = viewCoding();
-  else if (ui.tab === 'quest') { m.innerHTML = viewQuest(); if (ui.rm.fit) { ui.rm.fit = false; rmZoom('fit'); } }
   else if (ui.tab === 'theory') m.innerHTML = viewProblems();
   else if (ui.tab === 'profile') m.innerHTML = viewProfile();
   else if (ui.tab === 'privacy') m.innerHTML = viewPrivacy();
@@ -563,37 +552,6 @@ function render(){
     const f = ui.settingsFrom, label = f && f.view === 'tab' ? TAB_LABEL[f.tab] || 'Home' : f ? 'previous page' : 'Home';
     m.insertAdjacentHTML('afterbegin', `<div class="pvbar setback"><button type="button" class="btn ghost small" data-act="settings-back">← Back to ${esc(label)}</button></div>`);
   }
-}
-
-// ---------- Quest map ----------
-// Learn has two views: the book's chapters as lessons, and the roadmap of interactive quests.
-const learnSeg = on => `<div class="seg learnseg" role="tablist"><button type="button" role="tab" aria-selected="${on === 'learn'}" data-act="go" data-v="learn">Chapters</button><button type="button" role="tab" aria-selected="${on === 'quest'}" data-act="go" data-v="quest">Roadmap</button></div>`;
-function viewQuest(){
-  const done = UNITS.filter(U => unitPassed(U.id)).length, nu = nextUnit();
-  if (!ui.rm) ui.rm = {sel:'u' + (nu ? nu.id : 1), z:1, tx:60, ty:24, fit:true};
-  let html = `${learnSeg('quest')}<section class="pagehead"><p class="eyebrow">Learn · Roadmap</p><h1>The <em>VLSI</em> roadmap</h1>
-    ${nu ? `<div class="row"><button type="button" class="btn primary" data-act="open-unit" data-u="${nu.id}">${cardsDone(nu) ? 'Continue' : 'Start'}: Quest ${nu.id} · ${esc(nu.title)}</button></div>` : '<p><b>Every stage is complete.</b> Keep practicing in Theory and Coding.</p>'}</section>
-    <h2 class="hh2 left stagesh">Stages in detail</h2>`;
-  PARTS.forEach(p => {
-    const pd = p.units.filter(unitPassed).length, R = ROADMAP[p.n] || {stage:p.name, area:'', goal:''};
-    const sc = pd === p.units.length ? 'done' : p.units.some(u => nu && nu.id === u) ? 'current' : p.units.some(unitUnlocked) ? 'open' : 'locked';
-    html += `<section class="realm stage ${sc}"><div class="srail" aria-hidden="true"><span class="snode">${pd === p.units.length ? ICON.solved : p.n}</span></div><div class="sbody">
-      <header class="realmhead"><div><span class="eyebrow">Stage ${p.n} · ${esc(R.area)}</span><h2>${esc(R.stage)}</h2><p class="muted small sgoal">${esc(R.goal)}</p></div><span class="pill${pd === p.units.length ? ' ok' : ''}">${pd}/${p.units.length} complete</span></header><ol class="path qgrid">`;
-    p.units.forEach(uid => {
-      const U = UNITS[uid - 1], passed = unitPassed(uid), open = unitUnlocked(uid), cd = cardsDone(U), cur = nu && nu.id === uid;
-      const ids = CH_IDS[uid], sv = solvedIn(ids);
-      const cls = passed ? 'done' : (open ? (cur ? 'current' : 'open') : 'locked');
-      const state = passed ? `<span class="qst ok">${ICON.solved} Done</span>` : cur ? '<span class="qst cur">Up next</span>' : open ? '<span class="qst">Open</span>' : `<span class="qst lock">${ICON.lock} Locked</span>`;
-      html += `<li class="node ${cls}"><button type="button" class="nodebtn" data-act="open-unit" data-u="${uid}">
-        <span class="qtop"><span class="qnum">${String(uid).padStart(2, '0')}</span>${state}</span>
-        <b class="qtitle">${esc(U.title)}</b>
-        <span class="qbar"><i style="width:${passed ? 100 : pct(cd, U.cards.length + 1)}%"></i></span>
-        <small>Lessons ${cd}/${U.cards.length} · ${sv}/${ids.length} solved${passed ? '' : ` · checkpoint ${open ? 'open' : 'locked'}`}</small>
-        ${cur ? `<span class="qgo">${cd ? 'Continue' : 'Start'} →</span>` : ''}</button>${bookCh(uid) ? `<button type="button" class="linkbtn small qbook" data-act="learn-open" data-v="${uid}">Read Chapter ${uid} →</button>` : ''}</li>`;
-    });
-    html += '</ol></div></section>';
-  });
-  return html + `<h2 class="hh2 left stagesh" id="rmmap">Roadmap map</h2><p class="muted rmintro">Every topic and how they connect. Drag to move, scroll or pinch to zoom, and click a topic for its details.</p>${roadmapHTML()}`;
 }
 
 // A quest opens at its first unfinished lesson (or the start, once passed).
@@ -615,7 +573,7 @@ function viewUnit(){
   const part = PARTS.find(p => p.units.includes(U.id)), ms = maxStep(U), best = state.learn.units[U.id] && state.learn.units[U.id].best;
   const ids = CH_IDS[U.id], sv = solvedIn(ids);
   const uf = ui.unitFrom && ui.unitFrom.ch === U.id ? ui.unitFrom : null;
-  let html = `<div class="unitv"><nav class="crumbs" aria-label="Breadcrumb"><button type="button" class="linkbtn" data-act="learn-home">Learn</button><span>/</span><button type="button" class="linkbtn" data-act="to-quest">Roadmap</button><span>/</span><span>Part ${ROMAN[part.n - 1]}</span><span>/</span><span>Quest ${U.id}</span>
+  let html = `<div class="unitv"><nav class="crumbs" aria-label="Breadcrumb"><button type="button" class="linkbtn" data-act="learn-home">Learn</button><span>/</span><span>Quest ${U.id}</span>
       <span class="spacer"></span>${uf ? `<button type="button" class="btn small ghost" data-act="learn-go" data-v="${uf.ch}-${uf.sec}">← Back to the lesson</button>` : ''}${bookCh(U.id) ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${U.id}">Read Chapter ${U.id} in full →</button>` : ''}</nav>
     <header class="unithead"><div><p class="eyebrow">Quest ${String(U.id).padStart(2, '0')} · Chapter ${U.id}</p><h1>${esc(U.title)}</h1><p class="muted">${esc(U.goal)}</p></div>
     <dl class="ustats"><div><dt>Lessons</dt><dd>${cardsDone(U)}/${n}</dd></div><div><dt>Checkpoint</dt><dd>${unitPassed(U.id) ? 'Passed' : (best !== undefined ? `Best ${best}/${UNIT_N}` : 'Not yet')}</dd></div><div><dt>Solved</dt><dd>${sv}/${ids.length}</dd></div></dl></header>`;
@@ -1757,19 +1715,27 @@ function lessonStep(dir){
 }
 function viewLearn(){
   const B = book();
-  if (!B) { ensureBook(); return `<section class="pagehead"><p class="eyebrow">Learn</p><h1>${ui.bookErr ? 'The book could not be loaded' : 'Loading the book…'}</h1>${ui.bookErr ? '<p class="muted">Check your connection and reload the page.</p>' : ''}</section>`; }
+  if (!B) { ensureBook(); return `<section class="pagehead"><h1>${ui.bookErr ? 'The book could not be loaded' : 'Loading the book…'}</h1>${ui.bookErr ? '<p class="muted">Check your connection and reload the page.</p>' : ''}</section>`; }
+  const nu = nextUnit();
+  if (!ui.rm) ui.rm = {sel:'u' + (nu ? nu.id : 1), z:1, tx:60, ty:24, fit:true};
   const all = B.filter(c => c.n <= 23).map(c => chapterProgress(c.n)), lessons = all.reduce((n, x) => n + x.lessons, 0), read = all.reduce((n, x) => n + x.read, 0);
   const probs = all.reduce((n, x) => n + x.probs, 0), solved = all.reduce((n, x) => n + x.solved, 0), done = read + solved, total = lessons + probs;
+  const quests = UNITS.filter(U => unitPassed(U.id)).length;
   const next = B.filter(c => c.n <= 23).find(c => { const P = chapterProgress(c.n); return P.read < P.lessons; });
-  const card = c => { const P = chapterProgress(c.n); return `<button type="button" class="lcard${P.done && P.done === P.total ? ' complete' : ''}" data-act="learn-open" data-v="${c.n}"><span class="lnum${String(c.badge || c.n).length > 2 ? ' wide' : ''}">${esc(c.badge || c.n)}</span>
-      <span class="lbody"><b>${esc(c.title)}</b><small>${c.label ? esc(c.label) + ' · ' : ''}${P.lessons} ${P.lessons === 1 ? 'page' : 'lessons'}${P.probs ? ` · ${P.probs} problems` : ''}</small><span class="cobar"><i style="width:${pct(P.done, P.total)}%"></i></span>
-      <small class="mono">${P.done}/${P.total} done${P.done && P.done === P.total ? ' ✓' : ''}${UNITS[c.n - 1] && c.n <= 23 ? ` · quest ${unitPassed(c.n) ? '✓' : cardsDone(UNITS[c.n - 1]) + '/' + UNITS[c.n - 1].cards.length}` : ''}</small></span></button>`; };
-  return `${learnSeg('learn')}<section class="card lhero"><div><p class="eyebrow">Learn · Chapters</p><h1>Hardware from the <em>Ground Up</em></h1>
-      <p class="muted">The whole book, chapter by chapter, as short lessons. Read a topic, then practice the problems on it right after. Lessons you finish and problems you solve both count.</p>
-      <div class="lstats"><span><b>${read}</b>/${lessons} lessons read</span><span><b>${solved}</b>/${probs} problems solved</span></div>
-      ${next ? `<div class="row"><button type="button" class="btn primary" data-act="learn-open" data-v="${next.n}">${read ? 'Continue' : 'Start'} with Chapter ${next.n} →</button></div>` : ''}</div>
-      <div class="herostat">${ring(total ? done / total : 0, 96, 8, `${done} of ${total} done`)}<div><b>${pct(done, total).replace(/\.0$/, '')}%</b><span>complete</span></div></div></section>
-    ${LEARN_PARTS.map(part => `<section class="lpart"><h2 class="lparth"><span class="mono">Part ${part.n}</span> ${esc(part.name)}</h2><div class="lgrid">${part.units.map(n => bookCh(n)).filter(Boolean).map(card).join('')}</div></section>`).join('')}`;
+  const quest = n => {
+    const U = UNITS[n - 1]; if (!U || n > 23) return '';
+    const passed = unitPassed(n), open = unitUnlocked(n), cd = cardsDone(U);
+    return `<button type="button" class="lquest${passed ? ' ok' : open ? '' : ' lock'}" data-act="open-unit" data-u="${n}">${passed ? ICON.solved : open ? '' : ICON.lock}Quest ${passed ? 'passed' : `${cd}/${U.cards.length}`}</button>`;
+  };
+  const card = c => { const P = chapterProgress(c.n); return `<div class="lcard${P.done && P.done === P.total ? ' complete' : ''}${nu && nu.id === c.n ? ' cur' : ''}"><span class="lnum${String(c.badge || c.n).length > 2 ? ' wide' : ''}">${esc(c.badge || c.n)}</span>
+      <span class="lbody"><button type="button" class="lopen" data-act="learn-open" data-v="${c.n}">${esc(c.title)}</button><small>${P.lessons} ${P.lessons === 1 ? 'page' : 'lessons'}${P.probs ? ` · ${P.probs} problems` : ''}</small><span class="cobar"><i style="width:${pct(P.done, P.total)}%"></i></span>
+      <span class="lfoot"><small class="mono">${P.done}/${P.total} done</small>${quest(c.n)}</span></span></div>`; };
+  return `<h1 class="sr-only">Learn</h1><section class="card lhero"><div>
+      <div class="lstats"><span><b>${read}</b>/${lessons} lessons</span><span><b>${solved}</b>/${probs} problems</span><span><b>${quests}</b>/${UNITS.length} quests</span></div>
+      <div class="row">${next ? `<button type="button" class="btn primary" data-act="learn-open" data-v="${next.n}">${read ? 'Continue' : 'Start'}: Chapter ${next.n} →</button>` : ''}${nu ? `<button type="button" class="btn" data-act="open-unit" data-u="${nu.id}">Quest ${nu.id}: ${esc(nu.title)}</button>` : ''}</div></div>
+      <div class="herostat">${ring(total ? done / total : 0, 76, 7, `${done} of ${total} done`)}<div><b>${pct(done, total).replace(/\.0$/, '')}%</b><span>complete</span></div></div></section>
+    ${LEARN_PARTS.map(part => `<section class="lpart"><h2 class="lparth"><span class="mono">Part ${part.n}</span> ${esc(part.name)}</h2><div class="lgrid">${part.units.map(n => bookCh(n)).filter(Boolean).map(card).join('')}</div></section>`).join('')}
+    <section class="lpart" id="rmmap"><h2 class="lparth">Topic map</h2>${roadmapHTML()}</section>`;
 }
 function viewLesson(){
   const B = book(), L = ui.lesson;
@@ -1887,7 +1853,7 @@ function viewHome(){
   const lines = s => esc(s).replace(/\b(module|endmodule|input|output|wire|reg|always|posedge|if|else|struct|while|return|NULL)\b/g, '<i class="t-k">$1</i>').replace(/(✓[^\n]*)/g, '<i class="t-s">$1</i>');
   return `<section class="hhero wrap wide"><div class="hcopy"><h1>Learn<br><em id="hword">${HERO_WORDS[H.word]}</em><br>from the ground up</h1>
       <p class="hsub">Master <b>${BANK.length} theory problems</b> and <b>${CODING.length} coding problems</b>, from Ohm's law to GPU pipelines, with a free book, interactive lessons, and a judge that runs <b>Verilog and C</b> in your browser.</p>
-      <div class="row"><button type="button" class="btn primary big" data-act="go" data-v="theory">Explore problems →</button><button type="button" class="btn big" data-act="go" data-v="quest">Open the roadmap</button></div>
+      <div class="row"><button type="button" class="btn primary big" data-act="go" data-v="theory">Explore problems →</button><button type="button" class="btn big" data-act="go" data-v="learn">Start learning</button></div>
       <div class="langs">${['Verilog', 'SystemVerilog', 'C / C++', 'Python', 'CUDA', 'Tcl'].map(l => `<span>${l}</span>`).join('<i>·</i>')}</div></div>
     <div class="hcard"><div class="hbar"><span class="dots"><i></i><i></i><i></i></span><span class="mono">counter4.v</span><span class="hrun" id="hrun">▶ Run</span></div>
       <div class="hbody"><div class="hvis"><p class="hlab">WAVEFORM · q(t)</p>${homeVis('wave')}<p class="mono hstat" id="hstat">cycle 0 | q = 0</p></div>
@@ -1908,7 +1874,7 @@ function viewHome(){
       <div class="langs"><span>${BANK.length + CODING.length} problems</span><i>·</i><span>Verilog and C judge</span><i>·</i><span>233-page book</span></div></div>
       <div class="ctaart" aria-hidden="true">${Array.from({length:36}, (_, i) => `<i style="--d:${(i * 37) % 11}"></i>`).join('')}</div></div></section>
     <footer class="hfoot wrap wide"><div><a class="brand" href="#home" data-home>${$('.brand .logo') ? $('.brand .logo').outerHTML : ''}<span class="bname">HardCode</span></a><p class="muted small">A free hardware engineering trainer, built on the book <em>Hardware from the Ground Up</em>.</p></div>
-      <div><b>Practice</b>${[['theory', 'Theory'], ['coding', 'Coding'], ['quest', 'Roadmap'], ['profile', 'Profile']].map(([t, l]) => `<button type="button" class="linkbtn plain" data-act="go" data-v="${t}">${l}</button>`).join('')}</div>
+      <div><b>Practice</b>${[['theory', 'Theory'], ['coding', 'Coding'], ['learn', 'Learn'], ['profile', 'Profile']].map(([t, l]) => `<button type="button" class="linkbtn plain" data-act="go" data-v="${t}">${l}</button>`).join('')}</div>
       <div><b>Careers</b>${[['companies', 'Companies'], ['roles', 'Roles'], ['privacy', 'Privacy']].map(([t, l]) => `<button type="button" class="linkbtn plain" data-act="go" data-v="${t}">${l}</button>`).join('')}</div>
       <p class="muted small hcopy2">Unofficial study material. Not affiliated with or endorsed by any company named here.</p></footer>`;
 }
@@ -2224,15 +2190,12 @@ function rmPanelHTML(){
   return `<p class="eyebrow">${esc(I.kind)}</p><h3>${esc(I.title)}</h3><div class="rmprog"><span class="rmbar"><i style="width:${Math.round(I.frac * 100)}%"></i></span><span class="mono small">${Math.round(I.frac * 100)}%</span></div>${body}<div class="row">${btn}</div>`;
 }
 function roadmapHTML(){
-  const done = UNITS.filter(U => unitPassed(U.id)).length, cs = codeSolvedIn(CODING), R = ui.rm;
-  return `<div class="rmtop">
-    <section class="card"><h3>Who is it for?</h3><ul class="rmwho"><li>Students aiming for VLSI and hardware internships or new-grad roles</li><li>Anyone new to hardware who wants one clear path</li><li>Engineers moving into ASIC design, verification or physical design</li><li>Candidates preparing for hardware OAs and interviews</li></ul></section>
-    <section class="card rmprogcard"><h3>Progress</h3><div class="rmgauge">${ring(done / UNITS.length, 120, 10, `${done} of ${UNITS.length} quests passed`)}<div class="ringlabel"><b>${done}</b><span>/${UNITS.length} quests</span></div></div><p class="muted small center">${cs}/${CODING.length} coding problems solved</p></section>
-    <section class="card rmdetail" id="rmdetail">${rmPanelHTML()}</section></div>
-  <div class="rmboard"><div class="rmtools"><button type="button" class="iconbtn" data-act="rm-zoom" data-v="in" aria-label="Zoom in">+</button><button type="button" class="iconbtn" data-act="rm-zoom" data-v="out" aria-label="Zoom out">−</button><button type="button" class="iconbtn" data-act="rm-zoom" data-v="fit" aria-label="Fit to screen">⤢</button></div>
+  const R = ui.rm;
+  return `<div class="rmboard"><div class="rmtools"><button type="button" class="iconbtn" data-act="rm-zoom" data-v="in" aria-label="Zoom in">+</button><button type="button" class="iconbtn" data-act="rm-zoom" data-v="out" aria-label="Zoom out">−</button><button type="button" class="iconbtn" data-act="rm-zoom" data-v="fit" aria-label="Fit to screen">⤢</button></div>
     <span class="rmhint">Drag to move · scroll or pinch to zoom · click a topic for details</span>
     <div class="rmscroll" id="rmscroll"><div class="rminner" style="width:${RM_W}px;height:${RM_H}px;transform:translate(${R.tx}px, ${R.ty}px) scale(${R.z})">${rmNodesHTML()}</div></div>
-    <div class="rmlegend"><span><i class="lg q"></i>Theory quest</span><span><i class="lg c"></i>Coding track</span><span><i class="lg r"></i>Role path</span><span><i class="lg done"></i>Done</span><span class="rmzoom mono" id="rmzoom">${Math.round(R.z * 100)}%</span></div></div>`;
+    <div class="rmlegend"><span><i class="lg q"></i>Theory quest</span><span><i class="lg c"></i>Coding track</span><span><i class="lg r"></i>Role path</span><span><i class="lg done"></i>Done</span><span class="rmzoom mono" id="rmzoom">${Math.round(R.z * 100)}%</span></div></div>
+  <section class="card rmdetail" id="rmdetail">${rmPanelHTML()}</section>`;
 }
 function rmRefreshSel(){
   document.querySelectorAll('.rmnode').forEach(b => b.classList.toggle('sel', b.dataset.v === ui.rm.sel));
@@ -2796,7 +2759,6 @@ function act(a){
     case 'auth-mode': ui.auth.mode = ui.auth.mode === 'create' ? 'signin' : 'create'; ui.auth.err = ''; ui.auth.info = ''; renderAuth(); break;
     case 'auth-google': authRun(() => firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider())); break;
     case 'auth-forgot': authForgot(); break;
-    case 'to-quest': goTab('quest'); break;
     case 'step': ui.unit.step = +a.dataset.i; render(); break;
     case 'card-prev': ui.unit.step = Math.max(0, ui.unit.step - 1); render(); window.scrollTo(0, 0); break;
     case 'card-next': {
@@ -2928,7 +2890,7 @@ function returnFrom(from){
   if (from && from.view === 'lesson' && ui.lesson) { ui.view = 'lesson'; setHash(`learn-${ui.lesson.ch}-${ui.lesson.sec}`); render(); return; }
   if (from && from.view === 'position') { ui.pos = {id:from.pos, d:(ui.pos && ui.pos.id === from.pos && ui.pos.d) || 'all'}; ui.view = 'position'; setHash('position-' + from.pos); render(); return; }
   if (from && from.view === 'unit' && ui.unit) { ui.view = 'unit'; setHash('quest-' + ui.unit.id); render(); return; }
-  goTab(from && from.tab ? from.tab : 'quest');
+  goTab(from && from.tab ? from.tab : 'learn');
 }
 document.addEventListener('input', e => {
   if (['pos-q', 'pos-co', 'pos-role'].includes(e.target.id)) { posFilters()[e.target.id.slice(4)] = e.target.value; $('#poslist').innerHTML = posListHTML(); return; }
@@ -3038,7 +3000,7 @@ if (local) state = normalize(local);
 function readHash(){
   const h = location.hash.replace('#', ''), m = /^p(\d+)$/.exec(h);
   const cm = /^code(\d+)$/.exec(h);
-  if (TABS.includes(h)) ui.tab = h;
+  if (TABS.includes(h)) ui.tab = h === 'quest' ? 'learn' : h;
   if (cm && CODING[+cm[1] - 1]) { ui.tab = 'coding'; ui.cback = {view:'tab', tab:'coding'}; ui.cp = blankCodePage(CODING[+cm[1] - 1].id, CODING.map(p => p.id)); ui.view = 'code'; }
   else if (/^learn-\d+-(\d+|p)$/.test(h)) { const [, ch, sec] = /^learn-(\d+)-(\d+|p)$/.exec(h); ui.tab = 'learn'; ui.lesson = {ch:+ch, sec}; ui.view = 'lesson'; }
   else if (/^quest-\d+$/.test(h) && UNITS[+h.slice(6) - 1]) { const id = +h.slice(6); ui.tab = 'learn'; ui.unit = {id, step:unitStart(id)}; ui.view = 'unit'; }
