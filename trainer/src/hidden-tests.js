@@ -109,4 +109,19 @@ static const char *rbtest(int which){
       ...udpBeats(UDP_FRAME(7, 2222, [1, 2]), 2), ...udpBeats(UDP_FRAME(7, 3333, [1]).concat(Array(40).fill(0x55)))]},
   {name:'400 random cycles', top:'udp_port', clk:'clk', in:['rst_n', 'valid', 'sop', 'data'], rows:['0 0 0 0'], rand:{n:400, fix:{rst_n:1}, p:{valid:0.8, sop:0.08}}}]},
 };
+// Verilog drills: every input combination when the inputs are small, then corner cases and random ones,
+// compared cycle by cycle with the reference solution.
+DRILLS.forEach(d => {
+  const t = d.test, base = Object.assign({top:d.m, in:t.in}, t.clk ? {clk:t.clk} : {}), rst = t.reset ? [t.reset] : [], benches = [];
+  if (t.all) {
+    const n = 2 ** t.all.reduce((s, w) => s + w, 0);
+    benches.push(Object.assign({}, base, {name:`All ${n} inputs`, rows:Array.from({length:n}, (_, i) => {
+      let k = i;
+      return t.all.map(w => { const v = k % 2 ** w; k = Math.floor(k / 2 ** w); return v; }).join(' ');
+    })}));
+  }
+  if (t.rows) benches.push(Object.assign({}, base, {name:'Corner cases', rows:rst.concat(t.rows)}));
+  if (t.rand) benches.push(Object.assign({}, base, {name:`${t.rand.n} random ${t.clk ? 'cycles' : 'inputs'}`, rows:rst, rand:t.rand}));
+  HIDDEN[d.id] = {kind:'v', benches};
+});
 CODING.forEach(p => { if (HIDDEN[p.id]) p.run = HIDDEN[p.id]; });

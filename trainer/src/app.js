@@ -119,7 +119,7 @@ const SKILL_REVIEW = [
   {req:'Power and thermal', v:'strong', book:'Chapters 3, 14 and 15', list:'sk-power', todo:'Know dynamic and leakage power cold, and how voltage, frequency and temperature move them.'},
   {req:'Computer architecture', v:'good', book:'Chapters 18, 20 and 21 (memory, pipelines, caches, GPUs)', list:'sk-arch', todo:'Out-of-order execution and register renaming appear only as beyond-the-book problems.'},
   {req:'Computer arithmetic', v:'strong', book:'Chapter 22: adders, multipliers and Booth recoding, division, fixed and floating point, rounding', list:'sk-arith', todo:'Pair it with the RTL problems: an ALU, a leading-zero counter, a multiplier.'},
-  {req:'Verilog, SystemVerilog or VHDL', v:'good', book:'Chapter 19: Verilog, SystemVerilog, CDC, FIFOs and verification. VHDL is not taught', list:'sk-hdl', code:['RTL design', 'Verification'], todo:'Solve the judged RTL problems here. VHDL is quick to pick up once Verilog is solid.'},
+  {req:'Verilog, SystemVerilog or VHDL', v:'good', book:'Chapter 19: Verilog, SystemVerilog, reading VHDL, CDC, FIFOs and verification', list:'sk-hdl', code:['Verilog drills', 'RTL design', 'Verification'], todo:'Do the Verilog drills until they are quick, then the judged RTL problems. Two VHDL problems show the same ideas in VHDL.'},
   {req:'Programming: C, C++, Python, Perl or MATLAB', v:'good', book:'Chapter 23 covers C and Python basics; the rest are taught as beyond-the-book problems', list:'sk-prog', code:['C and C++', 'Python and MATLAB'], todo:'Keep solving one linked-list or bit-manipulation problem a week.'},
   {req:'Linux, scripting and version control', v:'good', book:'Chapter 23 and beyond-the-book problems (shell, git, make, Tcl, Perl)', list:'sk-prog', code:['Linux and scripting'], todo:'Live in a Linux terminal for a week; script one real task in Python or Tcl.'},
   {req:'GPU programming: CUDA or OpenCL', v:'good', book:'Chapter 21 (CUDA model, warps, memory hierarchy); OpenCL is only named', list:'sk-gpu', code:['GPU and CUDA'], todo:'Run the CUDA problems on a real GPU (Google Colab works).'},
@@ -1717,7 +1717,7 @@ function viewRoles(){
 // ---------- Learn: the book as lessons, LeetCode Explore style ----------
 // Each chapter of Hardware from the Ground Up is a card of lessons (its sections), ending with that chapter's
 // problems. Reading a lesson and solving a problem both count toward the chapter.
-const CH_CODE = {11:['Physical design'], 19:['RTL design', 'Verification'], 21:['GPU and CUDA'], 23:['C and C++', 'Python and MATLAB', 'Linux and scripting'], 27:['C and C++']};
+const CH_CODE = {11:['Physical design'], 19:['RTL design', 'Verilog drills', 'Verification'], 21:['GPU and CUDA'], 23:['C and C++', 'Python and MATLAB', 'Linux and scripting'], 27:['C and C++']};
 // The book's parts, then the pages for the days before an assessment: the C and C++ chapter (27), the practice
 // assessment (Chapter 25) and the formula sheet (Appendix A, page 26).
 const LEARN_PARTS = PARTS.concat([{n:9, name:'Before the assessment', units:[27, 25, 26]}]);

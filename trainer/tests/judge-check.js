@@ -81,6 +81,13 @@ console.log(`C/C++: ${CODING.filter(p => p.run && p.run.kind === 'c').length} pr
     'rtl-18':s => s.replace("y <= {1'b0, prod} + c1;", "y <= {1'b0, prod} + c;"),
     'rtl-19':s => s.replace('wire xfer = tvalid && tready;', 'wire xfer = tvalid;'),
     'rtl-20':s => s.replace("4'd9: begin", "4'd8: begin"),
+    'drl-10':s => s.replace('assign v = (a[7] == b[7]) && (s[7] != a[7]);', 'assign v = s[7] != a[7];'),
+    'drl-13':s => s.replace('assign y = a[7] ? -a : a;', 'assign y = a[7] ? ~a : a;'),
+    'drl-17':s => s.replace('$signed(a) >>> s', 'a >>> s'),
+    'drl-30':s => s.replace("(q == 4'd9) ? 4'd0", "(q == 4'd10) ? 4'd0"),
+    'drl-37':s => s.replace('else if (s == S0) s <= S1;', 'else if (s == S0) s <= S2;'),
+    'drl-38':s => s.replace('B: if (!x) s <= C;', 'B: if (!x) s <= A;'),
+    'drl-42':s => s.replace("cnt == 2'd3", "cnt == 2'd2"),
   };
   for (const p of CODING.filter(p => p.run && p.run.kind === 'v')) {
     try {

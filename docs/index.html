@@ -465,8 +465,6 @@ table.wave td.hi.q2 { background: var(--ok); }
   .ptable .c-df { width: 70px; }
   .ptable td, .ptable th { padding-left: 8px; padding-right: 8px; }
   .ptable .c-ti .tags { display: none; }
-  .ptable .c-ti { white-space: normal; }
-  .ptable .c-ti a, .ptable .c-ti .plain { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35; }
   .hero { flex-direction: column; align-items: flex-start; }
   .path.qgrid { grid-template-columns: 1fr; }
   .wrow { grid-template-columns: 1fr auto; }
@@ -762,6 +760,10 @@ code, pre, .code-editor, .editor, .hcode, .mono { font-variant-ligatures: none; 
 .ptable .c-co { width: 170px; white-space: nowrap; overflow: hidden; } .ptable .c-co .comini { margin-left: 0; }
 .ctable .c-co { width: 170px; }
 @media (max-width: 1240px) { .ptable:not(.ctable) .c-ty { display: none; } }
+@media (max-width: 1100px) {
+  .ptable .c-ti { white-space: normal; }
+  .ptable .c-ti a, .ptable .c-ti .plain { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35; }
+}
 
 /* Roadmap: stages on one rail */
 .realm.stage { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 16px; }
@@ -2731,7 +2733,7 @@ function mountWidget(el, spec, ctx){
 // ex (example, optional), starter, hints, sol (reference solution), why (explanation paragraphs),
 // run (Python only: {fn, tests: [[args], expected]} checked in the browser).
 const LANGS = {verilog:'Verilog', sv:'SystemVerilog', vhdl:'VHDL', c:'C', cpp:'C++', python:'Python', bash:'Bash', tcl:'Tcl', perl:'Perl', cuda:'CUDA', matlab:'MATLAB'};
-const CODE_AREAS = ['RTL design', 'Verification', 'C and C++', 'Python and MATLAB', 'Linux and scripting', 'Physical design', 'GPU and CUDA'];
+const CODE_AREAS = ['RTL design', 'Verilog drills', 'Verification', 'C and C++', 'Python and MATLAB', 'Linux and scripting', 'Physical design', 'GPU and CUDA'];
 // An Ethernet + IPv4 + UDP frame as a list of bytes, for the packet-parsing problems.
 // opts: bytes of IPv4 options (a multiple of 4); pad: zero bytes after the packet; proto, etype: to make non-UDP frames.
 function UDP_FRAME(src, dst, payload, o = {}){
@@ -4431,6 +4433,165 @@ plot(t*1e9, v); xlabel('time (ns)'); ylabel('V_{out} / V_s'); grid on;`,
  why:["The posting lists MATLAB; power, signal-integrity and analog teams use it for quick analysis. The measured rise time comes out at about 2.2 ns, matching 2.2RC from Chapter 2."]}
 ];
 
+// ---------------- Verilog drills ----------------
+// Short warm-ups for writing RTL fast: one-line statement, one hint, judged in the browser.
+// Each drill: id, d, t (title), m (module), ports, p (statement), h (hint), sol (body), w (why),
+// test: {in, clk?, reset? (first row), all? (input widths: try every combination), rows?, rand?}.
+const DRILLS = [
+// Combinational
+{id:'drl-01', d:'E', t:'Reverse the bits', m:'rev8', ports:'input logic [7:0] a, output logic [7:0] y',
+ p:'y is a with its bit order reversed: y[0] = a[7], ..., y[7] = a[0].', h:'A for loop in always_comb unrolls into wires.',
+ sol:'  always_comb for (int i = 0; i < 8; i++) y[i] = a[7 - i];',
+ w:'Pure rewiring: the loop costs no gates.', test:{in:['a'], all:[8]}},
+{id:'drl-02', d:'E', t:'Swap the bytes', m:'swap16', ports:'input logic [15:0] a, output logic [15:0] y',
+ p:'y is a with its two bytes swapped.', h:'Concatenate part-selects: {a[7:0], ...}.',
+ sol:'  assign y = {a[7:0], a[15:8]};', w:'Byte swaps convert between big- and little-endian, for example for network fields.', test:{in:['a'], rand:{n:300}}},
+{id:'drl-03', d:'E', t:'Sign-extend 8 to 16 bits', m:'sext', ports:'input logic [7:0] a, output logic [15:0] y',
+ p:'y is the 8-bit two\'s-complement value a, extended to 16 bits.', h:'Replicate the sign bit: {8{a[7]}}.',
+ sol:'  assign y = {{8{a[7]}}, a};', w:'Copying the sign bit keeps the value: 8\'hF0 (−16) becomes 16\'hFFF0 (−16).', test:{in:['a'], all:[8]}},
+{id:'drl-04', d:'E', t:'Reduction flags', m:'red8', ports:'input logic [7:0] a, output logic all1, any1, odd',
+ p:'all1: every bit of a is 1. any1: at least one bit is 1. odd: an odd number of bits are 1.', h:'Unary &, | and ^ reduce a vector to one bit.',
+ sol:'  assign all1 = &a;\n  assign any1 = |a;\n  assign odd  = ^a;', w:'Reduction operators build the AND tree, OR tree and XOR (parity) tree for you.', test:{in:['a'], all:[8]}},
+{id:'drl-05', d:'E', t:'Majority of three', m:'maj3', ports:'input logic a, b, c, output logic y',
+ p:'y is 1 when at least two of a, b, c are 1.', h:'Any pair being 1 is enough.',
+ sol:'  assign y = (a & b) | (a & c) | (b & c);', w:'This is exactly a full adder\'s carry-out.', test:{in:['a', 'b', 'c'], all:[1, 1, 1]}},
+{id:'drl-06', d:'E', t:'4:1 mux, 8 bits wide', m:'mux4', ports:'input logic [7:0] d0, d1, d2, d3,\n  input logic [1:0] s,\n  output logic [7:0] y',
+ p:'y is d0, d1, d2 or d3 for s = 0, 1, 2 or 3.', h:'A case statement in always_comb, or nested ?:.',
+ sol:'  always_comb case (s)\n    2\'d0: y = d0;\n    2\'d1: y = d1;\n    2\'d2: y = d2;\n    default: y = d3;\n  endcase',
+ w:'Covering every value of s (here with default) keeps the block combinational.', test:{in:['d0', 'd1', 'd2', 'd3', 's'], rand:{n:400}}},
+{id:'drl-07', d:'E', t:'16:1 mux from a vector', m:'mux16', ports:'input logic [15:0] d, input logic [3:0] s, output logic y',
+ p:'y is bit s of d.', h:'A variable index selects one bit.',
+ sol:'  assign y = d[s];', w:'Indexing a vector with a signal builds a mux; you rarely need to write one by hand.', test:{in:['d', 's'], rand:{n:500}}},
+{id:'drl-08', d:'E', t:'Full adder', m:'fa', ports:'input logic a, b, cin, output logic s, cout',
+ p:'Add three bits: s is the sum bit, cout the carry.', h:'s is a 3-input XOR; cout is the majority.',
+ sol:'  assign s    = a ^ b ^ cin;\n  assign cout = (a & b) | (cin & (a ^ b));', w:'Chain 8 of these and you have a ripple-carry adder (Chapter 9).', test:{in:['a', 'b', 'cin'], all:[1, 1, 1]}},
+{id:'drl-09', d:'E', t:'Add with carry out', m:'add8', ports:'input logic [7:0] a, b, output logic [7:0] s, output logic c',
+ p:'{c, s} is the 9-bit sum a + b.', h:'Put a concatenation on the left of the assignment.',
+ sol:'  assign {c, s} = a + b;', w:'The 9-bit target makes the addition 9 bits wide, so the carry is kept, not lost.', test:{in:['a', 'b'], rows:['255 1', '128 128', '0 0', '127 1'], rand:{n:400}}},
+{id:'drl-10', d:'M', t:'Signed overflow', m:'add8v', ports:'input logic [7:0] a, b, output logic [7:0] s, output logic v',
+ p:'s = a + b (8 bits). v is 1 when the sum overflows as a two\'s-complement (signed) number.', h:'Overflow happens only when a and b have the same sign and s has the other.',
+ sol:'  assign s = a + b;\n  assign v = (a[7] == b[7]) && (s[7] != a[7]);', w:'The carry out answers the unsigned question; v answers the signed one. 127 + 1 sets v but not the carry.', test:{in:['a', 'b'], rows:['127 1', '128 255', '128 128', '100 100', '200 100'], rand:{n:400}}},
+{id:'drl-11', d:'E', t:'Unsigned compare', m:'cmp8', ports:'input logic [7:0] a, b, output logic eq, lt, gt',
+ p:'eq: a == b. lt: a < b. gt: a > b (unsigned).', h:'Three assigns.',
+ sol:'  assign eq = a == b;\n  assign lt = a <  b;\n  assign gt = a >  b;', w:'Exactly one of the three is 1 for any inputs.', test:{in:['a', 'b'], rows:['5 5', '0 255', '255 0'], rand:{n:400}}},
+{id:'drl-12', d:'M', t:'Signed less-than', m:'slt8', ports:'input logic [7:0] a, b, output logic lt',
+ p:'lt is 1 when a < b, treating both as two\'s-complement numbers.', h:'$signed() changes how a value compares.',
+ sol:'  assign lt = $signed(a) < $signed(b);', w:'8\'hFF is 255 unsigned but −1 signed, so the same bits can compare either way.', test:{in:['a', 'b'], rows:['255 1', '1 255', '128 127', '127 128'], rand:{n:400}}},
+{id:'drl-13', d:'M', t:'Absolute value', m:'abs8', ports:'input logic [7:0] a, output logic [7:0] y',
+ p:'a is signed; y is its absolute value as an unsigned number (−128 gives 128).', h:'Negate when the sign bit is set.',
+ sol:'  assign y = a[7] ? -a : a;', w:'−a is ~a + 1. For −128 it gives 8\'h80, which is 128 when read as unsigned, so every input fits.', test:{in:['a'], all:[8]}},
+{id:'drl-14', d:'E', t:'Lowest set bit', m:'lsb8', ports:'input logic [7:0] a, output logic [2:0] idx',
+ p:'idx is the index of the lowest 1 in a; 0 if a is 0.', h:'Loop from the top down so the last match wins.',
+ sol:'  always_comb begin\n    idx = 3\'d0;\n    for (int i = 7; i >= 0; i--) if (a[i]) idx = i;\n  end',
+ w:'In a loop, later assignments override earlier ones, which builds the priority. Arbiters use this.', test:{in:['a'], all:[8]}},
+{id:'drl-15', d:'E', t:'One-hot to binary', m:'oh2bin', ports:'input logic [7:0] a, output logic [2:0] y',
+ p:'a has one bit set; y is its index. (y[k] is the OR of every a[i] whose index i has bit k set.)', h:'y[0] = a[1] | a[3] | a[5] | a[7].',
+ sol:'  assign y[0] = a[1] | a[3] | a[5] | a[7];\n  assign y[1] = a[2] | a[3] | a[6] | a[7];\n  assign y[2] = a[4] | a[5] | a[6] | a[7];',
+ w:'Three OR gates do it; with one-hot input there is no priority to resolve.', test:{in:['a'], all:[8]}},
+{id:'drl-16', d:'M', t:'Rotate left', m:'rotl8', ports:'input logic [7:0] a, input logic [2:0] s, output logic [7:0] y',
+ p:'y is a rotated left by s places; bits leaving the top come back in at the bottom.', h:'Shift a doubled copy, {a, a}, and take the top half.',
+ sol:'  logic [15:0] t;\n  assign t = {a, a} << s;\n  assign y = t[15:8];', w:'A plain << drops the top bits; doubling the word keeps them.', test:{in:['a', 's'], all:[8, 3]}},
+{id:'drl-17', d:'M', t:'Arithmetic shift right', m:'asr8', ports:'input logic [7:0] a, input logic [2:0] s, output logic [7:0] y',
+ p:'y is signed a shifted right by s, filling with copies of the sign bit.', h:'>>> on a $signed value.',
+ sol:'  assign y = $signed(a) >>> s;', w:'An arithmetic shift right by s divides by 2^s, rounding toward −∞. >>> on an unsigned value fills with 0.', test:{in:['a', 's'], all:[8, 3]}},
+{id:'drl-18', d:'M', t:'Saturating add', m:'sat8', ports:'input logic [7:0] a, b, output logic [7:0] y',
+ p:'y = a + b (unsigned), but 255 if the sum does not fit.', h:'Compute 9 bits and check the top one.',
+ sol:'  logic [8:0] t;\n  assign t = a + b;\n  assign y = t[8] ? 8\'hFF : t[7:0];', w:'Saturation clips instead of wrapping, which is what audio, video and ML hardware want (Chapter 22).', test:{in:['a', 'b'], rows:['200 100', '255 0', '128 127', '128 128'], rand:{n:400}}},
+{id:'drl-19', d:'E', t:'Thermometer code', m:'therm', ports:'input logic [2:0] n, output logic [6:0] y',
+ p:'The lowest n bits of y are 1 and the rest 0 (n = 3 gives 7\'b0000111).', h:'2^n − 1.',
+ sol:'  assign y = (7\'d1 << n) - 7\'d1;', w:'For n = 7, 1 << 7 wraps to 0 in 7 bits and 0 − 1 is all ones, so the corner case works by itself.', test:{in:['n'], all:[3]}},
+{id:'drl-20', d:'M', t:'Logic from a truth table', m:'tt4', ports:'input logic a, b, c, d, output logic f',
+ p:'f = 1 exactly for abcd = 0000, 0010, 0101, 0111, 1000, 1010, 1101, 1111. Find the simplest expression.', h:'Draw the K-map. Which inputs never matter?',
+ sol:'  assign f = ~(b ^ d);', w:'a and c never change f, and f is 1 when b equals d. A K-map finds this; a list of eight minterms hides it.', test:{in:['a', 'b', 'c', 'd'], all:[1, 1, 1, 1]}},
+{id:'drl-21', d:'E', t:'Count the ones', m:'pop8', ports:'input logic [7:0] a, output logic [3:0] n',
+ p:'n is the number of 1 bits in a.', h:'Add each bit in a loop.',
+ sol:'  always_comb begin\n    n = 4\'d0;\n    for (int i = 0; i < 8; i++) n = n + a[i];\n  end', w:'The loop becomes a tree of small adders, not eight steps in time.', test:{in:['a'], all:[8]}},
+{id:'drl-22', d:'M', t:'Binary to two BCD digits', m:'bin2bcd', ports:'input logic [6:0] b, output logic [3:0] tens, ones',
+ p:'tens = b / 10 and ones = b % 10 (b up to 127, so tens up to 12).', h:'Division by a constant is synthesizable.',
+ sol:'  assign tens = b / 7\'d10;\n  assign ones = b % 7\'d10;', w:'Dividing by a constant becomes fixed logic. For wide inputs, the shift-and-add-3 (double dabble) circuit is smaller.', test:{in:['b'], all:[7]}},
+// Sequential
+{id:'drl-23', d:'E', t:'Flip-flop with asynchronous reset', m:'dffr', ports:'input logic clk, rst_n, d, output logic q',
+ p:'q takes d on each rising edge; rst_n = 0 clears q immediately.', h:'Put negedge rst_n in the sensitivity list.',
+ sol:'  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n) q <= 1\'b0;\n    else        q <= d;', w:'The reset is in the sensitivity list, so it acts without waiting for a clock edge.', test:{in:['rst_n', 'd'], clk:'clk', reset:'0 0', rand:{n:200, p:{rst_n:0.9}}}},
+{id:'drl-24', d:'E', t:'Register with enable and synchronous reset', m:'reg8', ports:'input logic clk, rst, en, input logic [7:0] d, output logic [7:0] q',
+ p:'On each rising edge: rst = 1 clears q; otherwise en = 1 loads d; otherwise q holds.', h:'Check rst first.',
+ sol:'  always_ff @(posedge clk)\n    if (rst)     q <= 8\'d0;\n    else if (en) q <= d;', w:'A synchronous reset is just the highest-priority input to the next-state logic.', test:{in:['rst', 'en', 'd'], clk:'clk', reset:'1 0 0', rand:{n:300, p:{rst:0.1}}}},
+{id:'drl-25', d:'E', t:'Toggle flip-flop', m:'tff', ports:'input logic clk, rst_n, t, output logic q',
+ p:'On each rising edge, q flips if t = 1. rst_n = 0 clears q asynchronously.', h:'q <= q ^ t.',
+ sol:'  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n) q <= 1\'b0;\n    else        q <= q ^ t;', w:'A T flip-flop is a D flip-flop with an XOR in front; counters are chains of them.', test:{in:['rst_n', 't'], clk:'clk', reset:'0 0', rand:{n:200, fix:{rst_n:1}}}},
+{id:'drl-26', d:'E', t:'Any-edge detector', m:'anyedge', ports:'input logic clk, rst_n, d, output logic e',
+ p:'e is 1 during any cycle in which d differs from its value in the previous cycle. The remembered value resets to 0.', h:'Register d, then XOR.',
+ sol:'  logic prev;\n  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n) prev <= 1\'b0;\n    else        prev <= d;\n  assign e = d ^ prev;', w:'Rising edge is d & ~prev, falling edge ~d & prev, and either one is d ^ prev.', test:{in:['rst_n', 'd'], clk:'clk', reset:'0 0', rand:{n:300, fix:{rst_n:1}}}},
+{id:'drl-27', d:'E', t:'Serial-in shift register', m:'sipo4', ports:'input logic clk, rst_n, sin, output logic [3:0] q',
+ p:'Each rising edge shifts q left by one and puts sin in q[0]. rst_n = 0 clears q.', h:'q <= {q[2:0], sin}.',
+ sol:'  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n) q <= 4\'d0;\n    else        q <= {q[2:0], sin};', w:'A concatenation describes the whole shift in one line: four flip-flops in a chain.', test:{in:['rst_n', 'sin'], clk:'clk', reset:'0 0', rand:{n:200, fix:{rst_n:1}}}},
+{id:'drl-28', d:'M', t:'Load or shift', m:'ldsh', ports:'input logic clk, rst_n, load, shift, input logic [7:0] d, output logic [7:0] q',
+ p:'On each rising edge: load = 1 loads d; otherwise shift = 1 shifts q right by one, filling with 0; otherwise q holds. rst_n = 0 clears q.', h:'load has priority over shift.',
+ sol:'  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n)     q <= 8\'d0;\n    else if (load)  q <= d;\n    else if (shift) q <= q >> 1;', w:'This is the transmit side of a UART or SPI: load a byte, then shift it out one bit per clock from q[0].', test:{in:['rst_n', 'load', 'shift', 'd'], clk:'clk', reset:'0 0 0 0', rand:{n:300, fix:{rst_n:1}, p:{load:0.15, shift:0.6}}}},
+{id:'drl-29', d:'E', t:'Up/down counter', m:'updn', ports:'input logic clk, rst_n, en, up, output logic [3:0] q',
+ p:'When en = 1, q counts up if up = 1, else down, wrapping at 15 and 0. rst_n = 0 clears q.', h:'q + 1 and q − 1 both wrap naturally in 4 bits.',
+ sol:'  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n)  q <= 4\'d0;\n    else if (en) q <= up ? q + 4\'d1 : q - 4\'d1;', w:'Fixed-width arithmetic wraps by itself: 0 − 1 is 15 in 4 bits.', test:{in:['rst_n', 'en', 'up'], clk:'clk', reset:'0 0 0', rand:{n:300, fix:{rst_n:1}}}},
+{id:'drl-30', d:'E', t:'Decade counter', m:'dec10', ports:'input logic clk, rst_n, en, output logic [3:0] q, output logic tc',
+ p:'When en = 1, q counts 0 to 9 and back to 0. tc (combinational) is 1 when en = 1 and q = 9. rst_n = 0 clears q.', h:'Compare with 9 before incrementing.',
+ sol:'  assign tc = en && (q == 4\'d9);\n  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n)  q <= 4\'d0;\n    else if (en) q <= (q == 4\'d9) ? 4\'d0 : q + 4\'d1;',
+ w:'tc ("terminal count") is what you feed to the next digit\'s enable to build bigger decimal counters.', test:{in:['rst_n', 'en'], clk:'clk', reset:'0 0', rand:{n:300, fix:{rst_n:1}, p:{en:0.8}}}},
+{id:'drl-31', d:'M', t:'Two-digit BCD counter', m:'bcd99', ports:'input logic clk, rst_n, en, output logic [3:0] tens, ones',
+ p:'When en = 1, count 00, 01, ..., 99, 00 in BCD. rst_n = 0 clears both digits.', h:'ones wraps at 9 and then bumps tens.',
+ sol:'  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n) begin\n      tens <= 4\'d0; ones <= 4\'d0;\n    end else if (en) begin\n      if (ones == 4\'d9) begin\n        ones <= 4\'d0;\n        tens <= (tens == 4\'d9) ? 4\'d0 : tens + 4\'d1;\n      end else\n        ones <= ones + 4\'d1;\n    end',
+ w:'Each digit is a decade counter; the ones digit\'s terminal count enables the tens digit.', test:{in:['rst_n', 'en'], clk:'clk', reset:'0 0', rand:{n:700, fix:{rst_n:1}, p:{en:0.9}}}},
+{id:'drl-32', d:'M', t:'A tick every 5 cycles', m:'tick5', ports:'input logic clk, rst_n, output logic tick',
+ p:'A counter runs 0, 1, 2, 3, 4, 0, ... from reset; tick (combinational) is 1 while it is 4. rst_n = 0 clears the counter.', h:'A 3-bit counter that wraps at 4.',
+ sol:'  logic [2:0] cnt;\n  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n) cnt <= 3\'d0;\n    else        cnt <= (cnt == 3\'d4) ? 3\'d0 : cnt + 3\'d1;\n  assign tick = (cnt == 3\'d4);',
+ w:'Use a tick as a clock enable for slow logic, instead of making a divided clock (Chapter 12).', test:{in:['rst_n'], clk:'clk', reset:'0', rand:{n:40, fix:{rst_n:1}}}},
+{id:'drl-33', d:'M', t:'Catch falling bits', m:'fallcap', ports:'input logic clk, rst_n, input logic [7:0] d, output logic [7:0] cap',
+ p:'cap[i] becomes 1, and stays 1, at the first edge where d[i] is 0 after being 1 at the previous edge. rst_n = 0 clears cap and the remembered d.', h:'Keep last cycle\'s d; a fall is prev & ~d.',
+ sol:'  logic [7:0] prev;\n  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n) begin\n      prev <= 8\'d0; cap <= 8\'d0;\n    end else begin\n      prev <= d;\n      cap  <= cap | (prev & ~d);\n    end',
+ w:'Sticky bits like this are how interrupt-status registers remember events until software clears them.', test:{in:['rst_n', 'd'], clk:'clk', reset:'0 0', rand:{n:300, fix:{rst_n:1}}}},
+{id:'drl-34', d:'M', t:'Running maximum', m:'runmax', ports:'input logic clk, rst_n, clr, valid, input logic [7:0] x, output logic [7:0] m',
+ p:'On each rising edge: clr = 1 sets m to 0; otherwise, if valid = 1 and x > m, m becomes x. rst_n = 0 clears m.', h:'clr wins over valid.',
+ sol:'  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n)                m <= 8\'d0;\n    else if (clr)              m <= 8\'d0;\n    else if (valid && x > m)   m <= x;',
+ w:'A comparator and a register: the core of peak detectors and of max-pooling in ML hardware.', test:{in:['rst_n', 'clr', 'valid', 'x'], clk:'clk', reset:'0 0 0 0', rand:{n:300, fix:{rst_n:1}, p:{clr:0.05, valid:0.6}}}},
+{id:'drl-35', d:'M', t:'Accumulator with sticky overflow', m:'acc8', ports:'input logic clk, rst_n, en, input logic [7:0] x, output logic [7:0] sum, output logic ovf',
+ p:'When en = 1, sum <= sum + x (8 bits, wrapping), and ovf becomes 1 if that addition carried out; ovf then stays 1. rst_n = 0 clears both.', h:'Compute the 9-bit sum, keep its low 8 bits, OR its top bit into ovf.',
+ sol:'  logic [8:0] t;\n  assign t = sum + x;\n  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n) begin\n      sum <= 8\'d0; ovf <= 1\'b0;\n    end else if (en) begin\n      sum <= t[7:0];\n      ovf <= ovf | t[8];\n    end',
+ w:'A sticky flag records that something went wrong at some point, even after the value wraps back.', test:{in:['rst_n', 'en', 'x'], clk:'clk', reset:'0 0 0', rand:{n:300, fix:{rst_n:1}, p:{en:0.5}}}},
+{id:'drl-36', d:'E', t:'Delay by two cycles', m:'dly2', ports:'input logic clk, rst_n, input logic [7:0] d, output logic [7:0] q',
+ p:'q is d from two rising edges ago. rst_n = 0 clears both registers.', h:'Two registers in a row.',
+ sol:'  logic [7:0] r1;\n  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n) begin\n      r1 <= 8\'d0; q <= 8\'d0;\n    end else begin\n      r1 <= d; q <= r1;\n    end',
+ w:'With nonblocking assignments the order of the two lines does not matter; with blocking ones it would collapse to one stage.', test:{in:['rst_n', 'd'], clk:'clk', reset:'0 0', rand:{n:200, fix:{rst_n:1}}}},
+// State machines
+{id:'drl-37', d:'E', t:'Two 1s in a row (Moore)', m:'two1', ports:'input logic clk, rst_n, x, output logic y',
+ p:'y is 1 while the last two values of x captured at clock edges were both 1. y depends only on the state. rst_n = 0 resets to "none seen".', h:'Three states: seen zero, one or two 1s in a row.',
+ sol:'  typedef enum logic [1:0] {S0, S1, S2} st_t;\n  st_t s;\n  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n) s <= S0;\n    else if (!x)    s <= S0;\n    else if (s == S0) s <= S1;\n    else            s <= S2;      // from S1 or S2\n  assign y = (s == S2);',
+ w:'A Moore output is decoded from the state alone, so it changes only after a clock edge and never glitches with x.', test:{in:['rst_n', 'x'], clk:'clk', reset:'0 0', rand:{n:300, fix:{rst_n:1}, p:{x:0.6}}}},
+{id:'drl-38', d:'M', t:'Detect 101, no overlap (Mealy)', m:'det101', ports:'input logic clk, rst_n, x, output logic y',
+ p:'y (combinational) is 1 in the cycle where x completes the pattern 1, 0, 1. After a match, start again from scratch (10101 gives one match, not two). rst_n = 0 resets.', h:'States: idle, saw 1, saw 10. A match goes back to idle.',
+ sol:'  typedef enum logic [1:0] {A, B, C} st_t;   // idle, saw 1, saw 10\n  st_t s;\n  assign y = (s == C) && x;\n  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n) s <= A;\n    else case (s)\n      A: if (x) s <= B;\n      B: if (!x) s <= C;\n      default: s <= A;          // C: match on 1, or 100: start over\n    endcase',
+ w:'A Mealy output uses the input directly, so it reacts in the same cycle; going back to A after a match is what forbids overlap.', test:{in:['rst_n', 'x'], clk:'clk', reset:'0 0', rows:['1 1', '1 0', '1 1', '1 0', '1 1', '1 1', '1 0', '1 0', '1 1'], rand:{n:400, fix:{rst_n:1}}}},
+{id:'drl-39', d:'M', t:'Press to toggle', m:'press', ports:'input logic clk, rst_n, btn, output logic on',
+ p:'btn is a level. on flips at each edge where btn is 1 and was 0 at the previous edge. rst_n = 0 clears on and the remembered btn.', h:'Detect the rising edge first, then toggle.',
+ sol:'  logic prev;\n  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n) begin\n      prev <= 1\'b0; on <= 1\'b0;\n    end else begin\n      prev <= btn;\n      if (btn && !prev) on <= ~on;\n    end',
+ w:'Toggling on the level instead of the edge would make on flip every cycle the button is held.', test:{in:['rst_n', 'btn'], clk:'clk', reset:'0 0', rand:{n:300, fix:{rst_n:1}, p:{btn:0.6}}}},
+{id:'drl-40', d:'M', t:'Length of each run of 1s', m:'runlen', ports:'input logic clk, rst_n, x, output logic [7:0] len, output logic done',
+ p:'Count consecutive 1s on x. At the edge where x is 0 after one or more 1s, set done = 1 for one cycle and len to the run length; len holds otherwise. rst_n = 0 clears everything.', h:'Keep a private counter; clear done by default each cycle.',
+ sol:'  logic [7:0] cnt;\n  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n) begin\n      cnt <= 8\'d0; len <= 8\'d0; done <= 1\'b0;\n    end else begin\n      done <= 1\'b0;\n      if (x) cnt <= cnt + 8\'d1;\n      else begin\n        if (cnt != 8\'d0) begin done <= 1\'b1; len <= cnt; end\n        cnt <= 8\'d0;\n      end\n    end',
+ w:'A default assignment at the top of the block (done <= 0) turns a level into a one-cycle pulse.', test:{in:['rst_n', 'x'], clk:'clk', reset:'0 0', rand:{n:400, fix:{rst_n:1}, p:{x:0.7}}}},
+{id:'drl-41', d:'H', t:'Serial adder, LSB first', m:'sadd', ports:'input logic clk, rst_n, start, a, b, output logic s',
+ p:'Two numbers arrive one bit per cycle, least significant first. s (combinational) is this cycle\'s sum bit. start = 1 marks the first bit of new numbers, so the carry used in that cycle is 0. rst_n = 0 clears the carry.', h:'One flip-flop holds the carry; start masks it.',
+ sol:'  logic c, cin;\n  assign cin = start ? 1\'b0 : c;\n  assign s   = a ^ b ^ cin;\n  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n) c <= 1\'b0;\n    else        c <= (a & b) | (cin & (a ^ b));',
+ w:'One full adder and one flip-flop add numbers of any width, trading time for area: the same idea as a ripple adder unrolled in time.', test:{in:['rst_n', 'start', 'a', 'b'], clk:'clk', reset:'0 1 0 0', rand:{n:400, fix:{rst_n:1}, p:{start:0.15}}}},
+{id:'drl-42', d:'H', t:'Debounce a switch', m:'debounce', ports:'input logic clk, rst_n, din, output logic dout',
+ p:'dout copies din only after din has differed from dout at 4 consecutive rising edges; dout changes at the 4th. Any edge where they agree restarts the count. rst_n = 0 clears dout and the count.', h:'A 2-bit counter of edges where din != dout.',
+ sol:'  logic [1:0] cnt;\n  always_ff @(posedge clk or negedge rst_n)\n    if (!rst_n) begin\n      cnt <= 2\'d0; dout <= 1\'b0;\n    end else if (din == dout)\n      cnt <= 2\'d0;\n    else if (cnt == 2\'d3) begin\n      dout <= din; cnt <= 2\'d0;\n    end else\n      cnt <= cnt + 2\'d1;',
+ w:'Mechanical contacts bounce for milliseconds; a real debouncer counts thousands of cycles, but the structure is the same.', test:{in:['rst_n', 'din'], clk:'clk', reset:'0 0', rows:['1 1', '1 1', '1 1', '1 1', '1 1', '1 0', '1 1', '1 1', '1 0', '1 0', '1 0', '1 0', '1 0'], rand:{n:400, fix:{rst_n:1}, p:{din:0.5}}}},
+];
+const drillProblem = d => {
+  const head = `module ${d.m} (\n  ${d.ports.replace(/, (input|output) /g, ',\n  $1 ')}\n);`;
+  return {id:d.id, d:d.d, lang:'verilog', area:'Verilog drills', title:d.t, p:[d.p], starter:head + '\n  // your code\nendmodule',
+    hints:[d.h], sol:head + '\n' + d.sol + '\nendmodule', why:[d.w]};
+};
+CODING.push(...DRILLS.map(drillProblem));
+
 // Hidden tests for the C, C++ and Verilog coding problems, judged in the browser by judge.js.
 // C/C++: {kind:'c', head (before your code), pre (helpers after it), subst (rewrites in your code), tests}.
 //   [expression, expected] compares values (a "string" compares text); [statements, text, 'out', label] compares printed output.
@@ -4542,6 +4703,21 @@ static const char *rbtest(int which){
       ...udpBeats(UDP_FRAME(7, 2222, [1, 2]), 2), ...udpBeats(UDP_FRAME(7, 3333, [1]).concat(Array(40).fill(0x55)))]},
   {name:'400 random cycles', top:'udp_port', clk:'clk', in:['rst_n', 'valid', 'sop', 'data'], rows:['0 0 0 0'], rand:{n:400, fix:{rst_n:1}, p:{valid:0.8, sop:0.08}}}]},
 };
+// Verilog drills: every input combination when the inputs are small, then corner cases and random ones,
+// compared cycle by cycle with the reference solution.
+DRILLS.forEach(d => {
+  const t = d.test, base = Object.assign({top:d.m, in:t.in}, t.clk ? {clk:t.clk} : {}), rst = t.reset ? [t.reset] : [], benches = [];
+  if (t.all) {
+    const n = 2 ** t.all.reduce((s, w) => s + w, 0);
+    benches.push(Object.assign({}, base, {name:`All ${n} inputs`, rows:Array.from({length:n}, (_, i) => {
+      let k = i;
+      return t.all.map(w => { const v = k % 2 ** w; k = Math.floor(k / 2 ** w); return v; }).join(' ');
+    })}));
+  }
+  if (t.rows) benches.push(Object.assign({}, base, {name:'Corner cases', rows:rst.concat(t.rows)}));
+  if (t.rand) benches.push(Object.assign({}, base, {name:`${t.rand.n} random ${t.clk ? 'cycles' : 'inputs'}`, rows:rst, rand:t.rand}));
+  HIDDEN[d.id] = {kind:'v', benches};
+});
 CODING.forEach(p => { if (HIDDEN[p.id]) p.run = HIDDEN[p.id]; });
 
 // The in-browser judge for C, C++ and Verilog. Nothing here touches the page, so the Node tests load it too.
@@ -5295,7 +5471,7 @@ const SKILL_REVIEW = [
   {req:'Power and thermal', v:'strong', book:'Chapters 3, 14 and 15', list:'sk-power', todo:'Know dynamic and leakage power cold, and how voltage, frequency and temperature move them.'},
   {req:'Computer architecture', v:'good', book:'Chapters 18, 20 and 21 (memory, pipelines, caches, GPUs)', list:'sk-arch', todo:'Out-of-order execution and register renaming appear only as beyond-the-book problems.'},
   {req:'Computer arithmetic', v:'strong', book:'Chapter 22: adders, multipliers and Booth recoding, division, fixed and floating point, rounding', list:'sk-arith', todo:'Pair it with the RTL problems: an ALU, a leading-zero counter, a multiplier.'},
-  {req:'Verilog, SystemVerilog or VHDL', v:'good', book:'Chapter 19: Verilog, SystemVerilog, CDC, FIFOs and verification. VHDL is not taught', list:'sk-hdl', code:['RTL design', 'Verification'], todo:'Solve the judged RTL problems here. VHDL is quick to pick up once Verilog is solid.'},
+  {req:'Verilog, SystemVerilog or VHDL', v:'good', book:'Chapter 19: Verilog, SystemVerilog, reading VHDL, CDC, FIFOs and verification', list:'sk-hdl', code:['Verilog drills', 'RTL design', 'Verification'], todo:'Do the Verilog drills until they are quick, then the judged RTL problems. Two VHDL problems show the same ideas in VHDL.'},
   {req:'Programming: C, C++, Python, Perl or MATLAB', v:'good', book:'Chapter 23 covers C and Python basics; the rest are taught as beyond-the-book problems', list:'sk-prog', code:['C and C++', 'Python and MATLAB'], todo:'Keep solving one linked-list or bit-manipulation problem a week.'},
   {req:'Linux, scripting and version control', v:'good', book:'Chapter 23 and beyond-the-book problems (shell, git, make, Tcl, Perl)', list:'sk-prog', code:['Linux and scripting'], todo:'Live in a Linux terminal for a week; script one real task in Python or Tcl.'},
   {req:'GPU programming: CUDA or OpenCL', v:'good', book:'Chapter 21 (CUDA model, warps, memory hierarchy); OpenCL is only named', list:'sk-gpu', code:['GPU and CUDA'], todo:'Run the CUDA problems on a real GPU (Google Colab works).'},
@@ -6893,7 +7069,7 @@ function viewRoles(){
 // ---------- Learn: the book as lessons, LeetCode Explore style ----------
 // Each chapter of Hardware from the Ground Up is a card of lessons (its sections), ending with that chapter's
 // problems. Reading a lesson and solving a problem both count toward the chapter.
-const CH_CODE = {11:['Physical design'], 19:['RTL design', 'Verification'], 21:['GPU and CUDA'], 23:['C and C++', 'Python and MATLAB', 'Linux and scripting'], 27:['C and C++']};
+const CH_CODE = {11:['Physical design'], 19:['RTL design', 'Verilog drills', 'Verification'], 21:['GPU and CUDA'], 23:['C and C++', 'Python and MATLAB', 'Linux and scripting'], 27:['C and C++']};
 // The book's parts, then the pages for the days before an assessment: the C and C++ chapter (27), the practice
 // assessment (Chapter 25) and the formula sheet (Appendix A, page 26).
 const LEARN_PARTS = PARTS.concat([{n:9, name:'Before the assessment', units:[27, 25, 26]}]);
