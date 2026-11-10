@@ -1,0 +1,172 @@
+% A role chapter for the Learn tab (not part of the printed book). It builds on Chapter 15 (PVT), Chapter 16
+% (signals between chips) and Chapter 17 (testing manufactured chips).
+\chapter{Silicon Bring-up, Validation and Lab Skills}
+\label{ch:psv}
+
+When the first chips come back from the factory, a new phase starts: proving that real silicon works across every voltage, temperature and part, and finding the bugs that simulation missed. Post-silicon validation, product and test engineering, and hardware systems roles all live here. Interviews for these roles mix chip knowledge with practical lab skills: how to measure things correctly, how to automate tests, how to read data, and how to debug a failure you can barely see.
+
+\begin{bigidea}
+Pre-silicon verification sees everything but runs slowly; real silicon runs a billion times faster but shows almost nothing. Validation engineers trade visibility for speed: they run far more cycles than simulation ever could, then use the chip's debug features and careful experiments to narrow a failure down until it can be reproduced and understood.
+\end{bigidea}
+
+\section{From first silicon to production}
+
+\begin{enumerate}
+  \item \textbf{Power-on.} Check the supplies for shorts before applying full power: ramp each rail slowly with a current limit and watch the current. Then check that clocks start, PLLs lock and the chip comes out of reset.
+  \item \textbf{Basic access.} Talk to the chip over JTAG: read its ID code, access debug registers, run memory BIST and scan tests.
+  \item \textbf{Bring-up.} Load firmware, boot the processor, bring up each interface one by one (memory first, then high-speed links, then peripherals).
+  \item \textbf{Functional validation.} Run directed tests, random instruction streams, real software and stress workloads for days, looking for failures.
+  \item \textbf{Electrical validation.} Measure signal quality on every high-speed interface: eye diagrams, jitter, compliance with the standard.
+  \item \textbf{Characterization.} Measure how performance, power and margins vary with voltage, temperature, frequency and process (many parts from different wafers and corner lots).
+  \item \textbf{Production test.} Write the test program that runs on automatic test equipment in seconds per chip, and set the pass/fail limits and the speed bins.
+\end{enumerate}
+
+Bugs found along the way are fixed in software or firmware if possible, documented as \term{errata} with workarounds, or fixed in a new \term{stepping} (a revision of the masks, often only the metal layers, which is cheaper and faster than a full respin).
+
+\section{Debug features on the chip}
+
+Because probing inside a modern chip is nearly impossible, designers build visibility in (often called DFx, design for debug and test):
+\begin{itemize}
+  \item \textbf{JTAG and debug ports} give access to registers, memories and the processor's debug unit (halt, step, read registers).
+  \item \textbf{Trace buffers} record internal signals or processor instruction traces into on-chip memory when a trigger fires, like an ILA in an FPGA.
+  \item \textbf{Performance counters and status registers} count events (cache misses, ECC corrections, link retries) and expose error logs.
+  \item \textbf{Scan dumps}: stop the clocks at the failure and shift out every flip-flop's state through the scan chains, giving a complete snapshot to compare against simulation.
+  \item \textbf{Observability pins and debug muxes} route chosen internal signals to a pin for an oscilloscope or logic analyzer.
+  \item \textbf{Tunable knobs}: registers that adjust PLL settings, delay lines, drive strengths and equalization, used to explore margins and to work around marginal circuits.
+\end{itemize}
+
+\section{The debug method in the lab}
+
+The method is the same as in verification (reproduce, isolate, root-cause, fix), but each step is harder:
+
+\begin{enumerate}
+  \item \textbf{Reproduce reliably.} A failure that happens once a day must be made to happen in minutes: find the workload, temperature, voltage or frequency that makes it frequent.
+  \item \textbf{Characterize it.} Does it depend on voltage (fails only at low voltage: a speed path or IR drop)? Temperature (hot: leakage or slow paths; cold: hold or temperature inversion)? Frequency (fails above some clock rate: a setup-like failure)? One part or all parts (a defect, or a design bug)? One board or all boards?
+  \item \textbf{Isolate.} Shrink the failing test; disable features one by one; swap parts between boards; use the debug features to find the first wrong value.
+  \item \textbf{Reproduce in simulation.} Once narrowed to a block and a scenario, recreate it in pre-silicon simulation or emulation, where every signal is visible. Confirming the root cause there is the usual end of a debug.
+  \item \textbf{Fix or work around}: software, firmware, a register setting, a test-program screen, or a silicon fix.
+\end{enumerate}
+
+\begin{trap}
+Changing several things at once destroys the evidence. Change one variable per experiment, record everything (part ID, board, voltage, temperature, firmware version, settings), and keep a known-good reference setup to compare against.
+\end{trap}
+
+\section{Shmoo plots and characterization}
+
+A \term{shmoo plot} runs a test across a grid of two parameters, usually supply voltage against clock frequency, and marks each point pass or fail. The boundary between them shows the operating margin.
+
+\begin{itemize}
+  \item A healthy speed-path limit gives a boundary where higher voltage allows higher frequency (gates are faster at higher voltage), so passing points form a region up and to the left of a sloped line.
+  \item A boundary that does \emph{not} move with voltage points at something else: a hold-type problem, a functional bug, or a fixed-delay circuit.
+  \item Holes inside the passing region (``a fail at one voltage between two passes'') suggest noise, resonance or a marginal analog circuit.
+  \item Running the shmoo at hot and cold temperatures, and on parts from fast and slow corner lots, shows how the margin varies across the population.
+\end{itemize}
+
+\paragraph{Vmin and Fmax.} Each part's lowest working voltage at a given frequency (Vmin) and highest working frequency at a given voltage (Fmax) vary from part to part. Measured across hundreds of parts, they form distributions that decide the product's voltage and frequency settings and the \term{speed bins} (faster parts are sold as a higher grade).
+
+\section{Statistics for validation and test}
+
+\begin{itemize}
+  \item Measurements across many parts are summarized by mean and standard deviation. A normal distribution has about 68\% of parts within one sigma, 95\% within two and 99.7\% within three.
+  \item \term{Process capability} compares the spread with the specification limits: $C_{pk} = \min(\text{USL} - \mu,\ \mu - \text{LSL}) / 3\sigma$. A $C_{pk}$ of 1.33 or more is a common target; below 1, a noticeable fraction of parts fall outside the limits.
+  \item \textbf{Guard bands}: test limits are set tighter than the specification to allow for tester accuracy and drift with aging and temperature, so no bad part ships. Tight guard bands lose good parts (yield); loose ones risk escapes.
+  \item \textbf{Correlation} checks that the same part gives the same result on two testers or between the lab bench and the production tester.
+  \item \textbf{Yield} and \textbf{defects per million} (DPM) are the headline numbers; automotive customers often require single-digit DPM.
+\end{itemize}
+
+\begin{worked}{Cpk}
+A supply current is specified at most 120 mA (USL), with no lower limit. Measured parts have mean 100 mA and standard deviation 5 mA. What is $C_{pk}$?
+
+Only the upper side counts: $C_{pk} = (120 - 100) / (3 \times 5) = 20/15 \approx 1.33$. The limit is four sigma above the mean, so about 3 parts in 100\,000 would exceed it.
+\end{worked}
+
+\section{Lab instruments}
+
+\subsection*{Oscilloscopes}
+
+\begin{itemize}
+  \item \textbf{Bandwidth.} A scope's bandwidth is the frequency where it shows a sine wave 3 dB (about 30\%) too small. To see a digital edge faithfully, the bandwidth must be several times the signal's highest frequency content; a common rule ties it to rise time: $t_r \approx 0.35/\text{BW}$, so a 1 GHz scope shows edges no faster than about 350 ps (Chapter~\ref{ch:capind}).
+  \item \textbf{Sample rate} should be at least 2.5 to 5 times the bandwidth.
+  \item \textbf{Probes} matter as much as the scope: a passive 10:1 probe adds about 10 pF of load and has limited bandwidth; active and differential probes load the circuit far less. A long ground lead forms an inductive loop that rings and invents overshoot that is not really there; use the shortest ground spring possible.
+  \item \textbf{Triggering} on an edge, a pulse width, a glitch, a runt or a serial bus pattern captures rare events. \textbf{Segmented memory} and \textbf{persistence} displays find intermittent problems.
+  \item \textbf{AC versus DC coupling}: AC coupling removes the DC level to zoom into ripple on a supply.
+  \item Measuring power-supply ripple and noise needs short connections and often a 1:1 probe or a coaxial connection, because the noise is millivolts.
+\end{itemize}
+
+\subsection*{Other instruments}
+
+\begin{itemize}
+  \item \textbf{Logic analyzer}: many digital channels, decodes buses (I$^2$C, SPI, UART), but shows only 0 and 1, not analog quality.
+  \item \textbf{Multimeter}: DC voltage, current and resistance; for current, it goes in series. Four-wire (Kelvin) measurement removes lead resistance for small resistances.
+  \item \textbf{Programmable power supplies and source-measure units} (SMUs) set a voltage and measure current very precisely, with current limits that protect a new board.
+  \item \textbf{Electronic loads} draw a programmed current to test regulators.
+  \item \textbf{Spectrum analyzer}: power versus frequency, to find spurs and interference.
+  \item \textbf{Bit error rate tester} (BERT) and high-speed sampling scopes: drive and measure serial links.
+  \item \textbf{Thermal stream or chamber}: forces a chip to a set temperature (for example $-40$ to $125\,^{\circ}$C) during testing.
+\end{itemize}
+
+\section{High-speed signal validation}
+
+\begin{itemize}
+  \item An \term{eye diagram} overlays many bit periods of a serial signal. The \emph{eye opening} (its height in volts and width in time) shows how much margin the receiver has. Loss in the channel closes it vertically; jitter closes it horizontally; reflections and crosstalk do both (Chapter~\ref{ch:wires}).
+  \item \term{Jitter} is decomposed into \emph{random} jitter (unbounded, Gaussian, quoted as an RMS value) and \emph{deterministic} jitter (bounded, from data patterns, crosstalk or duty-cycle distortion). Total jitter is quoted at a target bit error rate, such as $10^{-12}$.
+  \item The \term{bit error rate} (BER) is errors divided by bits. Proving a BER of $10^{-12}$ with 95\% confidence needs about $3 \times 10^{12}$ error-free bits; at 10 Gb/s that is about 5 minutes.
+  \item \textbf{Margining}: the receiver's internal eye-scan tools sweep the sampling point in time and voltage to map the eye from inside the chip, and equalization settings are tuned for the best opening.
+  \item \textbf{Compliance testing} runs the standard's official tests (PCIe, USB, Ethernet, DDR) with specified fixtures and patterns, such as PRBS (pseudo-random bit sequences) that exercise every run length.
+\end{itemize}
+
+\section{Automation}
+
+Validation runs thousands of combinations, so it is automated:
+\begin{itemize}
+  \item Instruments are controlled from Python over USB, Ethernet or GPIB using text commands (SCPI, such as \code{MEAS:VOLT:DC?}), usually through a library such as PyVISA.
+  \item A test script sets the supply voltage and temperature, configures the chip, runs a test, reads the result and the measurements, and logs everything with the part ID, then loops over the sweep.
+  \item Results go into data frames (pandas) for plotting shmoos, histograms and trends, and into databases across many parts and lots.
+  \item Production test programs run on automatic test equipment (ATE) in a fixed sequence: continuity and leakage on every pin, power-up, scan and MBIST patterns, functional and at-speed tests, analog trims and fuse programming, speed binning. Every millisecond of test time costs money at volume.
+\end{itemize}
+
+\begin{lstlisting}
+import pyvisa
+rm   = pyvisa.ResourceManager()
+psu  = rm.open_resource("TCPIP::192.168.1.20::INSTR")
+for mv in range(700, 1001, 25):                    # sweep the core supply
+    psu.write(f"VOLT {mv/1000:.3f}")
+    ok = run_test()                                  # your test on the chip
+    amps = float(psu.query("MEAS:CURR?"))
+    print(mv, "PASS" if ok else "FAIL", f"{amps:.3f} A")
+\end{lstlisting}
+
+\section{Failure analysis and reliability}
+
+\begin{itemize}
+  \item When a part fails in test or in the field, \term{failure analysis} (FA) finds the physical cause: electrical fault isolation (scan diagnosis narrows a failing pattern to a few nets), thermal or light-emission imaging to find hot spots, then de-processing and electron microscopy to see the defect.
+  \item \textbf{Reliability qualification} stresses parts to show they will last: high-temperature operating life (HTOL, many hours at high temperature and voltage to accelerate aging), temperature cycling, humidity, ESD and latch-up testing (Chapter~\ref{ch:fab}).
+  \item \textbf{Burn-in} runs parts hot and at high voltage for a while before shipping, to make weak parts fail in the factory instead of in the field (early-life failures, the left side of the ``bathtub curve'').
+  \item Field returns are analyzed and the test program is updated to screen similar parts.
+\end{itemize}
+
+\section{What validation and test interviews ask}
+
+\begin{itemize}
+  \item Walk through bringing up a new board or chip: what you check first and why.
+  \item A test fails at low voltage and high temperature only: what does that suggest, and what do you try next? (And the same for cold only, or for one part only.)
+  \item Read a shmoo plot and explain its shape.
+  \item How to measure a fast edge correctly: scope bandwidth, rise-time rule, probe loading, ground lead length.
+  \item Eye diagrams, jitter types, BER and how long a BER test takes.
+  \item JTAG, scan dumps and other debug features, and how you would use them.
+  \item $C_{pk}$, standard deviation, guard bands and yield.
+  \item Automating a sweep with Python, and how you would store and plot the data.
+  \item Stuck-at and transition faults, scan and MBIST (from the previous chapter), and what production test does.
+  \item A time you debugged something difficult: how you narrowed it down and what the root cause was.
+\end{itemize}
+
+\section{Summary}
+
+\begin{itemize}
+  \item First silicon goes through power-on, bring-up, functional and electrical validation, characterization and production test; fixes become software workarounds, errata or a new stepping.
+  \item On-chip debug features (JTAG, trace buffers, counters, scan dumps, knobs) replace the visibility simulation had.
+  \item Debug by reproducing, characterizing across voltage, temperature, frequency and parts, isolating, and confirming in simulation; change one thing at a time.
+  \item Shmoo plots show margin; Vmin and Fmax distributions set bins; $C_{pk}$ and guard bands set test limits.
+  \item Measure correctly: enough bandwidth, low-loading probes, short grounds; validate high-speed links with eyes, jitter and BER.
+  \item Automate with Python and SCPI; production test runs on ATE in seconds per part; failure analysis and reliability testing close the loop.
+\end{itemize}

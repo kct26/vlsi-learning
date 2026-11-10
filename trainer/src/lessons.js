@@ -1,5 +1,7 @@
 // Learning path: one unit per hardware chapter of "Hardware from the Ground Up".
 // Each card: t = title, b = paragraphs, w = interactive widget (optional), q = check question id (optional).
+// Role chapters: Learn pages 28-32, written for one kind of job, with their own questions but no quest.
+const ROLE_CH = {28:'Design verification', 29:'FPGA design', 30:'Embedded and firmware', 31:'Synthesis, PD, low power and DFT', 32:'Bring-up and validation'};
 const PARTS = [
   {n:1, name:"Electricity, from zero", units:[1,2,3]},
   {n:2, name:"Semiconductors and transistors", units:[4,5,6]},

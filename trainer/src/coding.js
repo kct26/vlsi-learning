@@ -1861,3 +1861,116 @@ const drillProblem = d => {
     hints:[d.h], sol:head + '\n' + d.sol + '\nendmodule', why:[d.w]};
 };
 CODING.push(...DRILLS.map(drillProblem));
+
+// Classic FPGA and embedded interface blocks, added after the drills so earlier problem numbers stay the same.
+CODING.push(
+{id:'rtl-21', d:'M', lang:'verilog', area:'RTL design', title:'UART transmitter (8N1)',
+ p:["Write `uart_tx`: it sends one byte as a UART frame of 10 bits: a start bit (0), the 8 data bits least significant first, and a stop bit (1). Each bit lasts exactly `CLKS_PER_BIT` clocks (4 in the tests).", "While idle, `tx` is 1 and `busy` is 0. On a clock edge where `start` is 1 and `busy` is 0, the module captures `data`, sets `busy` to 1 and drives `tx` to 0 (the start bit) on that same edge. Every `CLKS_PER_BIT` edges `tx` moves to the next bit. On the edge that ends the stop bit, `busy` goes back to 0 (and `tx` stays 1), so `busy` is high for exactly 10 × `CLKS_PER_BIT` clocks. `start` is ignored while `busy` is 1, including on the edge where `busy` falls.", "The active-low asynchronous reset `rst_n` returns everything to idle."],
+ ex:"CLKS_PER_BIT = 4, start with data = 8'h41  →  tx: 0 for 4 clocks, then 1,0,0,0,0,0,1,0 (4 clocks each), then 1 for 4 clocks; busy high for 40 clocks",
+ starter:`module uart_tx #(parameter CLKS_PER_BIT = 4) (
+  input  logic       clk, rst_n, start,
+  input  logic [7:0] data,
+  output logic       tx, busy
+);
+  // your code
+endmodule`,
+ hints:["Keep three registers besides `tx` and `busy`: a shift register with the remaining bits, a clock counter from 0 to CLKS_PER_BIT − 1, and a count of bits sent.", "Load the shift register with {1'b1, data}: shifting right then gives d0 … d7 and finally the stop bit.", "Only act when the clock counter reaches CLKS_PER_BIT − 1; otherwise just count."],
+ sol:`module uart_tx #(parameter CLKS_PER_BIT = 4) (
+  input  logic       clk, rst_n, start,
+  input  logic [7:0] data,
+  output logic       tx, busy
+);
+  logic [8:0] frame;              // data bits, then the stop bit
+  logic [3:0] nbit;               // bits sent after the start bit
+  logic [7:0] cnt;                // clocks into the current bit
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      tx <= 1'b1; busy <= 1'b0; frame <= '0; nbit <= '0; cnt <= '0;
+    end else if (!busy) begin
+      if (start) begin
+        busy <= 1'b1; tx <= 1'b0; frame <= {1'b1, data}; nbit <= '0; cnt <= '0;
+      end
+    end else if (cnt != CLKS_PER_BIT - 1) begin
+      cnt <= cnt + 1'b1;
+    end else begin
+      cnt <= '0;
+      if (nbit == 4'd9) begin
+        busy <= 1'b0; tx <= 1'b1;           // stop bit done: back to idle
+      end else begin
+        tx <= frame[0]; frame <= frame >> 1; nbit <= nbit + 1'b1;
+      end
+    end
+  end
+endmodule`,
+ why:["A UART is the first interface most FPGA and embedded engineers build. The shift register, the bit-time counter and the bit counter are the same structure a receiver and an SPI master use.", "The receiver side samples near the middle of each bit, usually by oversampling at 16 times the baud rate."]},
+{id:'rtl-22', d:'E', lang:'verilog', area:'RTL design', title:'PWM generator with glitch-free duty updates',
+ p:["Write `pwm8`: an 8-bit counter `cnt` (reset 0) increments on every clock and wraps from 255 to 0. A register `duty_r` (reset 0) holds the duty value in use; it loads the input `duty` only on the edge where `cnt` is 255, so a new duty value takes effect at the start of the next period and never cuts a pulse short.", "The output `pwm` is combinational: `pwm = (cnt < duty_r)`. So `duty_r = 0` gives a constant 0 and `duty_r = 128` gives a 50% duty cycle. The reset `rst_n` is active-low and asynchronous."],
+ ex:"duty = 64 held  →  after the first full period, pwm is high for 64 clocks of every 256",
+ starter:`module pwm8 (
+  input  logic       clk, rst_n,
+  input  logic [7:0] duty,
+  output logic       pwm
+);
+  // your code
+endmodule`,
+ hints:["Two registers: the counter and the latched duty.", "Load `duty_r` when `cnt == 8'hFF`, the last clock of the period."],
+ sol:`module pwm8 (
+  input  logic       clk, rst_n,
+  input  logic [7:0] duty,
+  output logic       pwm
+);
+  logic [7:0] cnt, duty_r;
+  always_ff @(posedge clk or negedge rst_n)
+    if (!rst_n) begin cnt <= '0; duty_r <= '0; end
+    else begin
+      cnt <= cnt + 1'b1;                      // wraps from 255 to 0
+      if (cnt == 8'hFF) duty_r <= duty;       // change duty only between periods
+    end
+  assign pwm = (cnt < duty_r);
+endmodule`,
+ why:["If `duty` were used directly, changing it in the middle of a period could produce a pulse that is too short or too long, which matters for motors and power converters.", "Microcontroller timers do the same with a preload (shadow) register that updates at the end of the period."]},
+{id:'rtl-23', d:'H', lang:'verilog', area:'RTL design', title:'SPI master, mode 0, one byte',
+ p:["Write `spi_master`: it exchanges one byte with a peripheral in SPI mode 0 (clock idles low, data sampled on the rising edge of `sclk`), with `sclk` at half the system clock. Data goes out most significant bit first.", "Idle: `cs_n = 1`, `sclk = 0`, `mosi = 0`, `done = 0`. On a clock edge where `start` is 1 and the master is idle, it pulls `cs_n` low, puts bit 7 of `tx_byte` on `mosi` and keeps `sclk` low. After that, edges alternate: on the first, `sclk` rises and the master shifts `miso` into its receive register; on the second, `sclk` falls and `mosi` moves to the next bit. After the 8th rising edge, the next edge lowers `sclk`, raises `cs_n`, sets `mosi` to 0, copies the received byte to `rx_byte` and pulses `done` for exactly one clock. A transfer therefore takes 16 edges after the start edge. `start` is ignored while a transfer is running and on the edge where `done` is high.", "`rx_byte` (reset 0) holds its value until the next transfer finishes. The reset `rst_n` is active-low and asynchronous."],
+ ex:"start with tx_byte = 8'hA5 while the peripheral returns 8'h3C on miso  →  mosi shows 1,0,1,0,0,1,0,1; done pulses 16 clocks later with rx_byte = 8'h3C",
+ starter:`module spi_master (
+  input  logic       clk, rst_n, start, miso,
+  input  logic [7:0] tx_byte,
+  output logic       sclk, mosi, cs_n, done,
+  output logic [7:0] rx_byte
+);
+  // your code
+endmodule`,
+ hints:["Track whether a transfer is active, which half of the SPI clock you are in, and how many bits have been sent.", "On the rising half, shift `miso` in: rx <= {rx[6:0], miso}. On the falling half, either move to the next `mosi` bit or finish.", "Pulse `done` from the finishing edge, and clear it on the next edge, when the master is idle again."],
+ sol:`module spi_master (
+  input  logic       clk, rst_n, start, miso,
+  input  logic [7:0] tx_byte,
+  output logic       sclk, mosi, cs_n, done,
+  output logic [7:0] rx_byte
+);
+  logic       active, high;           // high: sclk is high (the next edge lowers it)
+  logic [2:0] nbit;
+  logic [7:0] tx_sh, rx_sh;
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      active <= 1'b0; high <= 1'b0; nbit <= '0; tx_sh <= '0; rx_sh <= '0;
+      sclk <= 1'b0; mosi <= 1'b0; cs_n <= 1'b1; done <= 1'b0; rx_byte <= '0;
+    end else if (!active) begin
+      done <= 1'b0;
+      if (start && !done) begin
+        active <= 1'b1; high <= 1'b0; nbit <= '0;
+        cs_n <= 1'b0; tx_sh <= tx_byte; mosi <= tx_byte[7];
+      end
+    end else if (!high) begin
+      sclk <= 1'b1; high <= 1'b1; rx_sh <= {rx_sh[6:0], miso};    // sample on the rising edge
+    end else begin
+      sclk <= 1'b0; high <= 1'b0;
+      if (nbit == 3'd7) begin
+        active <= 1'b0; cs_n <= 1'b1; mosi <= 1'b0; done <= 1'b1; rx_byte <= rx_sh;
+      end else begin
+        nbit <= nbit + 1'b1; tx_sh <= tx_sh << 1; mosi <= tx_sh[6];  // next bit on the falling edge
+      end
+    end
+  end
+endmodule`,
+ why:["In mode 0 both sides change data on the falling edge and sample on the rising edge, so each bit is stable for half an SPI clock around the sampling edge.", "The other modes only change the idle level of the clock (CPOL) and which edge samples (CPHA)."]}
+);

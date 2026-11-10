@@ -1,0 +1,503 @@
+% A role chapter for the Learn tab (not part of the printed book), in the same LaTeX subset as the book.
+% It builds on Chapter 19, which introduces testbenches, scoreboards and coverage.
+\chapter{Design Verification in Depth}
+\label{ch:dv}
+
+A design verification (DV) engineer's job is to find every bug in a chip design before it is manufactured. A bug found in simulation costs an afternoon. The same bug found after tape-out can cost a new set of masks, months of delay, or a product recall. That is why large chip teams often have more verification engineers than designers.
+
+Chapter~\ref{ch:rtl} introduced the self-checking testbench, the scoreboard and coverage. This chapter goes all the way: how a verification plan is written, the SystemVerilog features testbenches are built from, the full UVM flow from test to scoreboard, assertions, coverage closure, formal verification, and how to debug a failing test in a methodical way. It ends with the questions DV interviews ask most often.
+
+\begin{bigidea}
+Verification answers two questions. \emph{Is the design doing the right thing?} The checkers (scoreboard, assertions) answer that. \emph{Have we tried enough things?} Coverage answers that. A testbench needs both: checkers without coverage can pass while testing almost nothing, and coverage without checkers measures stimulus that nobody checked.
+\end{bigidea}
+
+\section{The verification plan}
+
+Work starts before any code, with a \term{verification plan} (also called a test plan). It is written from the design specification, not from the RTL, so that the testbench checks what the design \emph{should} do rather than what it happens to do.
+
+For every feature in the specification, the plan lists:
+\begin{itemize}
+  \item \textbf{What to check}: the rule that must hold. For example, ``every write that receives a response is visible to the next read of the same address.''
+  \item \textbf{How to check it}: a scoreboard comparison, an assertion, or a formal proof.
+  \item \textbf{How to stimulate it}: directed tests, constrained-random tests, or both.
+  \item \textbf{How to know it was exercised}: the coverage items (coverpoints, crosses, assertion covers) that must be hit.
+\end{itemize}
+
+The plan also states the \term{sign-off criteria}: for example, all planned tests pass across thousands of random seeds, functional coverage is 100\% (or every hole is reviewed and waived), code coverage is above an agreed target with every unreached line explained, and no new bugs have been found for a set period. The bug rate over time, which should flatten towards zero, is one of the main signals that a block is ready.
+
+\begin{trap}
+Writing the checks by reading the RTL copies the designer's misunderstanding into the testbench. Both will agree, and the bug survives. Always derive checks and the reference model from the specification, and ask the architect when the specification is unclear.
+\end{trap}
+
+\section{Testbench architecture}
+
+Every modern testbench, whatever its language, has the same layers:
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Piece & Job \\
+\midrule
+Stimulus generator (sequence) & Decides \emph{what} to send, as transactions (``write 0x5A to address 4'') \\
+Driver & Turns each transaction into pin activity, cycle by cycle, following the protocol \\
+Monitor & Watches the pins and turns activity back into transactions; never drives anything \\
+Reference model & Predicts what the design should produce for the same input \\
+Scoreboard & Compares the design's output transactions with the predicted ones \\
+Coverage collector & Records which interesting cases have been seen \\
+Assertions & Check protocol and timing rules on the pins every cycle \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Working with \term{transactions} instead of pin wiggles is the key idea. A test that says ``send 100 random writes'' does not care how many cycles a write takes. Only the driver knows the protocol, so if the bus changes, only the driver and monitor change.
+
+\paragraph{Directed versus constrained-random.} A \term{directed test} sets up one specific scenario by hand. It is easy to write and debug, and good for the first bring-up of a block and for known corner cases. A \term{constrained-random test} lets the computer pick legal inputs at random, within rules you write. Run with thousands of different seeds, it reaches combinations nobody thought of. It needs a self-checking scoreboard (nobody can read the waveforms of a million random transactions) and coverage to show what was actually reached. Real projects use both: random for breadth, directed to hit the holes random missed.
+
+\paragraph{Why the monitor is separate from the driver.} The driver knows what it \emph{meant} to send; the monitor reports what actually appeared on the pins. Checking the monitor's view catches driver bugs too, and a monitor works unchanged when the testbench is reused at a higher level, where another block (not the driver) drives those pins.
+
+\section{SystemVerilog for verification}
+
+Synthesizable Verilog describes hardware. The verification half of SystemVerilog is a full programming language for writing testbenches. The features that come up most:
+
+\subsection*{Data types}
+
+\begin{itemize}
+  \item \code{logic} is 4-state (0, 1, X, Z); \code{bit}, \code{int} and \code{byte} are 2-state (0, 1). Use 4-state types for anything connected to the design, so X values from uninitialized or conflicting logic stay visible. A 2-state variable silently turns X into 0 and can hide a bug.
+  \item \term{Dynamic arrays} (\code{int d[]; d = new[n];}) are sized at run time.
+  \item \term{Queues} (\code{int q[\$];}) grow and shrink at both ends with \code{push\_back}, \code{pop\_front} and friends. A scoreboard often keeps expected transactions in a queue.
+  \item \term{Associative arrays} (\code{int mem[bit [31:0]];}) store only the entries you write, which models a huge sparse memory cheaply. \code{mem.exists(a)} tells whether an address has been written.
+  \item \code{enum}, \code{struct} and \code{typedef} work as in C and make transactions readable.
+\end{itemize}
+
+\subsection*{Processes and communication}
+
+\begin{itemize}
+  \item \code{fork ... join} waits for all child threads; \code{join\_any} continues when the first one finishes; \code{join\_none} continues immediately and lets them run in the background. \code{disable fork} stops the children, a common way to build a timeout.
+  \item An \term{event} lets one thread wake another: \code{->done;} and \code{@done;}.
+  \item A \term{mailbox} is a thread-safe FIFO between threads, such as a generator handing transactions to a driver. \code{get()} blocks until an item is available.
+  \item A \term{semaphore} is a set of keys; threads \code{get} a key before using a shared resource (such as a bus) and \code{put} it back after.
+  \item \code{task}s may consume time (\code{@(posedge clk)}, \code{\#10}); \code{function}s may not and return immediately.
+\end{itemize}
+
+\subsection*{Interfaces, modports and clocking blocks}
+
+An \term{interface} bundles the signals of a bus into one object, so a testbench passes one handle instead of twenty wires. \term{Modports} give each side its view of the directions. A \term{clocking block} inside the interface says exactly when the testbench samples inputs and drives outputs relative to the clock edge. That removes race conditions between the testbench and the design.
+
+\begin{lstlisting}
+interface bus_if (input logic clk);
+  logic        valid, ready;
+  logic [31:0] data;
+  clocking cb @(posedge clk);
+    default input #1step output #1;   // sample just before the edge, drive just after
+    output valid, data;
+    input  ready;
+  endclocking
+  modport dut (input clk, valid, data, output ready);
+endinterface
+\end{lstlisting}
+
+Classes cannot contain module ports, so a class-based testbench reaches the pins through a \term{virtual interface}: a variable that holds a handle to a real interface instance (\code{virtual bus\_if vif;}). The top-level module creates the interface, connects it to the design, and hands it to the testbench classes.
+
+\subsection*{The scheduler, briefly}
+
+Every simulation time step is processed in ordered regions. Blocking assignments and continuous assignments run in the \emph{active} region; nonblocking updates happen later, in the \emph{NBA} region; concurrent assertions are evaluated in the \emph{observed} region, using values sampled at the start of the step (the \emph{preponed} region); program blocks and much testbench code run in the \emph{reactive} region. That is why assertions see stable values, and why a clocking block's \code{\#1step} input skew samples the value from just before the edge, the same value the flip-flops saw.
+
+\section{Classes and object-oriented testbenches}
+
+Testbenches are built from classes because transactions are naturally objects and because inheritance lets one testbench serve many tests.
+
+\begin{lstlisting}
+class packet;
+  rand bit [7:0]  addr;
+  rand bit [31:0] data;
+  function void print(); $display("addr=%0h data=%0h", addr, data); endfunction
+endclass
+
+packet p1, p2;
+p1 = new();        // creates an object; p1 is a handle to it
+p2 = p1;           // copies the handle: both point at the SAME object
+p2 = new p1;       // shallow copy: a new object with the same field values
+\end{lstlisting}
+
+\begin{itemize}
+  \item A variable of class type is a \term{handle} (like a pointer). Declaring it does not create an object; \code{new()} does. Calling a method through a null handle is a run-time error.
+  \item \code{new p1} makes a \term{shallow copy}: handles inside the object are copied, not the objects they point to. A deep copy needs a hand-written \code{copy()} method.
+  \item \term{Inheritance}: \code{class bad\_packet extends packet;} adds fields or constraints. \code{super.new()} calls the parent's constructor.
+  \item A \code{virtual} method is chosen by the type of the \emph{object}, not of the handle. That is \term{polymorphism}: a handle of type \code{packet} that points at a \code{bad\_packet} calls \code{bad\_packet}'s version. Without \code{virtual}, the handle's type decides.
+  \item A \code{static} property is shared by all objects of the class, such as a counter of packets created.
+  \item Parameterized classes (\code{class fifo \#(type T = int);}) work like C++ templates.
+\end{itemize}
+
+\section{Randomization and constraints}
+
+Fields declared \code{rand} get a new random value each time \code{randomize()} is called. \code{randc} cycles through every value before repeating, like dealing a shuffled deck. \term{Constraints} restrict the values to legal or interesting ones, and the solver finds values that satisfy all of them at once.
+
+\begin{lstlisting}
+class bus_txn;
+  rand bit [31:0] addr;
+  rand bit [7:0]  len;
+  rand bit        write;
+  constraint c_align { addr[1:0] == 2'b00; }                 // word aligned
+  constraint c_range { addr inside {[32'h1000:32'h1FFF]}; }  // a legal window
+  constraint c_len   { len dist { 1 := 50, [2:15] :/ 40, 16 := 10 }; }
+  constraint c_rd    { !write -> len <= 4; }                  // reads are short
+endclass
+
+bus_txn t = new();
+if (!t.randomize() with { write == 1; }) $error("randomize failed");
+\end{lstlisting}
+
+\begin{itemize}
+  \item \code{inside} restricts a value to a set or range.
+  \item \code{dist} sets weights. \code{:=} gives each value in a range that weight; \code{:/} splits the weight across the range. Above, the value 1 has weight 50, the 14 values 2--15 share 40 between them, and 16 has weight 10.
+  \item \code{->} is implication: \emph{if} the left side is true, the right side must hold. \code{if}/\code{else} works too.
+  \item \code{solve a before b} changes the probability distribution (not which values are legal). Without it, the solver picks uniformly among all legal combinations, which can make a rare case of \code{a} almost never appear.
+  \item \code{soft} constraints give way when they conflict with a harder one, which lets a test override a default.
+  \item \code{randomize() with \{ ... \}} adds constraints for one call. \code{constraint\_mode(0)} turns a block off and \code{rand\_mode(0)} freezes a field.
+  \item \code{pre\_randomize()} and \code{post\_randomize()} run before and after, for example to compute a checksum from the random fields.
+  \item \code{randomize()} returns 0 if the constraints conflict. Always check it; an unchecked failure leaves the old values and the test silently repeats itself.
+\end{itemize}
+
+\paragraph{Seeds.} Every random test runs with a \term{seed}. The same seed with the same code reproduces exactly the same run, which is what makes a random failure debuggable. Regressions run each test with many seeds and log every seed that failed.
+
+\section{UVM: the standard testbench framework}
+
+The \term{Universal Verification Methodology} (UVM) is a SystemVerilog class library that standardizes how testbenches are structured. Because everyone uses the same structure, verification IP for a bus (AXI, PCIe, USB) can be bought or reused, and an engineer can read any company's testbench.
+
+\subsection*{Objects and components}
+
+UVM classes come in two families:
+\begin{itemize}
+  \item \code{uvm\_object}: data that is created and thrown away during the test, such as transactions (\code{uvm\_sequence\_item}) and sequences (\code{uvm\_sequence}). Objects have no place in the hierarchy and no phases.
+  \item \code{uvm\_component}: the permanent structure of the testbench, built once at the start: tests, environments, agents, drivers, monitors, sequencers and scoreboards. Every component has a parent, a hierarchical name such as \code{uvm\_test\_top.env.agt.drv}, and phases.
+\end{itemize}
+
+\subsection*{The hierarchy and the flow}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Component & Role \\
+\midrule
+Test & The top. Picks the configuration and which sequence to run; one class per test scenario \\
+Environment & Holds the agents, scoreboard and coverage for one design; reusable across tests \\
+Agent & Everything for one interface: sequencer, driver and monitor \\
+Sequencer & Passes sequence items from running sequences to the driver, arbitrating between sequences \\
+Driver & Pulls items from the sequencer and drives them onto the pins through the virtual interface \\
+Monitor & Samples the pins through the virtual interface and broadcasts each observed transaction \\
+Scoreboard & Receives transactions from monitors and checks them against the expected results \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The order of events for one transaction:
+\begin{enumerate}
+  \item The test starts a \term{sequence} on the agent's sequencer.
+  \item The sequence's \code{body()} creates a sequence item, calls \code{start\_item()} (wait for the sequencer to grant access), randomizes the item, then calls \code{finish\_item()} (hand it over and wait until the driver is done).
+  \item The driver, in a forever loop, calls \code{seq\_item\_port.get\_next\_item(req)}, drives the item onto the pins through the virtual interface, then calls \code{item\_done()}.
+  \item The design responds.
+  \item The monitor sees the activity on the pins, builds a transaction and calls \code{ap.write(txn)} on its \term{analysis port}.
+  \item Every subscriber connected to that port, such as the scoreboard and the coverage collector, receives the transaction in its \code{write()} function.
+  \item The scoreboard compares it with the reference model's prediction and reports a \code{uvm\_error} on a mismatch.
+\end{enumerate}
+
+An agent is \term{active} (sequencer, driver and monitor) when it drives an interface, or \term{passive} (monitor only) when it just watches one, for example when the block is reused inside a bigger system and another block drives those pins.
+
+\subsection*{A small UVM testbench}
+
+\begin{lstlisting}
+class add_item extends uvm_sequence_item;
+  rand bit [7:0] a, b;
+  bit [8:0] sum;                                  // filled in by the monitor
+  `uvm_object_utils(add_item)
+  function new(string name = "add_item"); super.new(name); endfunction
+endclass
+
+class add_driver extends uvm_driver #(add_item);
+  `uvm_component_utils(add_driver)
+  virtual add_if vif;
+  function new(string name, uvm_component parent); super.new(name, parent); endfunction
+  function void build_phase(uvm_phase phase);
+    if (!uvm_config_db#(virtual add_if)::get(this, "", "vif", vif))
+      `uvm_fatal("NOVIF", "no virtual interface")
+  endfunction
+  task run_phase(uvm_phase phase);
+    forever begin
+      seq_item_port.get_next_item(req);
+      @(vif.cb); vif.cb.a <= req.a; vif.cb.b <= req.b; vif.cb.valid <= 1;
+      @(vif.cb); vif.cb.valid <= 0;
+      seq_item_port.item_done();
+    end
+  endtask
+endclass
+
+class add_scoreboard extends uvm_scoreboard;
+  `uvm_component_utils(add_scoreboard)
+  uvm_analysis_imp #(add_item, add_scoreboard) imp;
+  function new(string name, uvm_component parent); super.new(name, parent); imp = new("imp", this); endfunction
+  function void write(add_item t);                // called for every observed transaction
+    if (t.sum !== t.a + t.b) `uvm_error("MISMATCH", $sformatf("%0d+%0d gave %0d", t.a, t.b, t.sum))
+  endfunction
+endclass
+
+class add_test extends uvm_test;
+  `uvm_component_utils(add_test)
+  add_env env;
+  function new(string name, uvm_component parent); super.new(name, parent); endfunction
+  function void build_phase(uvm_phase phase); env = add_env::type_id::create("env", this); endfunction
+  task run_phase(uvm_phase phase);
+    add_seq seq = add_seq::type_id::create("seq");
+    phase.raise_objection(this);                  // keep the simulation alive
+    seq.start(env.agt.sqr);
+    phase.drop_objection(this);                   // allow run_phase to end
+  endtask
+endclass
+\end{lstlisting}
+
+In the top module, the interface is created and connected to the design, \code{uvm\_config\_db\#(virtual add\_if)::set(null, "*", "vif", the\_if);} publishes it, and \code{run\_test();} starts UVM. The test name usually comes from the command line (\code{+UVM\_TESTNAME=add\_test}), so one compiled testbench runs every test.
+
+\subsection*{The factory}
+
+\code{`uvm\_component\_utils} and \code{`uvm\_object\_utils} register a class with the \term{factory}. Creating objects with \code{type\_id::create()} instead of \code{new()} lets a test \emph{override} what gets created without editing the environment:
+
+\begin{lstlisting}
+// in a test's build_phase: every add_item created anywhere becomes an add_item_corner
+add_item::type_id::set_type_override(add_item_corner::get_type());
+// or only for one instance path
+set_inst_override_by_type("env.agt.drv", add_driver::get_type(), add_err_driver::get_type());
+\end{lstlisting}
+
+This is how one environment serves hundreds of tests: an error-injection test swaps in a driver that corrupts packets; a corner-case test swaps in an item with tighter constraints.
+
+\subsection*{The configuration database}
+
+\code{uvm\_config\_db} is a global table of settings looked up by hierarchical path and name. Higher levels \code{set} values (the virtual interface, whether an agent is active, how many transactions to send); lower components \code{get} them in \code{build\_phase}. Because the lookup happens by path, the test can configure a component deep in the hierarchy without holding a handle to it. A missing \code{get} usually means a path or name typo, so check the return value and fail loudly.
+
+\subsection*{TLM: how components talk}
+
+Components are connected by \term{transaction-level modeling} (TLM) ports instead of direct handles, so each component can be reused without knowing who it talks to.
+\begin{itemize}
+  \item The driver's \code{seq\_item\_port} connects to the sequencer's \code{seq\_item\_export}: a pull connection, one to one.
+  \item A monitor's \code{uvm\_analysis\_port} is a broadcast: \code{write()} delivers the transaction to every connected \code{uvm\_analysis\_imp}, zero or many, and never blocks.
+  \item A \code{uvm\_tlm\_analysis\_fifo} buffers transactions, useful when the scoreboard must wait for the matching transaction from another monitor.
+\end{itemize}
+Connections are made in \code{connect\_phase}: \code{agt.mon.ap.connect(sb.imp);}.
+
+\subsection*{Phases}
+
+Every component goes through the same phases, in order, so the testbench is built and connected before anything runs:
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Phase & Kind & Typical work \\
+\midrule
+\code{build\_phase} & function, top-down & Create child components; get configuration \\
+\code{connect\_phase} & function, bottom-up & Connect TLM ports \\
+\code{end\_of\_elaboration\_phase} & function & Print the topology; final checks of the structure \\
+\code{start\_of\_simulation\_phase} & function & Last setup before time starts \\
+\code{run\_phase} & task (consumes time) & Drive and monitor; all components run in parallel \\
+\code{extract\_phase} & function & Gather results from the scoreboard and coverage \\
+\code{check\_phase} & function & Final checks, such as an empty expected queue \\
+\code{report\_phase} & function & Print the summary: pass or fail \\
+\code{final\_phase} & function & Close files \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\code{build\_phase} runs top-down because a parent must exist before it can create its children. Every other function phase runs bottom-up. Only \code{run\_phase} takes simulation time. It runs in parallel with finer-grained \emph{run-time phases} (reset, configure, main, shutdown, each with pre and post versions) that some teams use to separate reset from traffic.
+
+\subsection*{Objections: when does the test end?}
+
+\code{run\_phase} has no natural end: drivers and monitors loop forever. UVM ends it with \term{objections}. Any component that is still busy calls \code{phase.raise\_objection(this)}; when it is done, it calls \code{drop\_objection(this)}. When the total count returns to zero, UVM waits an optional \term{drain time} (so the last transactions can come out of the design and reach the scoreboard) and then ends the phase, killing the forever loops.
+
+\begin{trap}
+Two classic objection bugs. If nobody raises an objection, \code{run\_phase} ends at time 0 and the test ``passes'' having done nothing. If an objection is raised and never dropped (for example the sequence hangs waiting for a response), the simulation never ends and hits the global timeout. Raise objections in the test or the sequence, not in drivers and monitors that loop forever.
+\end{trap}
+
+\subsection*{Sequences in more depth}
+
+\begin{itemize}
+  \item A sequence can start other sequences, so complex traffic is built from small reusable pieces.
+  \item A \term{virtual sequence} runs on no particular interface. It holds handles to several agents' sequencers (often through a \term{virtual sequencer}) and coordinates them: configure the block through the register bus, then start traffic on the data bus, then read the status.
+  \item When several sequences run on one sequencer, the sequencer \term{arbitrates} between them (first-in-first-out by default, or by priority). \code{lock()} and \code{grab()} give one sequence exclusive access, for example for an interrupt handler sequence.
+  \item For a response, the driver can return an item through \code{put\_response()} or \code{item\_done(rsp)}, and the sequence collects it with \code{get\_response()}.
+\end{itemize}
+
+\subsection*{The register model (RAL)}
+
+Most blocks are configured through registers. The UVM \term{register abstraction layer} (RAL) is a model of every register and field, usually generated from a spreadsheet or IP-XACT description. Tests write \code{regmodel.ctrl.enable.set(1); regmodel.ctrl.update(status);} instead of raw bus addresses.
+\begin{itemize}
+  \item A \term{front-door} access goes over the real bus through an \term{adapter} that converts register operations into bus sequence items.
+  \item A \term{back-door} access reads or writes the register's flip-flops directly by hierarchical path, in zero time. It is fast for setup but bypasses the bus logic, so it cannot find bus bugs.
+  \item The model keeps a \term{mirror} of what each register should contain. A \term{predictor} updates it from monitored bus traffic, and \code{mirror()} reads the hardware and checks it against the expected value.
+  \item Built-in sequences check every register's reset value and read/write behavior automatically.
+\end{itemize}
+
+\subsection*{Reporting}
+
+\code{`uvm\_info(id, msg, verbosity)} prints only when the verbosity setting allows (\code{UVM\_LOW} always, \code{UVM\_DEBUG} only when asked). \code{`uvm\_warning}, \code{`uvm\_error} and \code{`uvm\_fatal} raise the severity; \code{`uvm\_fatal} stops the simulation. The test fails if any error was reported, and the report phase prints the count of each severity.
+
+\section{Assertions (SVA)}
+
+An \term{assertion} states a rule the design must always obey. The simulator checks it every cycle and reports the exact time it fails, which points straight at the bug instead of at a symptom thousands of cycles later.
+
+\paragraph{Immediate assertions} check a condition at one moment, inside procedural code, like an \code{if}:
+\begin{lstlisting}
+always_comb assert ($onehot0(grant)) else $error("two grants at once");
+\end{lstlisting}
+
+\paragraph{Concurrent assertions} check behavior across clock cycles. They sample signals at the clock edge, and each attempt can run over many cycles.
+
+\begin{lstlisting}
+// A request must be granted within 1 to 3 cycles.
+a_grant: assert property (@(posedge clk) disable iff (!rst_n)
+                          req |-> ##[1:3] gnt);
+
+// Once valid is high, data must hold and valid must stay high until ready.
+a_hold: assert property (@(posedge clk) disable iff (!rst_n)
+                         valid && !ready |=> valid && $stable(data));
+
+// The FIFO is never written while full.
+a_ovf: assert property (@(posedge clk) !(full && wr_en));
+
+// Cover: show that back-to-back writes actually happened in some test.
+c_b2b: cover property (@(posedge clk) wr_en ##1 wr_en);
+\end{lstlisting}
+
+The syntax that comes up again and again:
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Syntax & Meaning \\
+\midrule
+\code{a |-> b} & Overlapping implication: if \code{a} this cycle, \code{b} must hold in the same cycle \\
+\code{a |=> b} & Non-overlapping: if \code{a} this cycle, \code{b} must hold next cycle (same as \code{a |-> \#\#1 b}) \\
+\code{\#\#n}, \code{\#\#[m:n]} & Wait exactly $n$ cycles, or between $m$ and $n$ cycles \\
+\code{b[*3]} & \code{b} true for 3 consecutive cycles \\
+\code{b[->2]} & \code{b} true twice, not necessarily in a row; ends on the second \\
+\code{b[=2]} & Like \code{[->2]} but may continue after the second while \code{b} is false \\
+\code{\$rose(s)}, \code{\$fell(s)} & \code{s} went from 0 to 1, or 1 to 0, since the last sample \\
+\code{\$stable(s)}, \code{\$past(s, n)} & \code{s} unchanged since last sample; value $n$ cycles ago \\
+\code{\$onehot(v)}, \code{\$onehot0(v)} & Exactly one bit set; at most one bit set \\
+\code{\$isunknown(v)} & Any bit is X or Z \\
+\code{disable iff (c)} & Abandon the check while \code{c} is true, usually reset \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{itemize}
+  \item An implication whose left side (the \term{antecedent}) is false passes \emph{vacuously}. An assertion that only ever passes vacuously checked nothing, so pair important assertions with a \code{cover} on the antecedent.
+  \item \code{assert} checks a rule; \code{assume} tells a formal tool what the inputs may do; \code{cover} records that a scenario happened.
+  \item \code{bind} attaches a module full of assertions to a design module from outside, so the designer's RTL does not change.
+\end{itemize}
+
+\section{Coverage}
+
+\subsection*{Code coverage}
+
+\term{Code coverage} is measured automatically by the simulator from the RTL:
+\begin{itemize}
+  \item \textbf{Line (statement)}: was each line executed?
+  \item \textbf{Branch}: did each \code{if}/\code{else} and \code{case} branch go each way?
+  \item \textbf{Condition (expression)}: did each sub-condition of a complex expression independently affect the result?
+  \item \textbf{Toggle}: did each bit go 0 to 1 and 1 to 0? An address bit that never toggled means half the address space was never used.
+  \item \textbf{FSM}: was every state reached and every transition taken?
+\end{itemize}
+
+Code coverage finds code your tests never reached. It cannot find a feature that is \emph{missing} from the RTL, and it cannot tell whether the result was checked. 100\% code coverage does not mean the design is correct.
+
+\subsection*{Functional coverage}
+
+\term{Functional coverage} is written by the verification engineer from the plan, and measures whether the interesting \emph{scenarios} happened.
+
+\begin{lstlisting}
+covergroup cg_bus @(posedge clk iff valid && ready);
+  cp_len  : coverpoint txn.len   { bins one = {1}; bins mid = {[2:15]}; bins max = {16};
+                                   illegal_bins zero = {0}; }
+  cp_kind : coverpoint txn.write { bins rd = {0}; bins wr = {1}; }
+  cp_addr : coverpoint txn.addr[31:28] { bins low = {[0:7]}; bins high = {[8:15]}; }
+  x_kind_len : cross cp_kind, cp_len;          // every kind with every length class
+  cp_seq  : coverpoint txn.write { bins wr_then_rd = (1 => 0); }   // a transition bin
+endgroup
+\end{lstlisting}
+
+\begin{itemize}
+  \item A \term{coverpoint} samples one value; \term{bins} divide its values into the classes that matter. Without explicit bins, the tool makes automatic ones (up to 64 by default).
+  \item A \term{cross} covers combinations of coverpoints: here, reads and writes of each length class. Crosses grow fast, so exclude impossible combinations with \code{ignore\_bins}.
+  \item \code{illegal\_bins} raise an error if hit, a cheap extra check.
+  \item Transition bins (\code{1 => 0}) cover sequences of values over successive samples.
+  \item Sampling: on a clock event (with \code{iff} to qualify it), or by calling \code{cg.sample()} explicitly, often from the monitor's \code{write()}.
+\end{itemize}
+
+\paragraph{Coverage closure.} After a regression, the merged coverage report shows the \term{holes}: bins never hit. For each hole, decide: the random constraints never generate it (tighten or bias the constraints, or write a directed test); it cannot happen in this design (exclude it, with a written reason); or it reveals a bug in the testbench or design. Closing the last few percent is often the hardest part of a project.
+
+\section{Formal verification}
+
+Simulation checks the cases you run. \term{Formal verification} proves an assertion for \emph{every} possible input sequence, using mathematics instead of stimulus.
+
+\begin{itemize}
+  \item \term{Model checking} (property checking): give the tool the RTL, the assertions to prove, and \code{assume} properties describing legal inputs. It returns \emph{proven}, a \emph{counterexample} (a short waveform that breaks the assertion, often the fastest way to find a corner-case bug), or \emph{bounded} (no failure within $N$ cycles from reset, but not a full proof).
+  \item Formal works best on control logic with deep corner cases: arbiters, FIFOs, cache coherence protocols, interrupt controllers, deadlock checks. It struggles with wide datapaths such as multipliers, where the state space explodes.
+  \item Over-constraining with assumptions is the classic formal mistake: a wrong assumption can rule out the very input that triggers the bug, and the proof passes. Cover properties show that the interesting states are still reachable under the assumptions.
+  \item \term{Equivalence checking} (logical equivalence checking, LEC) proves two versions of a design behave identically: RTL against the synthesized netlist, or the netlist before and after a change. It is run after synthesis and after every engineering change order (ECO).
+  \item Formal apps automate common jobs: unreachable-code analysis for coverage, connectivity checks of a large SoC, X-propagation checks, and CDC structural checks.
+\end{itemize}
+
+\section{Other verification levels and tools}
+
+\begin{itemize}
+  \item \textbf{Unit, subsystem and SoC level.} Blocks are verified alone with UVM; subsystems reuse the block environments with passive agents; at the SoC level, much of the testing is C code running on the chip's own processor, checking that the blocks work together.
+  \item \textbf{Reference models} are often written in C or C++ and called from SystemVerilog through the \term{DPI} (Direct Programming Interface). The architects' C model of an instruction set or a video codec becomes the scoreboard's golden reference.
+  \item \textbf{cocotb} writes the testbench in Python with async coroutines that await clock edges. It is popular for open-source work and smaller teams, and reads easily in interviews.
+  \item \textbf{Gate-level simulation} runs the synthesized netlist, with or without real delays. It catches problems RTL simulation hides: X-pessimism and optimism differences, missing resets, wrong synthesis of unusual code, and (with delays) timing on paths that STA was told to ignore.
+  \item \textbf{X-propagation.} RTL \code{if (x)} treats X as false (X-optimism), so an uninitialized signal can look fine in RTL and fail in silicon. Tools and simulator modes that propagate X pessimistically find these.
+  \item \textbf{Low-power verification.} Designs with power domains are simulated with the power intent file (UPF) so that domains shutting down corrupt their outputs to X, and isolation and retention are checked.
+  \item \textbf{Emulation and FPGA prototyping} run the design thousands of times faster than simulation, fast enough to boot an operating system. They are used for software bring-up and long system tests, with less visibility than simulation.
+\end{itemize}
+
+\section{Debugging a failing test}
+
+Interviewers often ask ``a test fails; walk me through what you do.'' A good answer is a method, said in order:
+
+\begin{enumerate}
+  \item \textbf{Reproduce.} Rerun with the same seed and the same build. If it does not reproduce, suspect the environment, an uninitialized variable or a race.
+  \item \textbf{Read the first error.} Later errors are often consequences of the first. Note the simulation time and which checker fired: scoreboard, assertion, protocol checker or timeout.
+  \item \textbf{Triage: testbench or design?} Was the stimulus legal? Is the expected value right according to the specification? Many failures are testbench bugs: a wrong reference model, a constraint that allows illegal input, a monitor sampling at the wrong time.
+  \item \textbf{Narrow it down.} Open the waveform at the failure time and trace the wrong value backwards through the logic, cycle by cycle, until you find the first place where reality and the specification disagree. Add debug prints or more assertions if needed. A smaller seed or a shorter test that still fails makes this faster.
+  \item \textbf{Find the root cause}, not just the symptom: why did this signal go wrong, and could the same mistake be elsewhere?
+  \item \textbf{Fix and prove it.} The designer fixes the RTL (or you fix the testbench), the failing seed now passes, and the scenario is added to the regression (a directed test or a coverage item) so the bug can never come back silently.
+\end{enumerate}
+
+\paragraph{Regressions.} A \term{regression} runs the whole test list, each test with many seeds, every night and on every significant change. Failures are grouped (bucketed) by error message so that 300 failing seeds with the same cause count as one bug. Bugs go into a tracker with the seed, test name and build, and the pass rate is watched over time.
+
+\begin{remember}
+Post-silicon validation uses the same method on real chips, with less visibility: reproduce the failure, narrow it to a block, a voltage, a temperature or a frequency, form a hypothesis, test it, find the root cause, and decide on the fix (software workaround, firmware change, or a new silicon revision).
+\end{remember}
+
+\section{What DV interviews ask}
+
+Be ready to explain, out loud and with a small example, each of these:
+\begin{itemize}
+  \item Blocking versus nonblocking assignments, and why testbenches use clocking blocks to avoid races.
+  \item The layers of a testbench and why the monitor is separate from the driver.
+  \item The UVM flow from test to scoreboard; components versus objects; the factory and why \code{create} beats \code{new}; \code{uvm\_config\_db}; analysis ports.
+  \item The phases in order, which are top-down, and which one consumes time; how objections end a test and what happens if nobody raises one.
+  \item Writing constraints: aligned addresses, unique values in an array (\code{unique \{arr\};} or a \code{foreach} constraint), a distribution with \code{dist}, an implication, and what \code{solve before} changes.
+  \item Writing SVA for a request/grant handshake, a valid/ready protocol, a one-hot state, ``signal stays high until''; the difference between \code{|->} and \code{|=>}; vacuous passes.
+  \item Code versus functional coverage; designing coverpoints and crosses for a FIFO, an ALU or a bus; why 100\% code coverage is not enough.
+  \item How you would verify a FIFO (full, empty, simultaneous read and write, reset while full, overflow attempts), an arbiter (fairness, no starvation, one grant at a time), or a cache.
+  \item Shallow versus deep copy; virtual methods and polymorphism; \code{fork}/\code{join} variants; mailbox versus queue.
+  \item Your debug method, and a real bug you found in a project.
+\end{itemize}
+
+\section{Summary}
+
+\begin{itemize}
+  \item Verification checks correctness (scoreboards, assertions) and completeness (coverage), driven by a plan written from the specification.
+  \item Testbenches work in transactions: sequences decide what to send, drivers and monitors translate to and from pins, the scoreboard compares with a reference model.
+  \item SystemVerilog adds classes, randomization with constraints, queues, mailboxes, interfaces and clocking blocks for testbenches.
+  \item UVM standardizes the structure: test, environment, agents (sequencer, driver, monitor) and scoreboard; built with the factory, configured with \code{uvm\_config\_db}, connected with analysis ports, run in phases and ended by objections.
+  \item Assertions catch the exact cycle a rule breaks; coverage shows what was tested; formal proves properties for every input.
+  \item Debugging is a method: reproduce, read the first error, triage, trace back, root cause, fix, add to the regression.
+\end{itemize}

@@ -127,9 +127,9 @@ async function phase1(){
   click('[data-act="f-reset"]');
   click('[data-act="f-ch"][data-v="17"]');
   ok($$('#prows tr').length === RAW.filter(r => chOf(r) === 17).length, 'topic chip filters to chapter 17');
-  ok($$('.studycard .slist').length === 13 && !/Real OA|Your OA|By skill/i.test($('.studycard').textContent), 'sidebar lists the 13 VLSI areas (no OA or skill lists)');
+  ok($$('.studycard .slist').length === 16 && !/Real OA|Your OA|By skill/i.test($('.studycard').textContent), 'sidebar lists the 16 VLSI areas (no OA or skill lists)');
   click('[data-act="f-list"][data-v="va-sta"]');
-  ok($$('#prows tr').length === RAW.filter(r => [11, 13].includes(chOf(r))).length, 'VLSI area "Static timing analysis" shows chapters 11 and 13');
+  ok($$('#prows tr').length === RAW.filter(r => [11, 13, 31].includes(chOf(r))).length, 'VLSI area "Static timing analysis" shows chapters 11 and 13 and the implementation role chapter');
   ok($('#f-list').value === 'va-sta', 'area dropdown follows the sidebar');
   click('[data-act="f-reset"]');
 
@@ -251,7 +251,10 @@ async function phase1(){
   // Learn: the book as lessons, then the chapter's problems
   ok($('.navlinks button').dataset.tab === 'learn', 'Learn is the first tab, left of Theory');
   tab('learn');
-  ok($$('.lcard').length === 26 && $('.lhero'), 'Learn lists the 23 chapters, the C and C++ chapter, the practice assessment and the formula sheet');
+  ok($$('.lcard').length === 31 && $('.lhero'), 'Learn lists the 23 chapters, the five role chapters, the C and C++ chapter, the practice assessment and the formula sheet');
+  ok($$('.lpart').some(s => /Role deep dives/.test(s.textContent) && s.querySelectorAll('.lcard').length === 5), 'Learn has a Role deep dives part with five chapters');
+  ok(['DV', 'FPGA', 'FW', 'PD', 'VAL'].every(b => $$('.lcard .lnum').some(n => n.textContent.trim() === b)), 'the role chapters carry their badges');
+  ok([28, 29, 30, 31, 32].every(c => RAW.filter(r => chOf(r) === c).length >= 18), 'every role chapter has at least 18 practice questions');
   ok(/Before the assessment/.test($$('.lpart:not(#rmmap) .lparth').pop().textContent) && $$('.lpart:not(#rmmap)').pop().querySelectorAll('.lcard').length === 3 && $$('.lpart').pop().id === 'rmmap', 'the last part gathers the pages for before the assessment');
   click('[data-act="learn-open"][data-v="27"]');
   ok(/C and C\+\+ for the Online Assessment/.test($('.lside-h').textContent) && /Extra chapter/.test($('.lside-h').textContent), 'the C and C++ chapter opens');
@@ -316,7 +319,7 @@ async function phase1(){
   ok(/Your data/.test(h1()) && /Firestore/.test($('#main').textContent) && /never uploaded/.test($('#main').textContent), 'privacy page explains storage and the judge');
   // Roles: what postings ask for, and hardware roles
   tab('roles');
-  ok($$('.review').length === 14 + 12, '14 posting requirements and 12 hardware roles reviewed');
+  ok($$('.review').length === 17 + 13, '17 posting requirements and 13 hardware roles reviewed');
   const arithRev = $$('.review').find(r => /Computer arithmetic/.test(r.querySelector('.rhead b').textContent));
   ok(arithRev && arithRev.querySelector('.vpill').textContent === 'Strong match', 'computer arithmetic is a strong match');
   ok($$('.vpill.bad').length === 1 && /CAD/.test($('.vpill.bad').closest('.review').textContent), 'mechanical CAD flagged as not covered');

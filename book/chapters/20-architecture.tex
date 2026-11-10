@@ -269,6 +269,7 @@ Big-endian & \code{12} & \code{34} & \code{56} & \code{78} \\
 A chip with several cores, each with its own cache, must keep the caches \term{coherent}: if one core writes a value, other cores must not keep reading a stale copy. Coherence protocols such as MESI track whether each cached line is Modified, Exclusive, Shared or Invalid, and invalidate other copies when one core writes.
 
 \subsection*{How coherence works}
+\label{sec:coherence}
 
 Every cached line is in one of four MESI states:
 \begin{center}
@@ -310,6 +311,41 @@ Because results become permanent only at retirement, the core can \term{speculat
 \begin{remember}
 OoO: rename to remove false dependences (WAR, WAW), execute when operands are ready, retire in order from the reorder buffer. In-order retirement is what makes speculation and precise exceptions possible.
 \end{remember}
+
+\section{Inside a modern core: prediction, prefetching, SIMD and memory ordering}
+\label{sec:modern}
+
+\paragraph{Superscalar execution.} A \term{superscalar} core fetches, decodes and executes several instructions per cycle, so its ideal CPI is below 1 (equivalently, its IPC, instructions per cycle, is above 1). How many really run together is limited by \term{instruction-level parallelism} (ILP): dependences, branches and cache misses. Out-of-order execution (Section~\ref{sec:ooo}) exists to find more of it.
+
+\paragraph{Branch prediction.} A wide, deep pipeline fetches dozens of instructions before a branch resolves, so a wrong guess wastes all of them. Predictors learn from history:
+\begin{itemize}
+  \item A \term{2-bit saturating counter} per branch counts up when taken and down when not taken (0--3); predict taken when the counter is 2 or 3. One unusual outcome, such as a loop's final exit, does not flip the prediction, unlike a 1-bit scheme that mispredicts twice per loop.
+  \item A \term{branch history table} indexes counters by branch address bits. \emph{Global history} predictors (such as gshare, which XORs the address with the recent outcomes of all branches) capture branches that depend on each other. Modern cores combine several predictors and reach well above 95\% accuracy.
+  \item The \term{branch target buffer} (BTB) caches the \emph{target address} of taken branches so fetch can redirect in the same cycle, and a \term{return address stack} predicts function returns.
+\end{itemize}
+
+\begin{worked}{The cost of mispredictions}
+A core has a base CPI of 1. 20\% of instructions are branches, the predictor is 95\% accurate, and a misprediction costs 15 cycles. What is the CPI?
+
+Mispredictions per instruction $= 0.20 \times 0.05 = 0.01$, each costing 15 cycles, so CPI $= 1 + 0.01 \times 15 = 1.15$. Improving accuracy to 98\% gives $1 + 0.2 \times 0.02 \times 15 = 1.06$.
+\end{worked}
+
+\paragraph{Prefetching.} A \term{prefetcher} predicts which cache lines will be needed and fetches them before the program asks, hiding memory latency. A next-line prefetcher fetches the following line; a \emph{stride} prefetcher spots accesses at a constant distance (walking an array of structs) and runs ahead. Prefetching helps regular access patterns and can hurt when it guesses wrong, by wasting bandwidth and evicting useful lines. Pointer chasing (a linked list) defeats it, which is one reason arrays are faster than lists.
+
+\paragraph{SIMD and vectors.} A \term{SIMD} instruction (single instruction, multiple data) applies one operation to a whole vector of values at once: a 256-bit register holds eight 32-bit floats, so one add does eight. x86 has SSE, AVX and AVX-512; Arm has NEON and SVE; RISC-V has the V extension, whose vector length is set by the hardware so the same code runs on narrow and wide implementations. GPUs (Chapter~\ref{ch:gpu}) take the same idea much further.
+
+\paragraph{Multithreading.} \term{Simultaneous multithreading} (SMT, sold as hyper-threading) runs two or more threads on one core, sharing its execution units: when one thread stalls on a miss, the other's instructions fill the slots.
+
+\paragraph{Memory ordering.} With one core, memory operations appear to happen in program order. With several cores, each with a store buffer and caches, another core may see your writes in a different order. The \term{memory consistency model} says which orders are allowed.
+\begin{itemize}
+  \item \term{Sequential consistency} (the intuitive model): all cores see one interleaving of everyone's operations, each core's in program order. Easy to reason about, slow to implement.
+  \item \textbf{x86 (TSO, total store order)}: a core may read memory before its own earlier stores reach the cache (they wait in the store buffer), but stores become visible to others in order.
+  \item \textbf{Arm and RISC-V (weakly ordered)}: loads and stores to different addresses may be reordered freely, unless the program asks otherwise.
+  \item \term{Memory barriers} (fences: \code{dmb} on Arm, \code{fence} on RISC-V, \code{mfence} on x86) force earlier memory operations to complete before later ones. Acquire and release operations are lighter one-way barriers used to build locks.
+  \item Classic example: core 0 writes \code{data = 42;} then \code{flag = 1;}; core 1 waits for \code{flag == 1} and reads \code{data}. On a weakly ordered machine, core 1 can see the flag before the data unless core 0 puts a release barrier (or fence) between its stores and core 1 an acquire barrier after reading the flag. Drivers face the same issue with device registers and DMA buffers.
+\end{itemize}
+
+Coherence (Section~\ref{sec:coherence} earlier in this chapter) guarantees that all cores agree on the order of writes to \emph{one} address; consistency is about the order of accesses to \emph{different} addresses.
 
 \section{On-chip buses: AXI}
 \label{sec:axi}

@@ -1,0 +1,245 @@
+% A role chapter for the Learn tab (not part of the printed book). It builds on Section 19 "FPGAs: where your
+% RTL lands", which introduces LUTs, hard blocks, the tool flow and timing closure.
+\chapter{FPGA Design in Depth}
+\label{ch:fpgadeep}
+
+FPGA engineers write RTL like ASIC designers, but they also own everything from the RTL to a working board: constraints, timing closure, clocking, I/O, the processor system on the chip, and debugging on real hardware. Section~\ref{sec:fpga} introduced the LUT, the hard blocks and the tool flow. This chapter covers what an FPGA role expects on top of that, from how RTL maps onto the fabric to writing constraints, closing timing, high-speed I/O, SoC FPGAs, high-level synthesis and lab debug.
+
+\begin{bigidea}
+On an FPGA, the logic is cheap and the wires are expensive. Flip-flops sit unused next to every LUT, so adding pipeline registers costs almost nothing, while each hop through the programmable routing costs a large part of a nanosecond. Good FPGA design keeps the logic between registers shallow, keeps fanout low, and uses the hard blocks the way they were built.
+\end{bigidea}
+
+\section{How RTL maps onto the fabric}
+
+Synthesis does not translate your code line by line. It recognizes \emph{patterns} and maps them onto the resources the FPGA has. Knowing those patterns lets you predict, and control, what you get.
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+You write & You get \\
+\midrule
+Any small combinational function & LUTs (one 6-input LUT per function of up to 6 inputs) \\
+\code{a + b}, \code{a - b}, compare & LUTs plus the dedicated carry chain \\
+\code{a * b} & A DSP slice (with its pipeline registers if your code registers around it) \\
+A memory with a registered read & Block RAM \\
+A small memory with an asynchronous read & Distributed RAM (LUTs used as memory) \\
+A delay line of flip-flops with no reset & Shift-register LUTs (SRL): up to 32 stages in one LUT \\
+A \code{case} on constants & A ROM, in LUTs or BRAM \\
+Registers & Flip-flops in the slice, or inside the I/O block if they touch a pin \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{LUTs as memory and shift registers.} In some slices (called SLICEM on AMD parts), each LUT can also act as a 64-bit RAM or a 32-stage shift register. A 16-cycle delay of an 8-bit bus then costs 8 LUTs instead of 128 flip-flops. The catch: SRLs and LUT RAM cannot have a reset, so writing a reset on a delay line forces it back into flip-flops.
+
+\paragraph{Writing code that maps to Block RAM.} BRAM reads are synchronous. This template infers a simple dual-port RAM:
+
+\begin{lstlisting}
+module ram #(parameter W = 32, D = 1024) (
+  input  logic                   clk, we,
+  input  logic [$clog2(D)-1:0]   waddr, raddr,
+  input  logic [W-1:0]           wdata,
+  output logic [W-1:0]           rdata
+);
+  logic [W-1:0] mem [D];
+  always_ff @(posedge clk) begin
+    if (we) mem[waddr] <= wdata;
+    rdata <= mem[raddr];            // registered read: this is what makes it a BRAM
+  end
+endmodule
+\end{lstlisting}
+
+A reset on \code{mem}, a read with no register, or more than two ports all prevent BRAM inference. The tools' synthesis guides list the exact templates, including ones for read-first versus write-first behavior when both ports touch the same address, byte enables, and an optional second output register for speed. A ROM is the same template without the write, with the contents loaded from a file by \code{\$readmemh}.
+
+\paragraph{Writing code that maps to DSP slices.} A DSP slice contains a pre-adder, a multiplier, an accumulator and several pipeline registers. Code like \code{p <= (a + d) * b + c;} with registers on the inputs and output lets the tool pack the whole expression into one slice running at full speed. Without the registers, the multiply sits in the middle of a long combinational path. Operands wider than the multiplier (27$\times$18 on recent AMD parts) need several DSPs chained together.
+
+\paragraph{Resets on FPGAs.} After configuration, every flip-flop starts at its initial value (from \code{logic q = 1'b0;} or the default 0), so many FPGA registers need no reset at all. Vendors recommend:
+\begin{itemize}
+  \item reset only what must be reset (control state machines, valid flags), not datapath registers;
+  \item prefer synchronous resets, which use the flip-flop's built-in synchronous set/reset or are absorbed into the LUT logic, and do not block DSP and BRAM inference;
+  \item if a reset comes from a pin or another clock domain, synchronize its release (asynchronous assert, synchronous deassert, as in Chapter~\ref{ch:rtl});
+  \item register and replicate a reset that drives thousands of loads, because its fanout makes it a timing problem.
+\end{itemize}
+
+\section{Clocking}
+
+\paragraph{Clock resources.} Clocks travel on dedicated global networks driven by global buffers (\code{BUFG} on AMD parts), which reach every flip-flop with low skew. Regional buffers serve one area of the chip. \term{PLLs} and \term{MMCMs} (mixed-mode clock managers) take an input clock and produce new frequencies ($f_{out} = f_{in} \times M / (D \times O)$), phase shifts, and clean duty cycles. Their \code{locked} output tells the design when the clock is stable; logic should be held in reset until it is.
+
+\paragraph{Never build clocks from logic.} A clock made by a counter or an AND gate travels on ordinary routing, with large and unpredictable skew, and glitches can clock flip-flops twice. To run logic slower, keep the fast clock and use a \term{clock enable}:
+
+\begin{lstlisting}
+always_ff @(posedge clk)            // one clock for everything
+  if (tick_1khz) count <= count + 1; // tick_1khz is high for one cycle every N cycles
+\end{lstlisting}
+
+Every flip-flop has a dedicated clock-enable input, so this costs almost nothing. When a slow or gated clock is truly needed, generate it with an MMCM, or gate it with a clock buffer that has an enable (\code{BUFGCE}), which switches glitch-free.
+
+\paragraph{How many clock domains?} As few as possible. Each extra domain adds crossings that must be synchronized (Section~\ref{sec:cdc}), constrained and verified. Interfaces often force extra domains: an Ethernet MAC receives on the clock recovered from the line, a camera sends its own pixel clock. Bring such data into the main domain through an asynchronous FIFO, close to the pins.
+
+\section{Timing constraints}
+
+Static timing analysis can only check what you describe. FPGA constraints use SDC-style Tcl commands (AMD calls the files XDC). A design with missing constraints may pass timing and still fail on the board.
+
+\subsection*{Clocks}
+
+\begin{lstlisting}
+create_clock -name sys_clk -period 10.000 [get_ports clk_in]          ;# 100 MHz from a pin
+create_generated_clock -name clk_div2 -source [get_ports clk_in] \
+    -divide_by 2 [get_pins div_reg/Q]                                   ;# a divided clock
+\end{lstlisting}
+
+Clocks from PLLs and MMCMs are derived automatically from the input clock's constraint. Every clock that enters through a pin needs a \code{create\_clock}; an unconstrained clock means none of its paths are checked.
+
+\subsection*{Inputs and outputs}
+
+The tool sees only the inside of the FPGA. \code{set\_input\_delay} tells it how much of the clock period the outside world has already used before data reaches the pin; \code{set\_output\_delay} tells it how much time the receiving chip needs after the pin.
+
+\begin{worked}{Input delay from a datasheet}
+An external ADC is clocked by the same 100 MHz clock as the FPGA. Its data is valid 2 ns to 6 ns after the clock edge (minimum and maximum clock-to-out), and the board trace adds 1 ns. What input delays should be set?
+
+The data arrives at the pin between $2 + 1 = 3$ ns and $6 + 1 = 7$ ns after the edge:
+\begin{lstlisting}
+set_input_delay -clock sys_clk -max 7.0 [get_ports adc_data[*]]
+set_input_delay -clock sys_clk -min 3.0 [get_ports adc_data[*]]
+\end{lstlisting}
+The tool now has $10 - 7 = 3$ ns, minus its own input path and the flip-flop's setup time, to capture the data. If that fails, use the flip-flop in the I/O block (shortest possible path), adjust the clock phase with the MMCM, or move to a source-synchronous interface.
+\end{worked}
+
+\subsection*{Timing exceptions}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Command & Use \\
+\midrule
+\code{set\_clock\_groups -asynchronous} & Two clocks have no phase relation; do not time paths between them \\
+\code{set\_false\_path} & A path that never needs to meet timing (a static configuration bit, a reset) \\
+\code{set\_multicycle\_path} & Data is allowed $N$ cycles (for example, a clock enable fires every 2nd cycle) \\
+\code{set\_max\_delay -datapath\_only} & Bound the delay of a CDC path (such as Gray-coded FIFO pointers) without timing it as synchronous \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{trap}
+A multicycle path needs two constraints. \code{set\_multicycle\_path 2 -setup} gives the data two cycles, but it also moves the hold check by one cycle, making hold far harder to meet. The usual fix is \code{set\_multicycle\_path 1 -hold} on the same path, which moves the hold check back to where it was. Forgetting the hold half is one of the most common constraint bugs.
+\end{trap}
+
+\begin{trap}
+A false path or asynchronous clock group switches off timing checks. If the crossing it covers is not actually synchronized, the design passes timing and then fails at random on the bench. Every exception must match a structure that is safe by design, and CDC tools should check the crossings.
+\end{trap}
+
+\subsection*{Reading a timing report}
+
+\begin{itemize}
+  \item \textbf{WNS} (worst negative slack): the slack of the worst setup path. Negative means at least one path fails.
+  \item \textbf{TNS} (total negative slack): the sum of all failing setup slacks. It shows whether there is one bad path or thousands.
+  \item \textbf{WHS} and \textbf{THS}: the same for hold. Hold failures make the design fail at \emph{any} clock speed, so they must be zero.
+  \item For the worst path, the report lists every cell and net with its delay. Compare \emph{logic} delay with \emph{route} delay: mostly logic means too many LUT levels (pipeline or restructure); mostly routing means high fanout, poor placement or congestion.
+  \item Check the unconstrained-paths and clock-interaction reports. Unconstrained paths are not checked at all.
+\end{itemize}
+
+\section{Closing timing}
+
+Section~\ref{sec:fpga} listed the first steps: pipeline, cut fanout, use hard block registers, retime, floorplan. In more depth:
+
+\begin{itemize}
+  \item \textbf{Count LUT levels.} At a few hundred MHz, each LUT plus its routing costs roughly 0.5 ns or more, so a 4~ns period allows only a handful of levels. Wide comparators, wide multiplexers and long priority chains (\code{if}/\code{else if} ladders) are the usual culprits.
+  \item \textbf{Replace priority with parallel logic.} A long \code{if}/\code{else if} chain builds a priority encoder; if the conditions are mutually exclusive, a \code{case} or one-hot select is shallower.
+  \item \textbf{One-hot state machines.} With flip-flops this cheap, one-hot encoding (one flip-flop per state) makes next-state logic shallow and fast; synthesis often chooses it automatically.
+  \item \textbf{Register every I/O.} Put flip-flops right at the pins (packed into the I/O block) so external timing does not mix with internal logic.
+  \item \textbf{Avoid huge fanout.} The tool can replicate registers (\code{max\_fanout} attribute), but a design-level fix is better, for example a pipelined, tree-shaped reset or enable.
+  \item \textbf{Watch utilization.} Above roughly 80\% of the LUTs, routing congestion makes timing much harder. A smaller or better-organized design often closes timing faster than any setting.
+  \item \textbf{Implementation strategies.} Tools offer placement and routing strategies, physical optimization and multiple runs with different seeds. These help a design that is close; they do not rescue one that is far off.
+\end{itemize}
+
+\section{I/O and high-speed interfaces}
+
+\paragraph{I/O standards.} Each bank of pins is powered at one voltage, and each pin is set to a standard: LVCMOS at 3.3, 2.5, 1.8 or 1.2~V for slow single-ended signals, LVDS for differential pairs, SSTL and POD for DDR memory. Pins in one bank must share compatible voltages, which affects the board design, so FPGA engineers plan the pinout with the board designer early.
+
+\paragraph{DDR I/O and source-synchronous interfaces.} \code{IDDR} and \code{ODDR} primitives capture or launch data on both clock edges at the pin. In a \term{source-synchronous} interface, the sender transmits a clock alongside the data, so both see the same board delays. The receiver uses that clock (or a delayed copy, adjusted by programmable \code{IDELAY} taps) to sample data in the middle of its valid window.
+
+\paragraph{Multi-gigabit transceivers.} Above about 1--2 Gb/s, a separate clock wire cannot stay aligned with the data, so the \term{SerDes} sends the clock embedded in the data. The receiver's clock-and-data recovery (CDR) circuit locks to the transitions. To guarantee enough transitions and DC balance, data is encoded: \term{8b/10b} (25\% overhead, used by older PCIe and SATA) or \term{64b/66b} and \term{128b/130b} (about 3\% and 1.5\%). Transceivers also include equalization to undo the loss of the board traces (Chapter~\ref{ch:wires}). PCIe, 10/25/100G Ethernet, JESD204 for data converters and Aurora are built on them, usually with vendor IP cores.
+
+\paragraph{External memory.} DDR3, DDR4 and LPDDR controllers are almost always vendor IP (AMD's memory interface generator, Intel's EMIF). The FPGA engineer chooses the configuration, follows the pinout rules, and talks to the controller through AXI or a simple command interface. The calibration it runs at start-up is what makes the high data rates work.
+
+\section{SoC FPGAs}
+
+Devices such as AMD Zynq and Intel Agilex SoC combine a hard processor system (Arm cores, caches, a DDR controller, USB, Ethernet and other peripherals, called the PS) with FPGA fabric (the PL) on one chip.
+
+\begin{itemize}
+  \item The PS and PL talk over AXI (Section~\ref{sec:axi}). The processor reaches registers in the fabric through \term{AXI4-Lite} (simple, one word at a time, for control and status). Bulk data moves over full \term{AXI4} (bursts) or \term{AXI4-Stream} (a continuous stream with \code{tvalid}/\code{tready} handshakes and no addresses).
+  \item A \term{DMA} engine in the fabric moves data between AXI-Stream accelerators and DDR memory, so the processor only sets up transfers and handles a completion interrupt.
+  \item Software sees a fabric peripheral as a block of memory-mapped registers. Bare-metal code writes them through \code{volatile} pointers; under Linux, a device driver (or a generic user-space I/O driver) maps the registers and handles its interrupt.
+  \item A typical accelerator: the software writes a source address, a destination address and a length into AXI-Lite registers, sets a start bit, and waits for a done interrupt while the accelerator streams the data.
+  \item Vendor block-design tools connect IP cores with AXI interconnects and generate the address map; the engineer then exports the hardware description to the software tools.
+\end{itemize}
+
+\section{High-level synthesis}
+
+\term{High-level synthesis} (HLS) turns C or C++ functions into RTL. It is used for algorithm-heavy blocks such as filters, image processing and machine-learning kernels, where writing and changing RTL by hand is slow. The engineer guides the hardware with directives (pragmas):
+
+\begin{lstlisting}
+void scale(const int in[1024], int out[1024], int k) {
+  for (int i = 0; i < 1024; i++) {
+#pragma HLS PIPELINE II=1
+    out[i] = in[i] * k;          // one result per clock once the pipeline is full
+  }
+}
+\end{lstlisting}
+
+\begin{itemize}
+  \item \textbf{PIPELINE} overlaps loop iterations. The \term{initiation interval} (II) is the number of cycles between starting successive iterations; II = 1 means a new iteration every cycle.
+  \item \textbf{UNROLL} copies the loop body to do several iterations in parallel, using more hardware.
+  \item \textbf{ARRAY\_PARTITION} splits an array across several memories or registers, because one BRAM has only two ports: reading four elements per cycle needs the array split.
+  \item \textbf{Interfaces}: pragmas choose how arguments become ports, such as AXI4 master for arrays in DDR, AXI-Stream, or AXI-Lite for scalars and the start/done control.
+  \item The reports give the latency, the achieved II and the resources. If II is above 1, the usual causes are a memory port conflict or a loop-carried dependency (an accumulation that needs the previous result).
+\end{itemize}
+
+HLS still needs a hardware mindset: the C must avoid dynamic memory and recursion, data widths should be sized with arbitrary-precision types, and the generated RTL is verified by co-simulation against the C testbench.
+
+\section{Debugging on hardware}
+
+\begin{itemize}
+  \item \textbf{Simulate first.} Simulation shows every signal; hardware shows almost none. Most bugs should be found with a testbench before the bitstream is built.
+  \item \textbf{Integrated logic analyzers.} An \term{ILA} (AMD; Intel's equivalent is SignalTap) is debug logic added to the design that records chosen signals into BRAM when a trigger condition occurs, and shows them as a waveform over JTAG. Depth is limited by BRAM (thousands of samples), signals must be chosen in advance, and adding probes changes placement and can change timing. Mark signals with \code{mark\_debug} (or keep attributes) so synthesis does not optimize them away.
+  \item \textbf{VIO} (virtual I/O) cores let you read and drive internal signals from the PC, handy for forcing a mode or reading a status counter without a rebuild.
+  \item \textbf{Status registers and counters} readable by software (error counts, FIFO high-water marks, state-machine state) are often the most useful debug aid in a deployed system.
+  \item \textbf{When it works in simulation but not on the board}, suspect: an unconstrained or failing timing path, a clock-domain crossing without a synchronizer, an uninitialized register or wrong reset assumption, the wrong pin or I/O standard in the constraints, a clock that is not running or not locked, or a difference between the simulation model of an IP core and its real configuration.
+\end{itemize}
+
+\section{Configuration, power and other topics}
+
+\begin{itemize}
+  \item \textbf{Configuration.} Most FPGAs keep their configuration in SRAM cells, so it is lost at power-off and reloaded at power-up from a flash chip (often over quad SPI) or by a processor. During development the bitstream is loaded over JTAG. Bitstreams can be encrypted and authenticated to protect the design. Flash-based FPGAs keep their configuration and start instantly.
+  \item \textbf{Partial reconfiguration} reloads one region of the fabric while the rest keeps running, so one device can switch between accelerators.
+  \item \textbf{Power.} FPGA power is static leakage plus dynamic power that grows with toggle rate, clock frequency and the amount of logic and routing used. Vendor power estimators take the activity from simulation. Clock enables, gating unused clocks with \code{BUFGCE}, and reducing toggling all help.
+  \item \textbf{Single-event upsets.} Radiation can flip a configuration bit, which changes the circuit itself. Space and safety designs use configuration scrubbing (constantly checking and correcting the configuration memory), ECC on BRAM, and triple modular redundancy.
+  \item \textbf{FPGA versus ASIC.} An FPGA wins for low volume, fast time to market, or when the function must change after shipping. An ASIC wins on unit cost at high volume, speed and power. ASIC teams also use FPGAs to prototype their designs before tape-out.
+\end{itemize}
+
+\section{What FPGA interviews ask}
+
+Be ready to:
+\begin{itemize}
+  \item explain what a LUT is, how many LUTs and levels a given function needs, and what a CLB contains;
+  \item say what your RTL will map to (BRAM, distributed RAM, SRL, DSP) and why a reset or an asynchronous read changes that;
+  \item write \code{create\_clock}, input and output delays, and explain false paths, multicycle paths (with the hold adjustment) and asynchronous clock groups;
+  \item read a timing report: WNS, TNS, hold slack, logic versus route delay; and list what you would try for a failing path;
+  \item explain why you should not gate or divide a clock with logic, and how a clock enable replaces it;
+  \item design the classic FPGA blocks: a button debouncer, a UART transmitter and receiver, a PWM generator, an SPI master, a seven-segment or VGA display driver, a FIFO, a synchronizer and a pulse synchronizer;
+  \item describe crossing data between clock domains and how you constrained it;
+  \item explain AXI4-Lite versus AXI4 versus AXI4-Stream, and how a processor would control your accelerator;
+  \item describe how you debug something that works in simulation but not on the board, and how an ILA works;
+  \item talk through a project you built on a real board, with its resource use and maximum clock frequency.
+\end{itemize}
+
+\section{Summary}
+
+\begin{itemize}
+  \item RTL patterns map to specific resources: LUTs, carry chains, SRLs, distributed RAM, BRAM (registered reads) and DSPs (registered multiplies). Resets and asynchronous reads change what you get.
+  \item Use one clock and clock enables wherever possible; make new clocks only with PLLs and MMCMs; synchronize every crossing.
+  \item Constrain everything: clocks, input and output delays, and exceptions that match safe structures. A multicycle setup constraint needs its hold partner.
+  \item Close timing by cutting LUT levels, pipelining, reducing fanout and using hard-block registers; read whether a path is logic- or route-dominated.
+  \item High-speed links use SerDes with encoding and equalization; SoC FPGAs connect processor and fabric through AXI; HLS turns C++ into RTL under pragma control.
+  \item Debug in simulation first, then on hardware with ILAs, VIOs and status registers.
+\end{itemize}

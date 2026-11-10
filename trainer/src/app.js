@@ -3,6 +3,7 @@
 
 // ---------- data ----------
 const TOPICS = {1:'Electricity',2:'Capacitors & signals',3:'Heat',4:'Semiconductors',5:'MOSFETs',6:'Analog',7:'Binary & number formats',8:'CMOS gates',9:'Combinational logic',10:'Latches & flip-flops',11:'Timing',12:'Counters & FSMs',13:'Delay',14:'Power',15:'PVT & temperature',16:'Wires & links',17:'Manufacturing',18:'Memory circuits',19:'RTL & verification',20:'Architecture',21:'GPUs & number formats',22:'Computer arithmetic',23:'Programming & Linux'};
+Object.assign(TOPICS, ROLE_CH);
 const DIFF = {E:'Easy', M:'Medium', H:'Hard'};
 const ROMAN = ['I','II','III','IV','V','VI','VII','VIII'];
 const BANK = RAW.map((r, i) => {
@@ -58,11 +59,14 @@ const SKILLS = [
   {key:'sk-basics', name:'Hardware basics', ch:[1, 2, 7, 9]},
   {key:'sk-cmos', name:'CMOS transistors and circuits', ch:[4, 5, 6, 8]},
   {key:'sk-vlsi', name:'VLSI design', ch:[8, 13, 16, 17, 18]},
-  {key:'sk-pd', name:'Physical design and timing', ch:[11, 13, 15, 16, 17]},
+  {key:'sk-pd', name:'Physical design and timing', ch:[11, 13, 15, 16, 17, 31]},
   {key:'sk-power', name:'Power', ch:[3, 14, 15]},
   {key:'sk-arch', name:'Computer architecture', ch:[18, 20, 21]},
   {key:'sk-arith', name:'Computer arithmetic', tag:'a'},
-  {key:'sk-hdl', name:'Verilog and verification', ch:[10, 12, 19]},
+  {key:'sk-hdl', name:'Verilog and verification', ch:[10, 12, 19, 28]},
+  {key:'sk-fpga', name:'FPGA design', ch:[19, 29]},
+  {key:'sk-fw', name:'Embedded systems and firmware', ch:[23, 30]},
+  {key:'sk-val', name:'Lab, validation and test', ch:[17, 32]},
   {key:'sk-gpu', name:'GPUs and CUDA', ch:[21]},
   {key:'sk-prog', name:'Programming, Linux and scripting', ch:[23]}
 ];
@@ -84,16 +88,19 @@ const VLSI_AREAS = [
   {group:'Front-end design', items:[
     {key:'va-logic', name:'Digital logic and CMOS gates', ch:[7, 8, 9]},
     {key:'va-seq', name:'Sequential design and FSMs', ch:[10, 12]},
-    {key:'va-rtl', name:'RTL design and verification', ch:[19]},
+    {key:'va-rtl', name:'RTL design and verification', ch:[19, 28]},
+    {key:'va-fpga', name:'FPGA design', ch:[29]},
     {key:'va-arch', name:'Computer architecture and GPUs', ch:[20, 21]},
     {key:'va-arith', name:'Datapath and computer arithmetic', ch:[22]}]},
   {group:'Back-end and signoff', items:[
-    {key:'va-sta', name:'Static timing analysis', ch:[11, 13]},
+    {key:'va-sta', name:'Static timing analysis', ch:[11, 13, 31]},
     {key:'va-pwr', name:'Power, thermal and PVT', ch:[3, 14, 15]},
     {key:'va-si', name:'Interconnect and signal integrity', ch:[16]},
-    {key:'va-pd', name:'Physical design, DFT and manufacturing', ch:[17]}]},
+    {key:'va-pd', name:'Physical design, DFT and manufacturing', ch:[17, 31]},
+    {key:'va-val', name:'Bring-up, validation and test', ch:[32]}]},
   {group:'Tools', items:[
-    {key:'va-eda', name:'EDA tools, Linux and scripting', ch:[23]}]}
+    {key:'va-eda', name:'EDA tools, Linux and scripting', ch:[23]},
+    {key:'va-fw', name:'Embedded systems and firmware', ch:[30]}]}
 ];
 VLSI_AREAS.forEach(g => g.items.forEach(a => { LISTS[a.key] = {name:a.name, test:Q => a.ch.includes(Q.ch)}; }));
 const listIds = key => BANK.filter(LISTS[key].test).map(Q => Q.id);
@@ -106,28 +113,32 @@ const SKILL_REVIEW = [
   {req:'VLSI design', v:'strong', book:'Chapters 8, 13, 16, 17 and 18 (gates, delay, wires, manufacturing, memory)', list:'sk-vlsi', todo:'Deeper topics (DIBL, subthreshold slope, CRPR, keepers) are practiced as beyond-the-book problems.'},
   {req:'Static timing and physical design', v:'strong', book:'Chapters 11, 13, 15, 16 and 17', list:'sk-pd', code:['Physical design'], todo:'Run an open flow (OpenLane or Tiny Tapeout) and read its timing reports.'},
   {req:'Power and thermal', v:'strong', book:'Chapters 3, 14 and 15', list:'sk-power', todo:'Know dynamic and leakage power cold, and how voltage, frequency and temperature move them.'},
-  {req:'Computer architecture', v:'good', book:'Chapters 18, 20 and 21 (memory, pipelines, caches, GPUs)', list:'sk-arch', todo:'Out-of-order execution and register renaming appear only as beyond-the-book problems.'},
+  {req:'Computer architecture', v:'strong', book:'Chapters 18, 20 and 21: pipelines, caches, coherence, out-of-order cores, branch prediction, SIMD, memory ordering, GPUs', list:'sk-arch', todo:'Work the cache, pipeline and CPI calculations until they are quick.'},
   {req:'Computer arithmetic', v:'strong', book:'Chapter 22: adders, multipliers and Booth recoding, division, fixed and floating point, rounding', list:'sk-arith', todo:'Pair it with the RTL problems: an ALU, a leading-zero counter, a multiplier.'},
-  {req:'Verilog, SystemVerilog or VHDL', v:'good', book:'Chapter 19: Verilog, SystemVerilog, reading VHDL, CDC, FIFOs and verification', list:'sk-hdl', code:['Verilog drills', 'RTL design', 'Verification'], todo:'Do the Verilog drills until they are quick, then the judged RTL problems. Two VHDL problems show the same ideas in VHDL.'},
+  {req:'Verilog, SystemVerilog or VHDL', v:'strong', book:'Chapter 19 (Verilog, SystemVerilog, VHDL, CDC, FIFOs) and the Design verification role chapter (UVM, assertions, coverage, formal)', list:'sk-hdl', code:['Verilog drills', 'RTL design', 'Verification'], todo:'Do the Verilog drills until they are quick, then the judged RTL problems. Two VHDL problems show the same ideas in VHDL.'},
   {req:'Programming: C, C++, Python, Perl or MATLAB', v:'good', book:'Chapter 23 covers C and Python basics; the rest are taught as beyond-the-book problems', list:'sk-prog', code:['C and C++', 'Python and MATLAB'], todo:'Keep solving one linked-list or bit-manipulation problem a week.'},
   {req:'Linux, scripting and version control', v:'good', book:'Chapter 23 and beyond-the-book problems (shell, git, make, Tcl, Perl)', list:'sk-prog', code:['Linux and scripting'], todo:'Live in a Linux terminal for a week; script one real task in Python or Tcl.'},
   {req:'GPU programming: CUDA or OpenCL', v:'good', book:'Chapter 21 (CUDA model, warps, memory hierarchy); OpenCL is only named', list:'sk-gpu', code:['GPU and CUDA'], todo:'Run the CUDA problems on a real GPU (Google Colab works).'},
+  {req:'FPGA design and tools', v:'strong', book:'Chapter 19 and the FPGA design role chapter: mapping to LUTs, BRAM and DSPs, constraints, timing closure, transceivers, SoC FPGAs, HLS, ILA debug', list:'sk-fpga', code:['RTL design', 'Verilog drills'], todo:'Build one design on a real board and close timing on it.'},
+  {req:'Embedded C, microcontrollers and RTOS', v:'strong', book:'Chapter 23 and the Embedded and firmware role chapter: registers, interrupts, DMA, UART/SPI/I2C/CAN, boot, linker, RTOS', list:'sk-fw', code:['C and C++'], todo:'Write a driver for a real microcontroller peripheral, interrupt-driven, with a ring buffer.'},
+  {req:'Lab skills, bring-up and validation', v:'good', book:'Chapter 17 and the Bring-up and validation role chapter: shmoos, oscilloscopes, eyes and jitter, statistics, Python automation', list:'sk-val', code:['Python and MATLAB'], todo:'Use an oscilloscope and logic analyzer on a real board, and automate a sweep in Python.'},
   {req:'Problem solving and aptitude', v:'good', book:'Chapter 24 (aptitude and puzzles) and Chapter 25 (a full practice assessment)', list:null, todo:'The timed mock in Theory builds this habit; keep a daily streak going.'},
   {req:'Projects, clubs and leadership', v:'partial', book:'Appendix D gives resume projects matched to hardware teams', list:null, todo:'Study material cannot show this on a resume. Finish one Appendix D project and write it up.'},
   {req:'Mechanical CAD (CATIA, NX, SolidWorks, Creo)', v:'none', book:'Not taught. Appendix D Project 7 suggests a heat-sink design', list:null, todo:'Only matters for mechanical and thermal roles; take a CAD course if you aim there.'}
 ];
 // Hardware roles across the industry, with the quests and coding track that prepare for each.
 const ROLES = [
-  {name:'ASIC Design (RTL)', fit:'Strong', ch:[9, 10, 11, 12, 19, 22], code:'RTL design', what:'Write the Verilog or SystemVerilog that becomes the chip: datapaths, control, FIFOs and clock-domain crossings.', add:'Write RTL every week and build the Appendix D processor and systolic-array projects.'},
-  {name:'Design Verification', fit:'Good', ch:[19, 12, 10], code:'Verification', what:'Prove the RTL works before tape-out with testbenches, constrained-random tests, assertions and coverage.', add:'Real SystemVerilog testbenches, assertions and coverage, then UVM or cocotb; verify your own projects.'},
-  {name:'Physical Design and Timing', fit:'Good', ch:[11, 13, 15, 16, 17], code:'Physical design', what:'Turn the netlist into layout: floorplan, placement, clock trees, routing, and closing timing at every corner.', add:'Run an open flow (OpenLane/OpenROAD or Tiny Tapeout) and read its timing reports; script in Tcl.'},
-  {name:'Power and Thermal', fit:'Strong', ch:[3, 14, 15], code:'Python and MATLAB', what:'Model, measure and reduce power across voltage, frequency and temperature.', add:'Measure a real chip\'s power and fit it to the power model (Appendix D Project 6); analyze data in Python.'},
-  {name:'Architecture and Performance', fit:'Good', ch:[18, 20, 21], code:'GPU and CUDA', what:'Decide what the next chip should be, using performance models, simulators and benchmarks.', add:'Build performance models in C++ or Python and optimize CUDA kernels (Appendix D Project 4).'},
-  {name:'Post-silicon Validation', fit:'Good', ch:[10, 11, 16, 17, 23], code:'Linux and scripting', what:'Bring up first silicon in the lab and find the bugs that escaped verification.', add:'Get comfortable with lab tools (oscilloscope, logic analyzer) and scripting test automation.'},
+  {name:'ASIC Design (RTL)', fit:'Strong', ch:[9, 10, 11, 12, 19, 22], deep:[28, 31], code:'RTL design', what:'Write the Verilog or SystemVerilog that becomes the chip: datapaths, control, FIFOs and clock-domain crossings.', add:'Write RTL every week and build the Appendix D processor and systolic-array projects.'},
+  {name:'Design Verification', fit:'Strong', ch:[19, 12, 10], deep:[28], code:'Verification', what:'Prove the RTL works before tape-out with testbenches, constrained-random tests, assertions and coverage.', add:'Build a small UVM or cocotb testbench for one of your own designs, with assertions and coverage.'},
+  {name:'FPGA Design', fit:'Strong', ch:[9, 10, 11, 12, 19], deep:[29, 28], code:'RTL design', what:'Turn RTL into working FPGA designs: constraints, timing closure, clocking, high-speed I/O, SoC integration and lab debug.', add:'Build and debug a project on a real FPGA board, from constraints to a working demo.'},
+  {name:'Physical Design and Timing', fit:'Strong', ch:[11, 13, 15, 16, 17], deep:[31], code:'Physical design', what:'Turn the netlist into layout: floorplan, placement, clock trees, routing, and closing timing at every corner.', add:'Run an open flow (OpenLane/OpenROAD or Tiny Tapeout) and read its timing reports; script in Tcl.'},
+  {name:'Power and Thermal', fit:'Strong', ch:[3, 14, 15], deep:[31], code:'Python and MATLAB', what:'Model, measure and reduce power across voltage, frequency and temperature.', add:'Measure a real chip\'s power and fit it to the power model (Appendix D Project 6); analyze data in Python.'},
+  {name:'Architecture and Performance', fit:'Strong', ch:[18, 20, 21], code:'GPU and CUDA', what:'Decide what the next chip should be, using performance models, simulators and benchmarks.', add:'Build performance models in C++ or Python and optimize CUDA kernels (Appendix D Project 4).'},
+  {name:'Post-silicon Validation', fit:'Strong', ch:[10, 11, 16, 17, 23], deep:[32, 28], code:'Linux and scripting', what:'Bring up first silicon in the lab and find the bugs that escaped verification.', add:'Get comfortable with lab tools (oscilloscope, logic analyzer) and scripting test automation.'},
   {name:'CAD and Hardware Infrastructure', fit:'Good', ch:[20, 23], code:'Linux and scripting', what:'Build the flows, scripts and regression systems that design teams run every day.', add:'Automate flows with Python, Perl and Linux tools; learn job schedulers and regression systems.'},
-  {name:'Firmware and Embedded C', fit:'Good', ch:[7, 20, 23], code:'C and C++', what:'Write the low-level software that boots and controls the hardware: drivers, registers and interrupts.', add:'Write drivers for a microcontroller or FPGA soft core: registers, interrupts and ring buffers.'},
+  {name:'Firmware and Embedded C', fit:'Strong', ch:[7, 20, 23], deep:[30], code:'C and C++', what:'Write the low-level software that boots and controls the hardware: drivers, registers and interrupts.', add:'Write drivers for a microcontroller or FPGA soft core: registers, interrupts and ring buffers.'},
   {name:'Custom Circuit Design (SRAM, analog, SerDes)', fit:'Medium', ch:[5, 6, 8, 18], code:null, what:'Design transistor-level circuits where standard cells are not enough.', add:'Deeper analog design (Razavi) and SPICE simulation (Appendix D Project 5).'},
-  {name:'DFT (Design for Test)', fit:'Medium', ch:[17, 10], code:'RTL design', what:'Add scan chains, BIST and compression so every manufactured chip can be tested.', add:'Scan insertion, ATPG and memory BIST in depth.'},
+  {name:'DFT (Design for Test)', fit:'Good', ch:[17, 10], deep:[31, 32], code:'RTL design', what:'Add scan chains, BIST and compression so every manufactured chip can be tested.', add:'Run scan insertion and ATPG on a small design with an open-source or university tool flow.'},
   {name:'Signal and Power Integrity, Boards', fit:'Medium', ch:[2, 16], code:'Python and MATLAB', what:'Make sure fast signals and power arrive clean across packages and boards.', add:'PCB design (KiCad), SI/PI simulation and lab measurements with an oscilloscope.'},
   {name:'Mechanical and Thermal', fit:'Light', ch:[3], code:null, what:'Design heat sinks, enclosures and cooling for chips and systems.', add:'CAD and thermal simulation (Appendix D Project 7).'}
 ];
@@ -499,7 +510,7 @@ function optsHTML(Q, perm, chosen, reveal, scope){
   }).join('') + '</div>';
 }
 function parsePick(code){ return code === 'T' ? true : (code === 'F' ? false : parseInt(code, 10)); }
-function taughtLine(Q){ return Q.beyond ? 'Beyond the book: this explanation is the lesson.' : `Taught in Chapter ${Q.ch} (${esc(TOPICS[Q.ch])}) of Hardware from the Ground Up.`; }
+function taughtLine(Q){ return Q.beyond ? 'Beyond the book: this explanation is the lesson.' : ROLE_CH[Q.ch] ? `Taught in the ${esc(TOPICS[Q.ch])} role chapter on the Learn tab.` : `Taught in Chapter ${Q.ch} (${esc(TOPICS[Q.ch])}) of Hardware from the Ground Up.`; }
 function verdictHTML(Q, chosen){
   const ok = isCorrect(Q, chosen);
   return `<div class="verdict ${ok ? 'ok' : 'bad'}" role="status"><b>${ok ? 'Accepted' : 'Wrong Answer'}</b>${ok ? '' : `<span>Correct answer: ${esc(correctText(Q))}</span>`}</div>` +
@@ -1665,7 +1676,7 @@ function viewRoles(){
   html += `</div></section><section class="card"><h2>Hardware roles</h2><p class="muted">Internship and new-grad roles across the industry, with what this kit covers for each and what to add.</p><div class="reviews">` +
     ROLES.map(r => `<article class="review"><div class="rhead"><b>${esc(r.name)}</b><span class="vpill ${r.fit === 'Strong' || r.fit === 'Good' ? 'ok' : r.fit === 'Medium' ? 'warn' : ''}">${r.fit} coverage</span></div>
       <p class="small">${esc(r.what)}</p>
-      <dl><div><dt>Quests</dt><dd><div class="row">${r.ch.map(c => `<button type="button" class="topicchip" data-act="open-unit" data-u="${c}">Quest ${c} · ${esc(TOPICS[c])}</button>`).join('')}</div></dd></div>
+      <dl>${r.deep ? `<div><dt>Role chapter</dt><dd><div class="row">${r.deep.map(c => `<button type="button" class="topicchip" data-act="learn-open" data-v="${c}">${esc(TOPICS[c])}</button>`).join('')}</div></dd></div>` : ''}<div><dt>Quests</dt><dd><div class="row">${r.ch.map(c => `<button type="button" class="topicchip" data-act="open-unit" data-u="${c}">Quest ${c} · ${esc(TOPICS[c])}</button>`).join('')}</div></dd></div>
       <div><dt>Coding track</dt><dd>${r.code ? codeCell([r.code]) : '<span class="muted">No coding track: this role is mostly analog or mechanical</span>'}</dd></div>
       <div><dt>Hiring</dt><dd><div class="row">${hiring(r).map(c => `<button type="button" class="cologo" data-act="co-open" data-v="${c.id}" title="${esc(c.name)}" aria-label="${esc(c.name)}">${coAvatar(c, 'sm')}</button>`).join('') || '<span class="muted">Most hardware companies</span>'}</div></dd></div>
       <div><dt>Also do</dt><dd>${esc(r.add)}</dd></div></dl></article>`).join('') + '</div></section>';
@@ -1675,10 +1686,10 @@ function viewRoles(){
 // ---------- Learn: the book as lessons, LeetCode Explore style ----------
 // Each chapter of Hardware from the Ground Up is a card of lessons (its sections), ending with that chapter's
 // problems. Reading a lesson and solving a problem both count toward the chapter.
-const CH_CODE = {11:['Physical design'], 19:['RTL design', 'Verilog drills', 'Verification'], 21:['GPU and CUDA'], 23:['C and C++', 'Python and MATLAB', 'Linux and scripting'], 27:['C and C++']};
+const CH_CODE = {11:['Physical design'], 19:['RTL design', 'Verilog drills', 'Verification'], 21:['GPU and CUDA'], 23:['C and C++', 'Python and MATLAB', 'Linux and scripting'], 27:['C and C++'], 28:['Verification'], 29:['RTL design'], 30:['C and C++'], 31:['Physical design', 'Linux and scripting'], 32:['Python and MATLAB']};
 // The book's parts, then the pages for the days before an assessment: the C and C++ chapter (27), the practice
 // assessment (Chapter 25) and the formula sheet (Appendix A, page 26).
-const LEARN_PARTS = PARTS.concat([{n:9, name:'Before the assessment', units:[27, 25, 26]}]);
+const LEARN_PARTS = PARTS.concat([{n:9, name:'Role deep dives', units:[28, 29, 30, 31, 32]}, {n:10, name:'Before the assessment', units:[27, 25, 26]}]);
 const chLabel = c => c.label || `Chapter ${c.n}`;
 const chapterCode = ch => CODING.filter(p => (CH_CODE[ch] || []).includes(p.area)).map(p => p.id);
 const book = () => window.BOOK_LESSONS || null;
@@ -1718,10 +1729,11 @@ function viewLearn(){
   if (!B) { ensureBook(); return `<section class="pagehead"><h1>${ui.bookErr ? 'The book could not be loaded' : 'Loading the book…'}</h1>${ui.bookErr ? '<p class="muted">Check your connection and reload the page.</p>' : ''}</section>`; }
   const nu = nextUnit();
   if (!ui.rm) ui.rm = {sel:'u' + (nu ? nu.id : 1), z:1, tx:60, ty:24, fit:true};
-  const all = B.filter(c => c.n <= 23).map(c => chapterProgress(c.n)), lessons = all.reduce((n, x) => n + x.lessons, 0), read = all.reduce((n, x) => n + x.read, 0);
+  const core = c => c.n <= 23 || ROLE_CH[c.n];
+  const all = B.filter(core).map(c => chapterProgress(c.n)), lessons = all.reduce((n, x) => n + x.lessons, 0), read = all.reduce((n, x) => n + x.read, 0);
   const probs = all.reduce((n, x) => n + x.probs, 0), solved = all.reduce((n, x) => n + x.solved, 0), done = read + solved, total = lessons + probs;
   const quests = UNITS.filter(U => unitPassed(U.id)).length;
-  const next = B.filter(c => c.n <= 23).find(c => { const P = chapterProgress(c.n); return P.read < P.lessons; });
+  const next = B.filter(core).find(c => { const P = chapterProgress(c.n); return P.read < P.lessons; });
   const quest = n => {
     const U = UNITS[n - 1]; if (!U || n > 23) return '';
     const passed = unitPassed(n), open = unitUnlocked(n), cd = cardsDone(U);

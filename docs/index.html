@@ -2030,6 +2030,14 @@ const RAW = [
 ["20-41", "M", "On an AXI channel, a transfer happens on a clock edge where:", ["VALID and READY are both high", "VALID is high, whatever READY is", "READY goes from low to high", "VALID goes from high to low"], "Every AXI channel is a valid/ready handshake: the source offers with VALID, the destination accepts with READY, and data moves only on an edge where both are high."],
 ["20-42", "M", "Which AXI rule prevents a handshake deadlock?", ["A source must not wait for READY before asserting VALID", "A destination must assert READY before VALID", "VALID may be withdrawn before the transfer if the data changes", "READY and VALID must rise in the same cycle"], "If the source waited for READY and the destination waited for VALID, neither would move. So the source raises VALID as soon as it has data and holds it, with the data stable, until the transfer; the destination may wait for VALID."],
 ["20-43", "E", "AXI4-Stream is used to:", ["Pass a stream of data between blocks with no addresses, marking packet ends with TLAST", "Read and write control registers one word at a time", "Connect a CPU to DRAM with bursts and transaction IDs", "Carry the clock between chips"], "AXI4-Stream keeps only the handshake, the data and TLAST. It is the usual way to move packets through an FPGA pipeline. AXI4-Lite is the register-access version, full AXI4 the memory-mapped one with bursts."],
+["20-44", "M", "A 2-bit saturating counter predicts a loop branch that is taken 9 times, then not taken once, and the loop runs again and again. In steady state, how many mispredictions happen per run of the loop?", ["1", "2", "0", "10"], "The single not-taken exit only moves the counter from 3 to 2, still predicting taken, so only the exit itself is mispredicted. A 1-bit predictor would mispredict twice: the exit, then the first iteration of the next run."],
+["20-45", "M", "A core has a base CPI of 1.0. 25% of instructions are branches, the predictor is 96% accurate, and a misprediction costs 12 cycles. What is the CPI?", ["1.12", "1.48", "1.03", "1.30"], "Mispredictions per instruction = 0.25 × 0.04 = 0.01, each costing 12 cycles: CPI = 1 + 0.12 = 1.12."],
+["20-46", "E", "The branch target buffer (BTB) stores:", ["The target address of recently taken branches, so fetch can redirect immediately", "The outcome counters of every branch in the program", "The return addresses of function calls only", "The instructions on the wrong path after a misprediction"], "The direction predictor says taken or not; the BTB says where to. Returns are predicted by a separate return address stack."],
+["20-47", "M", "A stride prefetcher helps most when the program:", ["Walks an array of structs, touching one field in each", "Follows a linked list whose nodes are scattered in memory", "Reads a single variable over and over", "Makes random lookups into a large hash table"], "Accesses at a constant distance are easy to predict and fetch ahead. Pointer chasing and random lookups give the prefetcher nothing to learn from."],
+["20-48", "E", "A 512-bit SIMD register can add how many 32-bit integers in one instruction?", ["16", "8", "32", "64"], "512 / 32 = 16 lanes. SIMD applies one operation to every lane at once."],
+["20-49", "H", "Core 0 runs data = 42; flag = 1;. Core 1 waits until flag == 1, then reads data. On a weakly ordered processor (Arm, RISC-V) with no barriers, core 1:", ["Can read the old value of data, because the two stores may become visible in either order", "Always reads 42, because cache coherence orders all memory accesses", "Can never see flag == 1", "Reads 42 only if both variables share a cache line"], "Coherence orders writes to one address; the order of writes to different addresses is set by the consistency model. A release barrier before the flag store and an acquire barrier after the flag load fix it."],
+["20-50", "M", "On x86 (total store order), which reordering can a core's own memory operations show to other cores?", ["A load can complete before an earlier store to a different address is visible", "Two stores can become visible in the opposite order", "Two loads can complete in the opposite order", "None: x86 is sequentially consistent"], "Stores wait in the store buffer while later loads go ahead. That is the one relaxation TSO allows; an mfence (or a locked instruction) prevents it."],
+["20-51", "E", "Simultaneous multithreading (SMT) improves throughput by:", ["Letting a second thread use execution slots left idle when one thread stalls", "Giving each thread its own private set of execution units", "Doubling the clock frequency of the core", "Running the same thread twice and comparing the results"], "Both threads share one core's execution units; when one waits on memory, the other's instructions fill the gaps."],
 // 21 GPUs and number formats
 ["21-01","E","How many threads are in an NVIDIA warp?",["32","16","64","1024"],"All 32 execute the same instruction together (SIMT)."],
 ["21-02","E","Which best contrasts CPUs with GPUs?",["CPUs cut latency; GPUs maximize throughput","GPUs have bigger caches per thread","CPUs have thousands of simple cores","GPUs predict branches much better"],"GPUs spend their transistors on many arithmetic units."],
@@ -2131,7 +2139,148 @@ const RAW = [
 ["23-31","E","Which file lists files that git should not track, such as simulation outputs?",[".gitignore",".gitkeep","README.md","Makefile"],"Waveforms and build directories are large and regenerable, so they stay out of the repository.","b"],
 ["23-32","M","A Python script parses a 2 GB log. Which approach uses the least memory?",["Iterate over the file line by line","Read the whole file with f.read() first","Load it into a list with f.readlines()","Copy it into a string, then split"],"for line in f: streams the file, holding one line at a time.","b"],
 ["23-33","H","Two shell commands: A is  grep -c PASS log ; B is  grep PASS log | wc -l . When does the answer differ?",["Never; both count matching lines","A counts words, B counts lines","B counts files instead of lines","A only works on compressed logs"],"grep -c counts matching lines per file; with a single file it equals the piped wc -l count.","b"],
-["23-34","M","In C, which declaration reads a 32-bit hardware status register at address 0x40001000 correctly?",["volatile uint32_t *status = (volatile uint32_t *)0x40001000;","uint32_t status = (uint32_t)0x40001000;","int *status = (int *)0x40001000;","const uint8_t *status = (const uint8_t *)0x40001000;"],"Casting the address to a pointer to volatile 32-bit data makes every access a real 32-bit read."]
+["23-34","M","In C, which declaration reads a 32-bit hardware status register at address 0x40001000 correctly?",["volatile uint32_t *status = (volatile uint32_t *)0x40001000;","uint32_t status = (uint32_t)0x40001000;","int *status = (int *)0x40001000;","const uint8_t *status = (const uint8_t *)0x40001000;"],"Casting the address to a pointer to volatile 32-bit data makes every access a real 32-bit read."],
+// 28 Design verification
+["28-01", "E", "Why is a verification plan written from the specification rather than from the RTL?", ["Checks copied from the RTL repeat the designer's mistakes, so the bug passes", "The RTL is not available until after tape-out", "Simulators cannot read RTL files directly", "Coverage tools only accept specification documents"], "A testbench must check what the design should do. Reading the RTL to write the checks builds the same misunderstanding into both."],
+["28-02", "E", "In a layered testbench, which component turns transactions into pin activity?", ["The driver", "The monitor", "The scoreboard", "The sequence"], "The sequence decides what to send, the driver wiggles the pins, the monitor turns pins back into transactions, and the scoreboard checks them."],
+["28-03", "M", "Why does a testbench check the monitor's transactions rather than what the driver intended to send?", ["The monitor reports what really appeared on the pins, catching driver bugs and working unchanged when another block drives the interface", "Monitors run faster than drivers", "Drivers cannot store transactions", "The scoreboard can only connect to one component"], "The monitor is an independent observer. It also keeps working in a passive agent when the block is reused at a higher level."],
+["28-04", "E", "A logic variable is 4-state and an int is 2-state. What happens if an X from the design is assigned to an int?", ["It silently becomes 0, which can hide a bug", "The simulation stops with an error", "The int also holds X", "The assignment is skipped"], "2-state types have no X or Z. Use 4-state types for anything connected to the design, so unknown values stay visible."],
+["28-05", "M", "fork ... join_any continues when:", ["The first child thread finishes; the others keep running", "All child threads finish", "Immediately, without waiting for any child", "Every child thread has been killed"], "join waits for all, join_any for the first, join_none for none. disable fork then stops the rest, a common timeout pattern."],
+["28-06", "M", "packet p1 = new(); packet p2 = p1; p2.addr = 5; What is p1.addr?", ["5, because p1 and p2 are handles to the same object", "Its old value, because p2 is a copy", "0, because p2 = p1 resets the object", "Undefined until p1 is randomized again"], "Assigning a class handle copies the handle, not the object. new p1 would make a separate (shallow) copy."],
+["28-07", "M", "A base-class handle points at a derived-class object and calls a method that the derived class overrides. Which version runs?", ["The derived version if the method is declared virtual; otherwise the base version", "Always the base version", "Always the derived version", "Neither: it is a compile error"], "Virtual methods are chosen by the object's type (polymorphism); non-virtual methods by the handle's type."],
+["28-08", "M", "Which constraint keeps a 32-bit address word-aligned?", ["constraint c { addr[1:0] == 2'b00; }", "constraint c { addr % 2 == 0; }", "constraint c { addr inside {[0:3]}; }", "constraint c { addr[31:30] == 2'b00; }"], "A 4-byte-aligned address has its two lowest bits zero. addr % 4 == 0 would also work."],
+["28-09", "H", "In len dist { 1 := 50, [2:5] :/ 40, 6 := 10 }, what is the weight of the value 3?", ["10", "40", "50", "13.3"], "':/' divides the weight 40 across the four values 2 to 5, giving 10 each. With ':=' each value would get 40."],
+["28-10", "M", "What does solve a before b change?", ["The probability distribution of the solutions, not which values are legal", "Which values of b are legal", "The order in which a and b are printed", "It makes a and b independent of each other"], "Without it the solver picks uniformly among legal (a, b) pairs, which can make a rare value of a almost never appear. solve before picks a first, evenly."],
+["28-11", "E", "Why should the return value of randomize() always be checked?", ["It returns 0 when the constraints conflict, leaving the old values in place", "It returns the random seed, which must be logged", "It returns the number of constraints used", "It is required syntax; the code does not compile otherwise"], "An unchecked failure means the test silently repeats the previous values and may never reach the scenario it was meant to test."],
+["28-12", "E", "Running the same random test with the same seed and the same code:", ["Reproduces exactly the same run", "Gives a different run each time", "Is not allowed by the simulator", "Gives the same stimulus but different results"], "Reproducibility from the seed is what makes random failures debuggable. Regressions log the seed of every failure."],
+["28-13", "E", "In UVM, which of these is a uvm_object rather than a uvm_component?", ["A sequence item", "A driver", "A monitor", "An agent"], "Components form the permanent hierarchy and have phases. Sequence items and sequences are objects that are created and discarded during the test."],
+["28-14", "M", "In a UVM driver, which call fetches the next transaction from the sequencer?", ["seq_item_port.get_next_item(req)", "ap.write(req)", "uvm_config_db::get(req)", "phase.raise_objection(req)"], "The driver pulls items with get_next_item, drives them, then calls item_done so the sequence's finish_item can return."],
+["28-15", "M", "Why are UVM components created with type_id::create() instead of new()?", ["So a test can use the factory to override which class is actually created", "Because new() is not allowed in SystemVerilog classes", "So the component runs faster", "Because create() randomizes the component"], "Factory overrides let one environment serve many tests: swap in an error-injecting driver or a tighter-constrained item without editing the environment."],
+["28-16", "M", "A monitor's analysis port write() delivers each transaction to:", ["Every connected subscriber, zero or more, without blocking", "Exactly one connected component, blocking until it is read", "The sequencer, which forwards it to the driver", "Only the test at the top of the hierarchy"], "Analysis ports are broadcasts: the scoreboard and the coverage collector can both subscribe to the same monitor."],
+["28-17", "E", "Which UVM phase runs top-down?", ["build_phase", "connect_phase", "report_phase", "extract_phase"], "A parent must exist before it can build its children, so build is top-down. The other function phases run bottom-up."],
+["28-18", "E", "Which UVM phase consumes simulation time?", ["run_phase", "build_phase", "connect_phase", "report_phase"], "run_phase is a task; all the others listed are functions that run in zero time."],
+["28-19", "H", "A UVM test raises no objection in run_phase. What happens?", ["run_phase ends at time 0 and the test reports a pass having driven nothing", "The simulation hangs until the global timeout", "UVM raises an objection automatically for each sequence", "The test fails with a missing-objection error"], "UVM ends run_phase when the objection count is zero. Raise in the test (or sequence) before starting traffic, and drop after it is done."],
+["28-20", "M", "What is uvm_config_db typically used for?", ["Passing the virtual interface and settings from the top down to components deep in the hierarchy", "Storing the expected results for the scoreboard", "Connecting analysis ports to their subscribers", "Recording coverage between runs"], "Values are set by path and name at a higher level and fetched in build_phase. A failed get usually means a path or name typo."],
+["28-21", "M", "A passive agent contains:", ["Only a monitor", "Only a driver and sequencer", "A sequencer, driver and monitor", "Only a scoreboard"], "Passive agents watch an interface that another block drives, typically when a block environment is reused at subsystem level."],
+["28-22", "M", "What is a virtual sequence for?", ["Coordinating sequences on several agents' sequencers, such as configure, then traffic, then status checks", "Running a sequence without a simulator", "Generating stimulus for a passive agent", "Replacing the driver when no interface exists"], "It runs on no interface of its own and starts sub-sequences on the sequencers it holds handles to."],
+["28-23", "M", "A RAL back-door register write:", ["Sets the register's flip-flops directly by hierarchical path in zero time, bypassing the bus", "Goes over the real bus through the adapter", "Writes the register model's mirror only", "Is only allowed after reset"], "Back-door is fast for setup but cannot find bugs in the bus logic. Front-door goes through the adapter as real bus transactions."],
+["28-24", "M", "What does a |=> b mean in SVA?", ["If a is true this cycle, b must be true on the next clock", "If a is true, b must be true in the same cycle", "a and b must never be true together", "b must be true before a"], "|=> is non-overlapping implication, the same as a |-> ##1 b. |-> checks b in the same cycle."],
+["28-25", "M", "Which assertion says: once req is high, gnt must arrive within 1 to 3 cycles?", ["assert property (@(posedge clk) req |-> ##[1:3] gnt);", "assert property (@(posedge clk) gnt |-> ##[1:3] req);", "assert property (@(posedge clk) req ##3 gnt);", "assert (req && gnt);"], "The antecedent req starts the check, and ##[1:3] allows the consequent anywhere from one to three clocks later."],
+["28-26", "H", "An assertion valid |-> ready has never failed in a regression. Why might it still have checked nothing?", ["If valid was never high, every attempt passed vacuously; a cover on valid shows whether it was exercised", "Assertions only check in gate-level simulation", "|-> assertions cannot fail", "The scoreboard disables assertions that pass"], "A false antecedent makes the implication pass vacuously. Pair important assertions with covers of their antecedents."],
+["28-27", "E", "b[*3] in a sequence means:", ["b is true for three consecutive cycles", "b is true three times, not necessarily in a row", "b is checked every third cycle", "b changes value three times"], "[*n] is consecutive repetition. [->n] and [=n] are the non-consecutive versions."],
+["28-28", "M", "What does $stable(data) check?", ["data has the same value as at the previous clock sample", "data has no X or Z bits", "data is a constant parameter", "data has stayed unchanged since reset"], "Sampled-value functions compare with the previous sample: $rose, $fell, $stable, and $past(data, n) for older values."],
+["28-29", "E", "Which kind of coverage is measured automatically from the RTL?", ["Code coverage: lines, branches, conditions, toggles and FSM states", "Functional coverage from covergroups", "Assertion cover properties", "Test-plan coverage"], "Code coverage needs no extra code. Functional coverage is written by the verification engineer from the plan."],
+["28-30", "M", "100% code coverage has been reached. What can still be wrong?", ["A feature missing from the RTL, or results that were never checked", "Nothing: every line has been tested", "Only gate-level timing problems", "Only problems in the testbench's constraints"], "Code coverage shows code ran. It cannot find code that should exist but does not, and it says nothing about whether outputs were compared."],
+["28-31", "M", "A cross of a 2-bin coverpoint with a 4-bin coverpoint has how many bins?", ["8", "6", "16", "4"], "A cross covers every combination: 2 × 4 = 8. Impossible combinations are removed with ignore_bins."],
+["28-32", "E", "What happens when an illegal_bins value is sampled?", ["An error is reported", "The value is ignored", "The coverage percentage rises", "The covergroup stops sampling"], "illegal_bins work as a cheap extra checker; ignore_bins simply exclude values."],
+["28-33", "M", "Formal model checking returns a counterexample. What is it?", ["A short input sequence from reset that makes the assertion fail", "A proof that the assertion always holds", "A list of uncovered bins", "A waveform from the last random simulation"], "Counterexamples are often the fastest way to find corner-case bugs, because the tool finds the shortest failing trace."],
+["28-34", "H", "Why can an overly strong assume property make a formal proof meaningless?", ["It can rule out the very inputs that trigger the bug, so the assertion passes", "Assumptions slow the proof until it times out", "Assumptions are ignored by formal tools", "Assumptions turn assertions into covers"], "Assumptions define the legal input space. Check with cover properties that interesting states are still reachable under them."],
+["28-35", "E", "Logical equivalence checking (LEC) is used to:", ["Prove that the synthesized netlist behaves exactly like the RTL", "Check that two testbenches give the same coverage", "Find timing violations", "Compare two random seeds"], "LEC is run after synthesis and after every netlist change, such as an ECO."],
+["28-36", "M", "Which bug class is gate-level simulation more likely than RTL simulation to find?", ["A missing reset that RTL's X-optimism hid", "A wrong expected value in the scoreboard", "A constraint that is too tight", "A typo in a coverage bin name"], "RTL treats if (X) as false, which can make an uninitialized register look fine. Gate-level simulation propagates X more realistically."],
+["28-37", "M", "A test fails. What should you do first?", ["Rerun it with the same seed to reproduce it, and read the first error", "Change the constraints so the failure goes away", "File a design bug immediately", "Rerun with a new seed to see if it passes"], "Reproduce, read the first error (later ones are often consequences), triage testbench versus design, trace back, find the root cause, fix, and add the case to the regression."],
+["28-38", "E", "A mailbox in SystemVerilog is:", ["A thread-safe FIFO for passing items between threads", "A covergroup for transactions", "A virtual interface handle", "A type of assertion"], "A generator can put transactions in and a driver get them out; get blocks until an item is available."],
+["28-39", "M", "Why use a clocking block in a testbench interface?", ["It fixes when the testbench samples and drives relative to the clock edge, avoiding races with the design", "It generates the clock", "It makes the interface synthesizable", "It is required for coverage collection"], "Inputs are sampled just before the edge (#1step) and outputs driven just after, so testbench and design never race."],
+["28-40", "H", "Which constraint makes every element of a rand int array arr unique?", ["constraint c { unique {arr}; }", "constraint c { arr.size() == 1; }", "constraint c { foreach (arr[i]) arr[i] != i; }", "constraint c { arr inside {[0:9]}; }"], "unique {arr} forbids any two elements being equal. The same can be written with a nested foreach and arr[i] != arr[j] for i != j."],
+// 29 FPGA design
+["29-01", "E", "A delay line of flip-flops with no reset is usually implemented on an AMD FPGA as:", ["Shift-register LUTs (SRLs), up to 32 stages per LUT", "Block RAM", "DSP slices", "A carry chain"], "SLICEM LUTs can act as 32-stage shift registers. Adding a reset prevents this and forces flip-flops."],
+["29-02", "M", "Why does a memory written with an asynchronous read not map to block RAM?", ["Block RAM reads are synchronous: the address or data must be registered", "Block RAM has no write port", "Block RAM only stores constants", "Asynchronous reads are not synthesizable"], "With a combinational read, the tool builds distributed (LUT) RAM or flip-flops instead, which is far larger for big memories."],
+["29-03", "M", "Which coding change most often stops a multiply from running at full speed in a DSP slice?", ["Leaving out the input and output registers around the multiply", "Using signed numbers", "Writing the multiply with the * operator", "Putting the multiply in a separate module"], "DSP slices have internal pipeline registers. Code that registers around the multiply lets the tool absorb them; without them, the multiply sits in a long combinational path."],
+["29-04", "M", "Vendors recommend avoiding resets on FPGA datapath registers because:", ["Registers already start at their initial value after configuration, and resets add fanout and block SRL, BRAM and DSP inference", "Resets are not allowed on FPGAs", "Resets double the power of each flip-flop", "Resets make simulation impossible"], "Reset only control state that needs it, prefer synchronous resets, and synchronize the release of any external reset."],
+["29-05", "E", "A design needs some logic to update at 1 kHz from a 100 MHz clock. The recommended approach is:", ["Keep the 100 MHz clock and use a one-cycle enable pulse every 100 000 cycles", "Divide the clock with a counter and clock the logic from the counter output", "AND the clock with a 1 kHz signal", "Use the 1 kHz signal as an asynchronous reset"], "Every flip-flop has a clock enable. Clocks built from logic travel on general routing with large skew and can glitch."],
+["29-06", "M", "An MMCM has a 100 MHz input, multiplier M = 10, input divider D = 1 and output divider O = 8. What is the output frequency?", ["125 MHz", "80 MHz", "1 GHz", "12.5 MHz"], "f_out = f_in × M / (D × O) = 100 × 10 / 8 = 125 MHz. The internal VCO runs at 1 GHz."],
+["29-07", "E", "What does create_clock -period 8 [get_ports clk] tell the timing tool?", ["A 125 MHz clock enters on the clk pin, so paths it clocks must meet 8 ns", "The clock pin is 8 ns from the logic", "Clock skew must stay below 8 ns", "The clock should be divided by 8"], "Every clock from a pin needs create_clock; without it, none of its paths are checked."],
+["29-08", "H", "An external chip's data is valid 1.5 to 4.5 ns after the shared clock edge, and the board adds 0.5 ns. What set_input_delay values should be used?", ["-max 5.0 and -min 2.0", "-max 4.5 and -min 1.5", "-max 2.0 and -min 5.0", "-max 4.0 and -min 1.0"], "Arrival at the pin is the device's clock-to-out plus the trace: 1.5 + 0.5 = 2.0 ns minimum and 4.5 + 0.5 = 5.0 ns maximum."],
+["29-09", "H", "A path is given set_multicycle_path 2 -setup. What else is normally needed?", ["set_multicycle_path 1 -hold on the same path, to move the hold check back", "set_false_path on the same path", "A second create_clock", "Nothing: the hold check is unaffected"], "Moving the setup check by one cycle also moves the hold check, which makes hold much harder to meet. The -hold 1 constraint restores it."],
+["29-10", "M", "set_clock_groups -asynchronous between two clocks:", ["Stops the tool from timing paths between them, so every crossing must be synchronized by design", "Makes the tool time the crossings with extra margin", "Merges the two clocks into one", "Adds synchronizers automatically"], "The constraint only removes the checks. If a crossing is not actually safe, timing passes and the design fails at random."],
+["29-11", "M", "In a timing report, the worst path's delay is 80% routing and 20% logic. What is the most likely cause?", ["High fanout, poor placement or congestion", "Too many LUT levels", "A missing clock constraint", "A hold violation"], "Mostly logic delay points at too many levels (pipeline it). Mostly routing points at placement, fanout or congestion."],
+["29-12", "E", "WNS is -0.3 ns and TNS is -0.3 ns. What does that tell you?", ["Exactly one endpoint fails, by 0.3 ns", "Thousands of paths fail slightly", "Hold fails everywhere", "Timing is met"], "TNS sums the failing slacks. When it equals WNS, only one endpoint is failing."],
+["29-13", "E", "Why is a hold violation more serious than a setup violation?", ["Hold does not depend on the clock period, so slowing the clock does not fix it", "Hold violations only occur at high temperature", "Setup violations are always fixed by the tool", "Hold violations affect only the I/O"], "A design with a hold violation can fail at any frequency. Setup problems can at least be avoided by lowering the clock."],
+["29-14", "M", "Which change usually reduces logic levels on an FPGA critical path?", ["Replacing a long if/else-if priority chain with a case on mutually exclusive conditions", "Adding a reset to every register", "Using a gated clock", "Merging two pipeline stages into one"], "Priority chains build deep logic. Parallel selection, pipelining and one-hot encoding make paths shallower."],
+["29-15", "M", "Why are flip-flops placed in the I/O blocks for external interfaces?", ["It gives the shortest, most predictable path between the pin and the register", "I/O flip-flops use no power", "It is the only way to use LVDS", "It doubles the data rate"], "IOB registers keep external timing separate from internal logic and make input and output delays repeatable."],
+["29-16", "M", "Why do multi-gigabit links use 8b/10b or 64b/66b encoding?", ["To guarantee enough transitions for clock recovery and keep the line DC balanced", "To encrypt the data", "To double the bandwidth", "To remove the need for equalization"], "The receiver recovers the clock from transitions. 8b/10b costs 25%; 64b/66b about 3%."],
+["29-17", "E", "On a Zynq-style SoC FPGA, software usually controls an accelerator in the fabric through:", ["AXI4-Lite memory-mapped registers", "AXI4-Stream", "JTAG", "The bitstream"], "AXI4-Lite carries control and status; bulk data moves over AXI4 or AXI4-Stream, often with a DMA."],
+["29-18", "M", "In HLS, a pipelined loop reports II = 2 where II = 1 was expected. A likely cause is:", ["Two reads per iteration from an array stored in a single-port memory", "The loop has a fixed trip count", "The function has no return value", "The clock period is too long"], "Port conflicts and loop-carried dependencies raise the initiation interval. ARRAY_PARTITION or a dual-port memory can fix the first."],
+["29-19", "E", "The HLS UNROLL directive:", ["Copies the loop body so several iterations run in parallel, using more hardware", "Starts a new iteration every cycle with one copy of the hardware", "Splits an array across several memories", "Turns a loop into a state machine"], "PIPELINE overlaps iterations in one copy of hardware; UNROLL duplicates the hardware."],
+["29-20", "M", "A signal you want to watch in an ILA disappears after synthesis. What usually fixes it?", ["Marking it mark_debug (or keep) so synthesis does not optimize it away", "Adding a reset to it", "Increasing the ILA sample depth", "Lowering the clock frequency"], "Synthesis removes or renames logic. Debug attributes preserve the net so it can be probed."],
+["29-21", "M", "A design passes simulation but fails on the board, differently each power-up. Which is the most likely cause?", ["An unsynchronized clock-domain crossing or an unconstrained path", "A typo in a comment", "Using a case statement", "Too much free BRAM"], "Random, power-up-dependent behavior is classic for metastability and timing that was never checked. Check CDC and the unconstrained-paths report."],
+["29-22", "E", "Most SRAM-based FPGAs need their configuration reloaded:", ["At every power-up, from flash or a processor", "Only once, at the factory", "Every clock cycle", "Never, because SRAM keeps data without power"], "SRAM configuration cells lose their contents at power-off. Flash-based FPGAs keep theirs."],
+["29-23", "M", "How many 6-input LUTs, at minimum, does a 4:1 multiplexer of single bits need?", ["1", "2", "3", "4"], "A 4:1 mux has 4 data inputs and 2 select inputs: 6 inputs, which fit one 6-input LUT."],
+["29-24", "H", "Why should Gray-coded FIFO pointers crossing clock domains be constrained with set_max_delay -datapath_only rather than only a false path?", ["The bits must arrive within about one destination clock period of each other, or the Gray-code guarantee can break", "False paths are not allowed on FPGAs", "set_max_delay adds synchronizer flip-flops", "It forces the pointers into block RAM"], "Gray code lets only one bit change at a time, but if routing skews the bits by more than a clock period, the receiver can see two changes. A bounded delay keeps the bits together."],
+["29-25", "E", "Partial reconfiguration lets you:", ["Reload one region of the FPGA while the rest keeps running", "Change the FPGA's process technology", "Store two bitstreams in one BRAM", "Run the FPGA without a clock"], "One device can switch between accelerators without stopping the rest of the system."],
+// 30 Embedded and firmware
+["30-01", "E", "Why must a pointer to a hardware status register be declared volatile?", ["So the compiler rereads it on every access instead of reusing a cached value", "So the register cannot be written", "So the access is atomic", "So the variable is stored in flash"], "Without volatile, a loop waiting for a status bit may read the register once and spin forever."],
+["30-02", "M", "What does const volatile uint32_t *p describe?", ["A register the program must not write but whose value can change, such as a read-only status register", "A constant that is stored in RAM", "A contradiction that will not compile", "A register that can only be written once"], "const forbids writes by the program; volatile says the hardware may change it."],
+["30-03", "E", "Which expression clears bit 3 of reg without changing the other bits?", ["reg &= ~(1u << 3);", "reg |= (1u << 3);", "reg ^= (1u << 3);", "reg = ~(1u << 3);"], "AND with a mask that has a 0 only at bit 3. OR sets, XOR toggles, and plain assignment changes every bit."],
+["30-04", "M", "Which expression sets the 3-bit field at bits [6:4] of reg to v?", ["reg = (reg & ~(0x7u << 4)) | ((v & 0x7u) << 4);", "reg |= v << 4;", "reg = (reg & (0x7u << 4)) | v;", "reg &= v << 4;"], "Clear the field first, then OR in the new value shifted into place. ORing alone cannot turn 1s into 0s."],
+["30-05", "H", "A status register has write-1-to-clear flag bits. Code runs STATUS |= FLAG_A; to clear flag A. What can go wrong?", ["Every other flag that is currently set is read as 1 and written back as 1, clearing it too", "Nothing: OR only touches flag A", "Flag A is set instead of cleared", "The write is ignored by the hardware"], "Write-1-to-clear registers should be cleared with a plain write of just the bit: STATUS = FLAG_A;."],
+["30-06", "M", "Which is the best thing to do inside an interrupt service routine for a received UART byte?", ["Copy the byte into a ring buffer, clear the flag, and return", "Parse the whole message and print it with printf", "Wait in a loop for the next byte", "Take a mutex that the main code also uses"], "ISRs should be short and never block. Heavy work happens in the main loop or a task."],
+["30-07", "E", "The vector table holds:", ["The addresses of the interrupt and exception handlers", "The values of every peripheral register", "The stack of the interrupted code", "The program's global variables"], "On an interrupt, the core looks up the handler address in the vector table and jumps to it."],
+["30-08", "M", "A 64-bit tick counter is incremented by a timer ISR on a 32-bit MCU. Why can the main code read a wrong value?", ["Reading it takes two 32-bit loads, and the ISR can update it between them", "volatile variables cannot be 64 bits", "The ISR runs too slowly", "The counter overflows every second"], "A non-atomic read can mix halves from before and after an update. Disable interrupts briefly, or read the high half twice and retry if it changed."],
+["30-09", "H", "A DMA engine fills a buffer in cacheable memory. Before the CPU reads the buffer it should:", ["Invalidate the buffer's cache lines so the CPU reads memory, not stale cached data", "Clean (flush) the buffer's cache lines", "Disable interrupts", "Do nothing: DMA keeps the cache coherent automatically on every MCU"], "DMA writes memory behind the cache. Invalidate before reading DMA data; clean before DMA reads data the CPU wrote, or use non-cacheable memory."],
+["30-10", "E", "UART at 9600 baud, 8 data bits, no parity, 1 stop bit. How many bytes per second?", ["960", "1200", "9600", "1067"], "Each byte takes 10 bits on the wire (start, 8 data, stop): 9600 / 10 = 960 bytes per second."],
+["30-11", "E", "Which bus uses two shared open-drain wires with pull-up resistors and 7-bit device addresses?", ["I2C", "SPI", "UART", "CAN"], "I2C has SCL and SDA. SPI uses a clock, two data lines and a chip select per device; UART is point to point."],
+["30-12", "M", "In I2C, what does the receiving device do in the ninth clock of every byte?", ["Pulls SDA low to acknowledge (ACK), or leaves it high to NACK", "Sends its address", "Stretches the clock to 2× speed", "Sends a parity bit"], "Every byte is followed by an ACK bit. The controller NACKs the last byte of a read before the STOP."],
+["30-13", "M", "What defines the four SPI modes?", ["Clock polarity (idle level) and clock phase (which edge samples data)", "The number of data bits and the parity", "The number of chip selects", "The speed: 1, 2, 4 or 8 MHz"], "CPOL and CPHA. Controller and peripheral must use the same mode or bits are sampled at the wrong edge."],
+["30-14", "M", "Two CAN nodes start sending at the same moment, with identifiers 0x120 and 0x0F0. What happens?", ["0x0F0 wins arbitration because dominant 0 bits override recessive 1 bits, and its frame is not corrupted", "Both frames are corrupted and resent", "0x120 wins because it is larger", "The node that started first by nanoseconds wins"], "A node that sends a recessive 1 but reads back a dominant 0 stops and retries. The lowest identifier has the highest priority."],
+["30-15", "M", "A timer clock is 72 MHz. With a prescaler of 71 (divide by 72), what reload value gives a 1 kHz update rate?", ["999", "1000", "71", "71 999"], "The timer counts at 1 MHz. It must count 1000 ticks per period: reload = 1000 - 1 = 999."],
+["30-16", "E", "A PWM output with reload value 199 and compare value 50 has what duty cycle?", ["25%", "50%", "20%", "75%"], "The period is 200 counts and the output is high for 50: 50/200 = 25%."],
+["30-17", "M", "What does the start-up code do with the .data section before main()?", ["Copies the initial values of initialized globals from flash to RAM", "Fills it with zeros", "Moves the code into RAM", "Nothing: .data already lives in RAM at power-up"], ".data's initial values are stored in flash and copied to RAM; .bss is zeroed; then constructors run and main is called."],
+["30-18", "E", "In C, a global int counter; with no initializer is placed in:", [".bss, zeroed at start-up", ".data", ".rodata", "the stack"], "Uninitialized (zero-initialized) globals and statics go in .bss."],
+["30-19", "M", "Why do many embedded coding standards forbid malloc after start-up?", ["The heap fragments over time and allocation time is unpredictable", "malloc is not available in C", "Heap memory is slower than stack memory", "malloc always returns flash memory"], "Fixed pools or static buffers give predictable memory use and timing."],
+["30-20", "E", "A watchdog timer resets the chip when:", ["Software fails to reload it in time", "The supply voltage is too high", "An interrupt is missed", "The stack is empty"], "The main loop kicks the watchdog only when healthy, so a hang ends in a reset instead of a stuck device."],
+["30-21", "H", "A low-priority task holds a mutex that a high-priority task needs, and a medium-priority task keeps preempting the low one. What is this, and what is the standard fix?", ["Priority inversion; priority inheritance raises the holder to the waiter's priority", "Deadlock; take locks in the same order", "Starvation; use round-robin scheduling", "A race condition; make the variables volatile"], "The high-priority task is effectively blocked by the medium one. Priority inheritance lets the low-priority holder finish quickly and release the mutex."],
+["30-22", "M", "Task A holds mutex 1 and waits for mutex 2; task B holds mutex 2 and waits for mutex 1. How is this usually prevented?", ["Always take the mutexes in the same global order", "Give both tasks the same priority", "Make the mutexes volatile", "Use a bigger stack"], "Deadlock needs a cycle of waits. A fixed lock order removes the cycle; timeouts let a task back off."],
+["30-23", "M", "A binary semaphore is typically used to:", ["Let an ISR signal a task that an event happened", "Protect a resource so only the holder can release it, with priority inheritance", "Store a queue of messages", "Count clock cycles"], "Mutexes have ownership (and often priority inheritance) for protecting resources; semaphores are for signaling and counting."],
+["30-24", "M", "A sensor sleeps at 10 µA and wakes for 20 ms every second at 5 mA. What is the average current?", ["About 0.11 mA", "About 5 mA", "About 0.01 mA", "About 1 mA"], "5 mA × 0.02 + 0.01 mA × 0.98 ≈ 0.100 + 0.0098 ≈ 0.11 mA. The active time dominates."],
+["30-25", "E", "What does 'hard real-time' mean?", ["A missed deadline counts as a failure, so worst-case timing must be guaranteed", "The code runs as fast as possible", "The system uses a hardware timer", "The OS has no scheduler"], "Real-time is about predictability. Soft real-time systems tolerate an occasional late result."],
+["30-26", "M", "An ADC samples a signal containing frequencies up to 20 kHz. What is the minimum sampling rate that avoids aliasing?", ["More than 40 kHz", "20 kHz", "10 kHz", "More than 80 kHz"], "Sampling must exceed twice the highest frequency (the Nyquist rate). In practice an anti-aliasing filter and some margin are used, such as 44.1 or 48 kHz for audio."],
+// 31 Implementation, low power and DFT
+["31-01", "E", "What does a Liberty (.lib) file describe?", ["Each standard cell's function, area, power and delay tables at one PVT corner", "The placed and routed layout", "The timing constraints of the design", "The power domains of the chip"], "Synthesis and STA read the library to know what each cell does and how fast it is."],
+["31-02", "M", "Why is logical equivalence checking run after synthesis?", ["To prove the gate-level netlist performs exactly the same function as the RTL", "To check setup and hold timing", "To measure functional coverage", "To verify the layout matches the netlist"], "LEC compares functions without stimulus. LVS is the layout-versus-netlist check."],
+["31-03", "M", "In on-chip variation (OCV) analysis for a setup check, the capture clock path is treated as:", ["Early (fast), while the launch clock and data paths are late (slow)", "Late (slow), the same as the data path", "Ideal, with no variation", "Ignored"], "Making the capture clock arrive early and the data arrive late gives the worst case for setup. Hold uses the opposite."],
+["31-04", "H", "What does CRPR remove?", ["The pessimism of applying both early and late derates to the clock path shared by launch and capture", "Crosstalk delay on clock nets", "Hold violations on scan paths", "Skew between unrelated clocks"], "One buffer cannot be both slow and fast at once. Clock reconvergence pessimism removal adds that impossible difference back to the slack."],
+["31-05", "M", "An aggressor net switches in the opposite direction to the victim at the same time. What happens to the victim's delay?", ["It increases, which matters for setup", "It decreases, which matters for hold", "It is unchanged", "The victim cannot switch at all"], "Opposite-direction switching effectively doubles the coupling capacitance (slow-down). Same-direction switching speeds the victim up, which matters for hold."],
+["31-06", "M", "Setup is usually worst at which corner?", ["Slow process, low voltage (and, at advanced nodes, possibly cold because of temperature inversion)", "Fast process, high voltage, cold", "Typical process, nominal voltage", "Fast process, low voltage"], "Slow transistors and low supply give the longest delays. Hold is checked at fast process, high voltage."],
+["31-07", "E", "Which is a valid fix for a hold violation?", ["Insert delay cells on the data path", "Upsize the cells on the data path", "Swap to low-Vt cells", "Lower the clock frequency"], "Hold needs the data to arrive later. Upsizing and low-Vt cells speed the path up, the wrong direction; the clock period does not affect hold."],
+["31-08", "M", "Useful skew fixes a setup violation by:", ["Delaying the capture register's clock slightly, giving the data more time", "Removing the clock tree", "Increasing clock uncertainty", "Making the launch clock arrive later"], "The extra time must come from the next stage, which must have setup slack to spare, and hold on the capture path gets harder."],
+["31-09", "E", "Utilization in floorplanning is:", ["Standard-cell area divided by the placeable core area", "The fraction of time the chip is busy", "The percentage of routing tracks used", "Power divided by area"], "Typical targets of 60-75% leave room for buffers, CTS and routing."],
+["31-10", "M", "Why do macros (memories) get halos around them?", ["To keep standard cells away from their edges, leaving room for routing and avoiding congestion at their pins", "To shield them from radiation", "To isolate their power supplies", "To make them easier to test"], "Halos (keep-out margins) and channels between macros keep the area around their pins routable."],
+["31-11", "M", "What is the main difference between static and dynamic IR drop?", ["Static uses average current; dynamic captures sudden local current when many cells switch together", "Static happens only at power-up", "Dynamic IR drop only affects the I/O ring", "They are the same analysis at different temperatures"], "Dynamic drop is fixed with decap cells near busy logic and a denser grid."],
+["31-12", "E", "Which is a primary goal of clock tree synthesis?", ["Low skew between registers that communicate", "Maximum wire length", "As many clock domains as possible", "Removing all buffers from the clock path"], "CTS also targets low insertion delay, clean transitions and low power."],
+["31-13", "M", "Why are clock nets routed with non-default rules (wider wires, double spacing)?", ["To reduce resistance, crosstalk and variation on the most sensitive nets", "To save area", "Because clock nets carry DC current", "So they can be removed after test"], "Clock timing affects every path. Wider wires cut resistance; extra spacing or shielding cuts coupling."],
+["31-14", "E", "What does SPEF contain?", ["The extracted resistance and capacitance of every net", "The cell timing tables", "The power intent", "The scan chain order"], "Sign-off STA reads the parasitics from SPEF."],
+["31-15", "M", "Why does an integrated clock gating (ICG) cell contain a latch?", ["The latch holds the enable steady while the clock is high, so the gated clock cannot glitch", "To store the register values while the clock is off", "To divide the clock by two", "To shift the clock phase by 90 degrees"], "The latch is transparent while the clock is low, so enable changes cannot chop the high phase of the gated clock."],
+["31-16", "M", "When a power domain is switched off, isolation cells:", ["Clamp its outputs to known values so floating signals do not disturb powered-on logic", "Keep its registers' values", "Convert its signals to a different voltage", "Turn its supply off"], "Retention registers save state; level shifters convert voltages; power switches cut the supply."],
+["31-17", "E", "Signals crossing between two voltage domains need:", ["Level shifters", "Isolation cells only", "Clock gating cells", "Scan flip-flops"], "A signal from a low-voltage domain may not fully turn off the receiving gate's transistors in a higher-voltage domain."],
+["31-18", "M", "What does a UPF file describe?", ["Power domains, power switches, isolation, retention and level shifters", "Timing constraints", "Cell layout geometry", "Test patterns"], "Keeping power intent separate means simulation, synthesis, layout and sign-off all read the same description."],
+["31-19", "E", "Lowering both voltage and frequency by 20% reduces dynamic power to about:", ["51% of the original", "80%", "64%", "40%"], "P ∝ CV²f: 0.8² × 0.8 = 0.512."],
+["31-20", "E", "In a scan design, what happens in shift mode?", ["The flip-flops form shift registers so patterns can be loaded and results unloaded", "The chip runs its normal function at full speed", "The clock is stopped", "The memories are tested"], "The scan-enable selects the scan input of each flip-flop's mux, chaining the flip-flops together."],
+["31-21", "M", "Which fault model needs at-speed testing?", ["Transition (slow-to-rise or slow-to-fall) faults", "Stuck-at faults", "IDDQ faults", "Boundary-scan faults"], "A transition fault only shows when the node must switch within one functional clock period."],
+["31-22", "H", "A design has 2 million scan flip-flops in 200 chains. About how many shift cycles does loading one pattern take?", ["10 000", "2 000 000", "200", "400"], "Chain length = 2 000 000 / 200 = 10 000 flip-flops. Scan compression uses many more, shorter internal chains to cut this."],
+["31-23", "M", "In launch-on-capture (LOC) at-speed testing:", ["The pattern is shifted slowly, then two fast functional clock pulses launch and capture the transition", "The last shift pulse launches the transition", "The tester supplies a GHz clock", "No clock is used at all"], "LOC (broadside) needs no fast scan-enable. Launch-on-shift uses the last shift as the launch."],
+["31-24", "E", "Memory BIST mainly uses:", ["March algorithms that write and read patterns in ascending and descending address order", "Random patterns from an LFSR", "Boundary scan", "Functional software tests"], "March tests catch stuck cells, coupling between cells and address decoder faults."],
+["31-25", "M", "How does memory repair raise yield?", ["Failing rows or columns found by BIST are remapped to spares, with the mapping stored in fuses", "Defective memories are switched off", "ECC corrects every manufacturing defect", "The memory is retested at a lower voltage"], "Memories are large and defect-prone, so a few spare rows and columns save many dies."],
+["31-26", "M", "Why can scan shift cause failures on the tester even when the design is correct?", ["So many flip-flops toggle at once that power and IR drop exceed what the chip sees in normal use", "Scan chains are not timed", "The tester's clock is too slow", "Scan disables the clock tree"], "Power-aware patterns and slower shift clocks keep test power within limits."],
+["31-27", "E", "Which file is sent to the foundry at tape-out?", ["GDSII or OASIS", "SDC", "Liberty", "SPEF"], "The layout shapes go to the foundry to make the masks."],
+// 32 Bring-up and validation
+["32-01", "E", "When powering a new board for the first time, a good first step is:", ["Ramp each supply slowly with a current limit and watch for a short", "Apply full power to all rails at once", "Load the full firmware before powering up", "Run the high-speed links first"], "A current-limited ramp protects the board and reveals shorts before anything is damaged."],
+["32-02", "M", "A test fails only at low supply voltage and passes at nominal voltage. What does that most suggest?", ["A speed (setup-like) path or IR drop, because gates are slower at low voltage", "A hold violation", "A software bug unrelated to the hardware", "A failing oscilloscope probe"], "Lower voltage slows logic. Check whether the failing frequency rises with voltage on a shmoo."],
+["32-03", "M", "On a voltage-versus-frequency shmoo, the pass/fail boundary does not move when the voltage changes. That points to:", ["Something other than a normal speed path, such as a functional bug, a hold-type problem or a fixed-delay circuit", "A normal critical path", "Perfect margin", "Too much supply noise"], "A normal speed path passes at higher frequency when the voltage is raised, giving a sloped boundary."],
+["32-04", "E", "A scan dump in post-silicon debug:", ["Stops the clocks and shifts out every flip-flop's state through the scan chains", "Records an oscilloscope trace", "Runs the memory BIST", "Measures supply current"], "It gives a full snapshot of the chip's state to compare with simulation."],
+["32-05", "M", "Why is changing several settings at once a bad debug practice?", ["You cannot tell which change mattered, and the evidence is lost", "The chip may overheat", "Lab instruments only accept one command at a time", "It violates the test standard"], "Change one variable per experiment and log every setting."],
+["32-06", "M", "A parameter has mean 50, standard deviation 2 and an upper spec limit of 58 (no lower limit). What is Cpk?", ["1.33", "4.0", "0.75", "2.67"], "Cpk = (58 - 50) / (3 × 2) = 8/6 ≈ 1.33."],
+["32-07", "E", "Why are production test limits set tighter than the specification (guard bands)?", ["To allow for tester accuracy and drift, so no part outside the specification ships", "To make more parts pass", "Because the specification is only a guess", "To shorten test time"], "Tighter guard bands lose some good parts; looser ones risk escapes."],
+["32-08", "M", "Using the rule rise time ≈ 0.35 / bandwidth, what is the fastest rise time a 500 MHz oscilloscope can show?", ["About 700 ps", "About 70 ps", "About 2 ns", "About 350 ps"], "0.35 / 500 MHz = 0.7 ns. To see a faster edge accurately, use a scope several times faster than the edge."],
+["32-09", "M", "A long ground lead on an oscilloscope probe tends to:", ["Add inductance that makes fast edges ring, showing overshoot that is not really there", "Reduce the probe's bandwidth to DC only", "Short the signal to ground", "Make the scope trigger earlier"], "Use the shortest ground spring possible when measuring fast signals."],
+["32-10", "E", "An eye diagram's opening shrinks horizontally mainly because of:", ["Jitter", "DC offset", "Too much bandwidth", "A long cable at low speed"], "Jitter closes the eye in time; loss and noise close it in voltage."],
+["32-11", "H", "About how many error-free bits must be sent to show a BER of 1e-12 with 95% confidence?", ["3 × 10^12", "1 × 10^12", "1 × 10^6", "3 × 10^9"], "With zero errors, about 3 / BER bits are needed: 3 × 10^12. At 10 Gb/s that takes about 5 minutes."],
+["32-12", "E", "Random jitter is:", ["Unbounded and Gaussian, quoted as an RMS value", "Bounded and caused by data patterns", "Caused only by crosstalk", "Zero in a well-designed link"], "Deterministic jitter is bounded (data-dependent, crosstalk, duty-cycle). Total jitter is quoted at a target BER."],
+["32-13", "E", "SCPI commands such as MEAS:VOLT:DC? are used to:", ["Control and read lab instruments from a script", "Program the FPGA bitstream", "Configure JTAG", "Write UVM tests"], "Python libraries like PyVISA send SCPI text over USB, Ethernet or GPIB."],
+["32-14", "M", "What is burn-in for?", ["Running parts hot at high voltage before shipping, so weak parts fail in the factory instead of the field", "Measuring Fmax", "Programming fuses", "Removing static charge from the parts"], "It screens early-life failures, the left side of the bathtub curve."],
+["32-15", "M", "A silicon bug is fixed by changing only the metal layers. This is usually done because:", ["A metal-only stepping is cheaper and faster than changing every mask", "Metal layers are the only ones that can have bugs", "Transistor layers cannot be changed after the first tape-out", "Metal changes need no verification"], "Spare cells left in the layout let small logic fixes be made by rewiring them in metal."],
+["32-16", "E", "Vmin of a chip is:", ["The lowest supply voltage at which it still works at a given frequency", "The voltage at which it is fused", "The minimum voltage any pin can read as 1", "The voltage at power-off"], "Vmin and Fmax vary from part to part and are measured across many parts to set bins and operating points."],
+["32-17", "M", "A failure appears on one board but not on others with parts from the same lot. A good next step is:", ["Swap the chip onto a good board and see whether the failure follows the chip or stays with the board", "Change the firmware and retest every board", "Assume a design bug and file it", "Raise the supply voltage on all boards"], "Swapping isolates part from board, one variable at a time."],
+["32-18", "E", "HTOL (high-temperature operating life) testing is used to:", ["Accelerate aging so a part's lifetime reliability can be estimated", "Measure leakage at room temperature", "Find logic bugs", "Calibrate the oscilloscope"], "Many hours at high temperature and voltage stand in for years of normal use."],
 ];
 
 // Questions taught in a later chapter than their id says. They keep their id, so progress already saved still counts,
@@ -2153,6 +2302,8 @@ const MOVED = {
 
 // Learning path: one unit per hardware chapter of "Hardware from the Ground Up".
 // Each card: t = title, b = paragraphs, w = interactive widget (optional), q = check question id (optional).
+// Role chapters: Learn pages 28-32, written for one kind of job, with their own questions but no quest.
+const ROLE_CH = {28:'Design verification', 29:'FPGA design', 30:'Embedded and firmware', 31:'Synthesis, PD, low power and DFT', 32:'Bring-up and validation'};
 const PARTS = [
   {n:1, name:"Electricity, from zero", units:[1,2,3]},
   {n:2, name:"Semiconductors and transistors", units:[4,5,6]},
@@ -4548,6 +4699,119 @@ const drillProblem = d => {
 };
 CODING.push(...DRILLS.map(drillProblem));
 
+// Classic FPGA and embedded interface blocks, added after the drills so earlier problem numbers stay the same.
+CODING.push(
+{id:'rtl-21', d:'M', lang:'verilog', area:'RTL design', title:'UART transmitter (8N1)',
+ p:["Write `uart_tx`: it sends one byte as a UART frame of 10 bits: a start bit (0), the 8 data bits least significant first, and a stop bit (1). Each bit lasts exactly `CLKS_PER_BIT` clocks (4 in the tests).", "While idle, `tx` is 1 and `busy` is 0. On a clock edge where `start` is 1 and `busy` is 0, the module captures `data`, sets `busy` to 1 and drives `tx` to 0 (the start bit) on that same edge. Every `CLKS_PER_BIT` edges `tx` moves to the next bit. On the edge that ends the stop bit, `busy` goes back to 0 (and `tx` stays 1), so `busy` is high for exactly 10 × `CLKS_PER_BIT` clocks. `start` is ignored while `busy` is 1, including on the edge where `busy` falls.", "The active-low asynchronous reset `rst_n` returns everything to idle."],
+ ex:"CLKS_PER_BIT = 4, start with data = 8'h41  →  tx: 0 for 4 clocks, then 1,0,0,0,0,0,1,0 (4 clocks each), then 1 for 4 clocks; busy high for 40 clocks",
+ starter:`module uart_tx #(parameter CLKS_PER_BIT = 4) (
+  input  logic       clk, rst_n, start,
+  input  logic [7:0] data,
+  output logic       tx, busy
+);
+  // your code
+endmodule`,
+ hints:["Keep three registers besides `tx` and `busy`: a shift register with the remaining bits, a clock counter from 0 to CLKS_PER_BIT − 1, and a count of bits sent.", "Load the shift register with {1'b1, data}: shifting right then gives d0 … d7 and finally the stop bit.", "Only act when the clock counter reaches CLKS_PER_BIT − 1; otherwise just count."],
+ sol:`module uart_tx #(parameter CLKS_PER_BIT = 4) (
+  input  logic       clk, rst_n, start,
+  input  logic [7:0] data,
+  output logic       tx, busy
+);
+  logic [8:0] frame;              // data bits, then the stop bit
+  logic [3:0] nbit;               // bits sent after the start bit
+  logic [7:0] cnt;                // clocks into the current bit
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      tx <= 1'b1; busy <= 1'b0; frame <= '0; nbit <= '0; cnt <= '0;
+    end else if (!busy) begin
+      if (start) begin
+        busy <= 1'b1; tx <= 1'b0; frame <= {1'b1, data}; nbit <= '0; cnt <= '0;
+      end
+    end else if (cnt != CLKS_PER_BIT - 1) begin
+      cnt <= cnt + 1'b1;
+    end else begin
+      cnt <= '0;
+      if (nbit == 4'd9) begin
+        busy <= 1'b0; tx <= 1'b1;           // stop bit done: back to idle
+      end else begin
+        tx <= frame[0]; frame <= frame >> 1; nbit <= nbit + 1'b1;
+      end
+    end
+  end
+endmodule`,
+ why:["A UART is the first interface most FPGA and embedded engineers build. The shift register, the bit-time counter and the bit counter are the same structure a receiver and an SPI master use.", "The receiver side samples near the middle of each bit, usually by oversampling at 16 times the baud rate."]},
+{id:'rtl-22', d:'E', lang:'verilog', area:'RTL design', title:'PWM generator with glitch-free duty updates',
+ p:["Write `pwm8`: an 8-bit counter `cnt` (reset 0) increments on every clock and wraps from 255 to 0. A register `duty_r` (reset 0) holds the duty value in use; it loads the input `duty` only on the edge where `cnt` is 255, so a new duty value takes effect at the start of the next period and never cuts a pulse short.", "The output `pwm` is combinational: `pwm = (cnt < duty_r)`. So `duty_r = 0` gives a constant 0 and `duty_r = 128` gives a 50% duty cycle. The reset `rst_n` is active-low and asynchronous."],
+ ex:"duty = 64 held  →  after the first full period, pwm is high for 64 clocks of every 256",
+ starter:`module pwm8 (
+  input  logic       clk, rst_n,
+  input  logic [7:0] duty,
+  output logic       pwm
+);
+  // your code
+endmodule`,
+ hints:["Two registers: the counter and the latched duty.", "Load `duty_r` when `cnt == 8'hFF`, the last clock of the period."],
+ sol:`module pwm8 (
+  input  logic       clk, rst_n,
+  input  logic [7:0] duty,
+  output logic       pwm
+);
+  logic [7:0] cnt, duty_r;
+  always_ff @(posedge clk or negedge rst_n)
+    if (!rst_n) begin cnt <= '0; duty_r <= '0; end
+    else begin
+      cnt <= cnt + 1'b1;                      // wraps from 255 to 0
+      if (cnt == 8'hFF) duty_r <= duty;       // change duty only between periods
+    end
+  assign pwm = (cnt < duty_r);
+endmodule`,
+ why:["If `duty` were used directly, changing it in the middle of a period could produce a pulse that is too short or too long, which matters for motors and power converters.", "Microcontroller timers do the same with a preload (shadow) register that updates at the end of the period."]},
+{id:'rtl-23', d:'H', lang:'verilog', area:'RTL design', title:'SPI master, mode 0, one byte',
+ p:["Write `spi_master`: it exchanges one byte with a peripheral in SPI mode 0 (clock idles low, data sampled on the rising edge of `sclk`), with `sclk` at half the system clock. Data goes out most significant bit first.", "Idle: `cs_n = 1`, `sclk = 0`, `mosi = 0`, `done = 0`. On a clock edge where `start` is 1 and the master is idle, it pulls `cs_n` low, puts bit 7 of `tx_byte` on `mosi` and keeps `sclk` low. After that, edges alternate: on the first, `sclk` rises and the master shifts `miso` into its receive register; on the second, `sclk` falls and `mosi` moves to the next bit. After the 8th rising edge, the next edge lowers `sclk`, raises `cs_n`, sets `mosi` to 0, copies the received byte to `rx_byte` and pulses `done` for exactly one clock. A transfer therefore takes 16 edges after the start edge. `start` is ignored while a transfer is running and on the edge where `done` is high.", "`rx_byte` (reset 0) holds its value until the next transfer finishes. The reset `rst_n` is active-low and asynchronous."],
+ ex:"start with tx_byte = 8'hA5 while the peripheral returns 8'h3C on miso  →  mosi shows 1,0,1,0,0,1,0,1; done pulses 16 clocks later with rx_byte = 8'h3C",
+ starter:`module spi_master (
+  input  logic       clk, rst_n, start, miso,
+  input  logic [7:0] tx_byte,
+  output logic       sclk, mosi, cs_n, done,
+  output logic [7:0] rx_byte
+);
+  // your code
+endmodule`,
+ hints:["Track whether a transfer is active, which half of the SPI clock you are in, and how many bits have been sent.", "On the rising half, shift `miso` in: rx <= {rx[6:0], miso}. On the falling half, either move to the next `mosi` bit or finish.", "Pulse `done` from the finishing edge, and clear it on the next edge, when the master is idle again."],
+ sol:`module spi_master (
+  input  logic       clk, rst_n, start, miso,
+  input  logic [7:0] tx_byte,
+  output logic       sclk, mosi, cs_n, done,
+  output logic [7:0] rx_byte
+);
+  logic       active, high;           // high: sclk is high (the next edge lowers it)
+  logic [2:0] nbit;
+  logic [7:0] tx_sh, rx_sh;
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      active <= 1'b0; high <= 1'b0; nbit <= '0; tx_sh <= '0; rx_sh <= '0;
+      sclk <= 1'b0; mosi <= 1'b0; cs_n <= 1'b1; done <= 1'b0; rx_byte <= '0;
+    end else if (!active) begin
+      done <= 1'b0;
+      if (start && !done) begin
+        active <= 1'b1; high <= 1'b0; nbit <= '0;
+        cs_n <= 1'b0; tx_sh <= tx_byte; mosi <= tx_byte[7];
+      end
+    end else if (!high) begin
+      sclk <= 1'b1; high <= 1'b1; rx_sh <= {rx_sh[6:0], miso};    // sample on the rising edge
+    end else begin
+      sclk <= 1'b0; high <= 1'b0;
+      if (nbit == 3'd7) begin
+        active <= 1'b0; cs_n <= 1'b1; mosi <= 1'b0; done <= 1'b1; rx_byte <= rx_sh;
+      end else begin
+        nbit <= nbit + 1'b1; tx_sh <= tx_sh << 1; mosi <= tx_sh[6];  // next bit on the falling edge
+      end
+    end
+  end
+endmodule`,
+ why:["In mode 0 both sides change data on the falling edge and sample on the rising edge, so each bit is stable for half an SPI clock around the sampling edge.", "The other modes only change the idle level of the clock (CPOL) and which edge samples (CPHA)."]}
+);
+
 // Hidden tests for the C, C++ and Verilog coding problems, judged in the browser by judge.js.
 // C/C++: {kind:'c', head (before your code), pre (helpers after it), subst (rewrites in your code), tests}.
 //   [expression, expected] compares values (a "string" compares text); [statements, text, 'out', label] compares printed output.
@@ -4673,6 +4937,20 @@ DRILLS.forEach(d => {
   if (t.rows) benches.push(Object.assign({}, base, {name:'Corner cases', rows:rst.concat(t.rows)}));
   if (t.rand) benches.push(Object.assign({}, base, {name:`${t.rand.n} random ${t.clk ? 'cycles' : 'inputs'}`, rows:rst, rand:t.rand}));
   HIDDEN[d.id] = {kind:'v', benches};
+});
+// Interface blocks (rtl-21 to rtl-23).
+const idle = (n, row) => Array(n).fill(row);
+Object.assign(HIDDEN, {
+'rtl-21':{kind:'v', benches:[{name:'Two frames, a start while busy, and a start on the edge busy falls', top:'uart_tx', clk:'clk', in:['rst_n', 'start', 'data'],
+    rows:['0 0 0', '1 1 65', ...idle(20, '1 0 0'), '1 1 255', ...idle(18, '1 0 0'), '1 1 165', '1 0 0', '1 1 0', ...idle(44, '1 0 0'), '0 0 0', '1 1 128', ...idle(42, '1 0 0')]},
+  {name:'800 random cycles', top:'uart_tx', clk:'clk', in:['rst_n', 'start', 'data'], rows:['0 0 0'], rand:{n:800, fix:{rst_n:1}, p:{start:0.06}}}]},
+'rtl-22':{kind:'v', benches:[{name:'Duty 64, then 0, 255 and 128, changed mid-period', top:'pwm8', clk:'clk', in:['rst_n', 'duty'],
+    rows:['0 0', ...idle(300, '1 64'), ...idle(100, '1 0'), ...idle(300, '1 255'), ...idle(300, '1 128')]},
+  {name:'700 random cycles', top:'pwm8', clk:'clk', in:['rst_n', 'duty'], rows:['0 0'], rand:{n:700, fix:{rst_n:1}}}]},
+'rtl-23':{kind:'v', benches:[{name:'0xA5 out while 0x3C comes back, then a start while busy', top:'spi_master', clk:'clk', in:['rst_n', 'start', 'miso', 'tx_byte'],
+    rows:['0 0 0 0', '1 1 0 165', ...[0, 0, 1, 1, 1, 1, 0, 0].flatMap(b => [`1 0 ${b} 0`, `1 1 ${b} 90`]), '1 1 1 255', '1 0 0 0', '1 1 1 129',
+      ...[1, 0, 0, 0, 0, 0, 0, 1].flatMap(b => [`1 0 ${b} 0`, `1 0 ${b} 0`]), ...idle(4, '1 0 0 0')]},
+  {name:'900 random cycles', top:'spi_master', clk:'clk', in:['rst_n', 'start', 'miso', 'tx_byte'], rows:['0 0 0 0'], rand:{n:900, fix:{rst_n:1}, p:{start:0.15, miso:0.5}}}]},
 });
 CODING.forEach(p => { if (HIDDEN[p.id]) p.run = HIDDEN[p.id]; });
 
@@ -5311,6 +5589,7 @@ const LOGOS = {
 
 // ---------- data ----------
 const TOPICS = {1:'Electricity',2:'Capacitors & signals',3:'Heat',4:'Semiconductors',5:'MOSFETs',6:'Analog',7:'Binary & number formats',8:'CMOS gates',9:'Combinational logic',10:'Latches & flip-flops',11:'Timing',12:'Counters & FSMs',13:'Delay',14:'Power',15:'PVT & temperature',16:'Wires & links',17:'Manufacturing',18:'Memory circuits',19:'RTL & verification',20:'Architecture',21:'GPUs & number formats',22:'Computer arithmetic',23:'Programming & Linux'};
+Object.assign(TOPICS, ROLE_CH);
 const DIFF = {E:'Easy', M:'Medium', H:'Hard'};
 const ROMAN = ['I','II','III','IV','V','VI','VII','VIII'];
 const BANK = RAW.map((r, i) => {
@@ -5366,11 +5645,14 @@ const SKILLS = [
   {key:'sk-basics', name:'Hardware basics', ch:[1, 2, 7, 9]},
   {key:'sk-cmos', name:'CMOS transistors and circuits', ch:[4, 5, 6, 8]},
   {key:'sk-vlsi', name:'VLSI design', ch:[8, 13, 16, 17, 18]},
-  {key:'sk-pd', name:'Physical design and timing', ch:[11, 13, 15, 16, 17]},
+  {key:'sk-pd', name:'Physical design and timing', ch:[11, 13, 15, 16, 17, 31]},
   {key:'sk-power', name:'Power', ch:[3, 14, 15]},
   {key:'sk-arch', name:'Computer architecture', ch:[18, 20, 21]},
   {key:'sk-arith', name:'Computer arithmetic', tag:'a'},
-  {key:'sk-hdl', name:'Verilog and verification', ch:[10, 12, 19]},
+  {key:'sk-hdl', name:'Verilog and verification', ch:[10, 12, 19, 28]},
+  {key:'sk-fpga', name:'FPGA design', ch:[19, 29]},
+  {key:'sk-fw', name:'Embedded systems and firmware', ch:[23, 30]},
+  {key:'sk-val', name:'Lab, validation and test', ch:[17, 32]},
   {key:'sk-gpu', name:'GPUs and CUDA', ch:[21]},
   {key:'sk-prog', name:'Programming, Linux and scripting', ch:[23]}
 ];
@@ -5392,16 +5674,19 @@ const VLSI_AREAS = [
   {group:'Front-end design', items:[
     {key:'va-logic', name:'Digital logic and CMOS gates', ch:[7, 8, 9]},
     {key:'va-seq', name:'Sequential design and FSMs', ch:[10, 12]},
-    {key:'va-rtl', name:'RTL design and verification', ch:[19]},
+    {key:'va-rtl', name:'RTL design and verification', ch:[19, 28]},
+    {key:'va-fpga', name:'FPGA design', ch:[29]},
     {key:'va-arch', name:'Computer architecture and GPUs', ch:[20, 21]},
     {key:'va-arith', name:'Datapath and computer arithmetic', ch:[22]}]},
   {group:'Back-end and signoff', items:[
-    {key:'va-sta', name:'Static timing analysis', ch:[11, 13]},
+    {key:'va-sta', name:'Static timing analysis', ch:[11, 13, 31]},
     {key:'va-pwr', name:'Power, thermal and PVT', ch:[3, 14, 15]},
     {key:'va-si', name:'Interconnect and signal integrity', ch:[16]},
-    {key:'va-pd', name:'Physical design, DFT and manufacturing', ch:[17]}]},
+    {key:'va-pd', name:'Physical design, DFT and manufacturing', ch:[17, 31]},
+    {key:'va-val', name:'Bring-up, validation and test', ch:[32]}]},
   {group:'Tools', items:[
-    {key:'va-eda', name:'EDA tools, Linux and scripting', ch:[23]}]}
+    {key:'va-eda', name:'EDA tools, Linux and scripting', ch:[23]},
+    {key:'va-fw', name:'Embedded systems and firmware', ch:[30]}]}
 ];
 VLSI_AREAS.forEach(g => g.items.forEach(a => { LISTS[a.key] = {name:a.name, test:Q => a.ch.includes(Q.ch)}; }));
 const listIds = key => BANK.filter(LISTS[key].test).map(Q => Q.id);
@@ -5414,28 +5699,32 @@ const SKILL_REVIEW = [
   {req:'VLSI design', v:'strong', book:'Chapters 8, 13, 16, 17 and 18 (gates, delay, wires, manufacturing, memory)', list:'sk-vlsi', todo:'Deeper topics (DIBL, subthreshold slope, CRPR, keepers) are practiced as beyond-the-book problems.'},
   {req:'Static timing and physical design', v:'strong', book:'Chapters 11, 13, 15, 16 and 17', list:'sk-pd', code:['Physical design'], todo:'Run an open flow (OpenLane or Tiny Tapeout) and read its timing reports.'},
   {req:'Power and thermal', v:'strong', book:'Chapters 3, 14 and 15', list:'sk-power', todo:'Know dynamic and leakage power cold, and how voltage, frequency and temperature move them.'},
-  {req:'Computer architecture', v:'good', book:'Chapters 18, 20 and 21 (memory, pipelines, caches, GPUs)', list:'sk-arch', todo:'Out-of-order execution and register renaming appear only as beyond-the-book problems.'},
+  {req:'Computer architecture', v:'strong', book:'Chapters 18, 20 and 21: pipelines, caches, coherence, out-of-order cores, branch prediction, SIMD, memory ordering, GPUs', list:'sk-arch', todo:'Work the cache, pipeline and CPI calculations until they are quick.'},
   {req:'Computer arithmetic', v:'strong', book:'Chapter 22: adders, multipliers and Booth recoding, division, fixed and floating point, rounding', list:'sk-arith', todo:'Pair it with the RTL problems: an ALU, a leading-zero counter, a multiplier.'},
-  {req:'Verilog, SystemVerilog or VHDL', v:'good', book:'Chapter 19: Verilog, SystemVerilog, reading VHDL, CDC, FIFOs and verification', list:'sk-hdl', code:['Verilog drills', 'RTL design', 'Verification'], todo:'Do the Verilog drills until they are quick, then the judged RTL problems. Two VHDL problems show the same ideas in VHDL.'},
+  {req:'Verilog, SystemVerilog or VHDL', v:'strong', book:'Chapter 19 (Verilog, SystemVerilog, VHDL, CDC, FIFOs) and the Design verification role chapter (UVM, assertions, coverage, formal)', list:'sk-hdl', code:['Verilog drills', 'RTL design', 'Verification'], todo:'Do the Verilog drills until they are quick, then the judged RTL problems. Two VHDL problems show the same ideas in VHDL.'},
   {req:'Programming: C, C++, Python, Perl or MATLAB', v:'good', book:'Chapter 23 covers C and Python basics; the rest are taught as beyond-the-book problems', list:'sk-prog', code:['C and C++', 'Python and MATLAB'], todo:'Keep solving one linked-list or bit-manipulation problem a week.'},
   {req:'Linux, scripting and version control', v:'good', book:'Chapter 23 and beyond-the-book problems (shell, git, make, Tcl, Perl)', list:'sk-prog', code:['Linux and scripting'], todo:'Live in a Linux terminal for a week; script one real task in Python or Tcl.'},
   {req:'GPU programming: CUDA or OpenCL', v:'good', book:'Chapter 21 (CUDA model, warps, memory hierarchy); OpenCL is only named', list:'sk-gpu', code:['GPU and CUDA'], todo:'Run the CUDA problems on a real GPU (Google Colab works).'},
+  {req:'FPGA design and tools', v:'strong', book:'Chapter 19 and the FPGA design role chapter: mapping to LUTs, BRAM and DSPs, constraints, timing closure, transceivers, SoC FPGAs, HLS, ILA debug', list:'sk-fpga', code:['RTL design', 'Verilog drills'], todo:'Build one design on a real board and close timing on it.'},
+  {req:'Embedded C, microcontrollers and RTOS', v:'strong', book:'Chapter 23 and the Embedded and firmware role chapter: registers, interrupts, DMA, UART/SPI/I2C/CAN, boot, linker, RTOS', list:'sk-fw', code:['C and C++'], todo:'Write a driver for a real microcontroller peripheral, interrupt-driven, with a ring buffer.'},
+  {req:'Lab skills, bring-up and validation', v:'good', book:'Chapter 17 and the Bring-up and validation role chapter: shmoos, oscilloscopes, eyes and jitter, statistics, Python automation', list:'sk-val', code:['Python and MATLAB'], todo:'Use an oscilloscope and logic analyzer on a real board, and automate a sweep in Python.'},
   {req:'Problem solving and aptitude', v:'good', book:'Chapter 24 (aptitude and puzzles) and Chapter 25 (a full practice assessment)', list:null, todo:'The timed mock in Theory builds this habit; keep a daily streak going.'},
   {req:'Projects, clubs and leadership', v:'partial', book:'Appendix D gives resume projects matched to hardware teams', list:null, todo:'Study material cannot show this on a resume. Finish one Appendix D project and write it up.'},
   {req:'Mechanical CAD (CATIA, NX, SolidWorks, Creo)', v:'none', book:'Not taught. Appendix D Project 7 suggests a heat-sink design', list:null, todo:'Only matters for mechanical and thermal roles; take a CAD course if you aim there.'}
 ];
 // Hardware roles across the industry, with the quests and coding track that prepare for each.
 const ROLES = [
-  {name:'ASIC Design (RTL)', fit:'Strong', ch:[9, 10, 11, 12, 19, 22], code:'RTL design', what:'Write the Verilog or SystemVerilog that becomes the chip: datapaths, control, FIFOs and clock-domain crossings.', add:'Write RTL every week and build the Appendix D processor and systolic-array projects.'},
-  {name:'Design Verification', fit:'Good', ch:[19, 12, 10], code:'Verification', what:'Prove the RTL works before tape-out with testbenches, constrained-random tests, assertions and coverage.', add:'Real SystemVerilog testbenches, assertions and coverage, then UVM or cocotb; verify your own projects.'},
-  {name:'Physical Design and Timing', fit:'Good', ch:[11, 13, 15, 16, 17], code:'Physical design', what:'Turn the netlist into layout: floorplan, placement, clock trees, routing, and closing timing at every corner.', add:'Run an open flow (OpenLane/OpenROAD or Tiny Tapeout) and read its timing reports; script in Tcl.'},
-  {name:'Power and Thermal', fit:'Strong', ch:[3, 14, 15], code:'Python and MATLAB', what:'Model, measure and reduce power across voltage, frequency and temperature.', add:'Measure a real chip\'s power and fit it to the power model (Appendix D Project 6); analyze data in Python.'},
-  {name:'Architecture and Performance', fit:'Good', ch:[18, 20, 21], code:'GPU and CUDA', what:'Decide what the next chip should be, using performance models, simulators and benchmarks.', add:'Build performance models in C++ or Python and optimize CUDA kernels (Appendix D Project 4).'},
-  {name:'Post-silicon Validation', fit:'Good', ch:[10, 11, 16, 17, 23], code:'Linux and scripting', what:'Bring up first silicon in the lab and find the bugs that escaped verification.', add:'Get comfortable with lab tools (oscilloscope, logic analyzer) and scripting test automation.'},
+  {name:'ASIC Design (RTL)', fit:'Strong', ch:[9, 10, 11, 12, 19, 22], deep:[28, 31], code:'RTL design', what:'Write the Verilog or SystemVerilog that becomes the chip: datapaths, control, FIFOs and clock-domain crossings.', add:'Write RTL every week and build the Appendix D processor and systolic-array projects.'},
+  {name:'Design Verification', fit:'Strong', ch:[19, 12, 10], deep:[28], code:'Verification', what:'Prove the RTL works before tape-out with testbenches, constrained-random tests, assertions and coverage.', add:'Build a small UVM or cocotb testbench for one of your own designs, with assertions and coverage.'},
+  {name:'FPGA Design', fit:'Strong', ch:[9, 10, 11, 12, 19], deep:[29, 28], code:'RTL design', what:'Turn RTL into working FPGA designs: constraints, timing closure, clocking, high-speed I/O, SoC integration and lab debug.', add:'Build and debug a project on a real FPGA board, from constraints to a working demo.'},
+  {name:'Physical Design and Timing', fit:'Strong', ch:[11, 13, 15, 16, 17], deep:[31], code:'Physical design', what:'Turn the netlist into layout: floorplan, placement, clock trees, routing, and closing timing at every corner.', add:'Run an open flow (OpenLane/OpenROAD or Tiny Tapeout) and read its timing reports; script in Tcl.'},
+  {name:'Power and Thermal', fit:'Strong', ch:[3, 14, 15], deep:[31], code:'Python and MATLAB', what:'Model, measure and reduce power across voltage, frequency and temperature.', add:'Measure a real chip\'s power and fit it to the power model (Appendix D Project 6); analyze data in Python.'},
+  {name:'Architecture and Performance', fit:'Strong', ch:[18, 20, 21], code:'GPU and CUDA', what:'Decide what the next chip should be, using performance models, simulators and benchmarks.', add:'Build performance models in C++ or Python and optimize CUDA kernels (Appendix D Project 4).'},
+  {name:'Post-silicon Validation', fit:'Strong', ch:[10, 11, 16, 17, 23], deep:[32, 28], code:'Linux and scripting', what:'Bring up first silicon in the lab and find the bugs that escaped verification.', add:'Get comfortable with lab tools (oscilloscope, logic analyzer) and scripting test automation.'},
   {name:'CAD and Hardware Infrastructure', fit:'Good', ch:[20, 23], code:'Linux and scripting', what:'Build the flows, scripts and regression systems that design teams run every day.', add:'Automate flows with Python, Perl and Linux tools; learn job schedulers and regression systems.'},
-  {name:'Firmware and Embedded C', fit:'Good', ch:[7, 20, 23], code:'C and C++', what:'Write the low-level software that boots and controls the hardware: drivers, registers and interrupts.', add:'Write drivers for a microcontroller or FPGA soft core: registers, interrupts and ring buffers.'},
+  {name:'Firmware and Embedded C', fit:'Strong', ch:[7, 20, 23], deep:[30], code:'C and C++', what:'Write the low-level software that boots and controls the hardware: drivers, registers and interrupts.', add:'Write drivers for a microcontroller or FPGA soft core: registers, interrupts and ring buffers.'},
   {name:'Custom Circuit Design (SRAM, analog, SerDes)', fit:'Medium', ch:[5, 6, 8, 18], code:null, what:'Design transistor-level circuits where standard cells are not enough.', add:'Deeper analog design (Razavi) and SPICE simulation (Appendix D Project 5).'},
-  {name:'DFT (Design for Test)', fit:'Medium', ch:[17, 10], code:'RTL design', what:'Add scan chains, BIST and compression so every manufactured chip can be tested.', add:'Scan insertion, ATPG and memory BIST in depth.'},
+  {name:'DFT (Design for Test)', fit:'Good', ch:[17, 10], deep:[31, 32], code:'RTL design', what:'Add scan chains, BIST and compression so every manufactured chip can be tested.', add:'Run scan insertion and ATPG on a small design with an open-source or university tool flow.'},
   {name:'Signal and Power Integrity, Boards', fit:'Medium', ch:[2, 16], code:'Python and MATLAB', what:'Make sure fast signals and power arrive clean across packages and boards.', add:'PCB design (KiCad), SI/PI simulation and lab measurements with an oscilloscope.'},
   {name:'Mechanical and Thermal', fit:'Light', ch:[3], code:null, what:'Design heat sinks, enclosures and cooling for chips and systems.', add:'CAD and thermal simulation (Appendix D Project 7).'}
 ];
@@ -5807,7 +6096,7 @@ function optsHTML(Q, perm, chosen, reveal, scope){
   }).join('') + '</div>';
 }
 function parsePick(code){ return code === 'T' ? true : (code === 'F' ? false : parseInt(code, 10)); }
-function taughtLine(Q){ return Q.beyond ? 'Beyond the book: this explanation is the lesson.' : `Taught in Chapter ${Q.ch} (${esc(TOPICS[Q.ch])}) of Hardware from the Ground Up.`; }
+function taughtLine(Q){ return Q.beyond ? 'Beyond the book: this explanation is the lesson.' : ROLE_CH[Q.ch] ? `Taught in the ${esc(TOPICS[Q.ch])} role chapter on the Learn tab.` : `Taught in Chapter ${Q.ch} (${esc(TOPICS[Q.ch])}) of Hardware from the Ground Up.`; }
 function verdictHTML(Q, chosen){
   const ok = isCorrect(Q, chosen);
   return `<div class="verdict ${ok ? 'ok' : 'bad'}" role="status"><b>${ok ? 'Accepted' : 'Wrong Answer'}</b>${ok ? '' : `<span>Correct answer: ${esc(correctText(Q))}</span>`}</div>` +
@@ -6973,7 +7262,7 @@ function viewRoles(){
   html += `</div></section><section class="card"><h2>Hardware roles</h2><p class="muted">Internship and new-grad roles across the industry, with what this kit covers for each and what to add.</p><div class="reviews">` +
     ROLES.map(r => `<article class="review"><div class="rhead"><b>${esc(r.name)}</b><span class="vpill ${r.fit === 'Strong' || r.fit === 'Good' ? 'ok' : r.fit === 'Medium' ? 'warn' : ''}">${r.fit} coverage</span></div>
       <p class="small">${esc(r.what)}</p>
-      <dl><div><dt>Quests</dt><dd><div class="row">${r.ch.map(c => `<button type="button" class="topicchip" data-act="open-unit" data-u="${c}">Quest ${c} · ${esc(TOPICS[c])}</button>`).join('')}</div></dd></div>
+      <dl>${r.deep ? `<div><dt>Role chapter</dt><dd><div class="row">${r.deep.map(c => `<button type="button" class="topicchip" data-act="learn-open" data-v="${c}">${esc(TOPICS[c])}</button>`).join('')}</div></dd></div>` : ''}<div><dt>Quests</dt><dd><div class="row">${r.ch.map(c => `<button type="button" class="topicchip" data-act="open-unit" data-u="${c}">Quest ${c} · ${esc(TOPICS[c])}</button>`).join('')}</div></dd></div>
       <div><dt>Coding track</dt><dd>${r.code ? codeCell([r.code]) : '<span class="muted">No coding track: this role is mostly analog or mechanical</span>'}</dd></div>
       <div><dt>Hiring</dt><dd><div class="row">${hiring(r).map(c => `<button type="button" class="cologo" data-act="co-open" data-v="${c.id}" title="${esc(c.name)}" aria-label="${esc(c.name)}">${coAvatar(c, 'sm')}</button>`).join('') || '<span class="muted">Most hardware companies</span>'}</div></dd></div>
       <div><dt>Also do</dt><dd>${esc(r.add)}</dd></div></dl></article>`).join('') + '</div></section>';
@@ -6983,10 +7272,10 @@ function viewRoles(){
 // ---------- Learn: the book as lessons, LeetCode Explore style ----------
 // Each chapter of Hardware from the Ground Up is a card of lessons (its sections), ending with that chapter's
 // problems. Reading a lesson and solving a problem both count toward the chapter.
-const CH_CODE = {11:['Physical design'], 19:['RTL design', 'Verilog drills', 'Verification'], 21:['GPU and CUDA'], 23:['C and C++', 'Python and MATLAB', 'Linux and scripting'], 27:['C and C++']};
+const CH_CODE = {11:['Physical design'], 19:['RTL design', 'Verilog drills', 'Verification'], 21:['GPU and CUDA'], 23:['C and C++', 'Python and MATLAB', 'Linux and scripting'], 27:['C and C++'], 28:['Verification'], 29:['RTL design'], 30:['C and C++'], 31:['Physical design', 'Linux and scripting'], 32:['Python and MATLAB']};
 // The book's parts, then the pages for the days before an assessment: the C and C++ chapter (27), the practice
 // assessment (Chapter 25) and the formula sheet (Appendix A, page 26).
-const LEARN_PARTS = PARTS.concat([{n:9, name:'Before the assessment', units:[27, 25, 26]}]);
+const LEARN_PARTS = PARTS.concat([{n:9, name:'Role deep dives', units:[28, 29, 30, 31, 32]}, {n:10, name:'Before the assessment', units:[27, 25, 26]}]);
 const chLabel = c => c.label || `Chapter ${c.n}`;
 const chapterCode = ch => CODING.filter(p => (CH_CODE[ch] || []).includes(p.area)).map(p => p.id);
 const book = () => window.BOOK_LESSONS || null;
@@ -7026,10 +7315,11 @@ function viewLearn(){
   if (!B) { ensureBook(); return `<section class="pagehead"><h1>${ui.bookErr ? 'The book could not be loaded' : 'Loading the book…'}</h1>${ui.bookErr ? '<p class="muted">Check your connection and reload the page.</p>' : ''}</section>`; }
   const nu = nextUnit();
   if (!ui.rm) ui.rm = {sel:'u' + (nu ? nu.id : 1), z:1, tx:60, ty:24, fit:true};
-  const all = B.filter(c => c.n <= 23).map(c => chapterProgress(c.n)), lessons = all.reduce((n, x) => n + x.lessons, 0), read = all.reduce((n, x) => n + x.read, 0);
+  const core = c => c.n <= 23 || ROLE_CH[c.n];
+  const all = B.filter(core).map(c => chapterProgress(c.n)), lessons = all.reduce((n, x) => n + x.lessons, 0), read = all.reduce((n, x) => n + x.read, 0);
   const probs = all.reduce((n, x) => n + x.probs, 0), solved = all.reduce((n, x) => n + x.solved, 0), done = read + solved, total = lessons + probs;
   const quests = UNITS.filter(U => unitPassed(U.id)).length;
-  const next = B.filter(c => c.n <= 23).find(c => { const P = chapterProgress(c.n); return P.read < P.lessons; });
+  const next = B.filter(core).find(c => { const P = chapterProgress(c.n); return P.read < P.lessons; });
   const quest = n => {
     const U = UNITS[n - 1]; if (!U || n > 23) return '';
     const passed = unitPassed(n), open = unitUnlocked(n), cd = cardsDone(U);

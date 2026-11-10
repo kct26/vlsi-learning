@@ -1,0 +1,283 @@
+% A role chapter for the Learn tab (not part of the printed book). It builds on Chapter 23 (C for hardware
+% engineers), Chapter 20 (memory, caches) and Chapter 16 (signals between chips).
+\chapter{Embedded Systems and Firmware}
+\label{ch:embedded}
+
+Firmware is the software that runs directly on hardware: the code in a microcontroller that reads a sensor, the boot code that brings up a processor, the driver that talks to a peripheral. Embedded and firmware engineers sit between hardware and software, so interviews test both: C at the level of bits and pointers, and how processors, memory, interrupts and buses actually work. Chapter~\ref{ch:prog} covers the C. This chapter covers the system around it.
+
+\begin{bigidea}
+In firmware, hardware is just memory. Every peripheral (a timer, a UART, a GPIO port) appears as registers at fixed addresses. Reading and writing those addresses, at the right time and in the right order, is how software controls the hardware. Almost every embedded bug comes from getting the \emph{what}, the \emph{when} or the \emph{order} of those accesses wrong.
+\end{bigidea}
+
+\section{The microcontroller}
+
+A \term{microcontroller} (MCU) puts a processor core, memory and peripherals on one chip. A typical one has:
+\begin{itemize}
+  \item a core such as an Arm Cortex-M or a RISC-V core, running at tens to hundreds of MHz, usually without virtual memory;
+  \item \textbf{flash} memory (hundreds of kilobytes to a few megabytes) holding the program, which runs directly from it;
+  \item \textbf{SRAM} (tens to hundreds of kilobytes) for variables, the stack and the heap;
+  \item peripherals: GPIO, timers, UART, SPI, I$^2$C, ADC, DAC, PWM, DMA, a watchdog, often USB, CAN or Ethernet;
+  \item a clock system (internal oscillators, an external crystal, PLLs) and power management.
+\end{itemize}
+
+An \term{application processor} (running Linux, as in a phone or a Raspberry Pi) adds an MMU for virtual memory, caches, external DRAM and much higher clock speeds. Firmware engineers work on both: bare-metal or RTOS code on MCUs, and boot loaders, drivers and board bring-up on application processors.
+
+\paragraph{The memory map.} Every on-chip resource has an address range. On a 32-bit Cortex-M part, for example, flash might start at \code{0x0800\_0000}, SRAM at \code{0x2000\_0000} and peripherals at \code{0x4000\_0000}. The reference manual lists each peripheral's base address and the offset, bit fields and reset value of each of its registers.
+
+\section{Memory-mapped registers}
+
+\begin{lstlisting}
+#include <stdint.h>
+#define GPIOA_BASE   0x40020000u
+#define GPIOA_ODR    (*(volatile uint32_t *)(GPIOA_BASE + 0x14))   /* output data register */
+
+GPIOA_ODR |=  (1u << 5);      /* set pin 5   (read-modify-write) */
+GPIOA_ODR &= ~(1u << 5);      /* clear pin 5 */
+GPIOA_ODR ^=  (1u << 5);      /* toggle pin 5 */
+
+/* Set a 3-bit field at bits [6:4] to the value v: clear it, then OR the new value in. */
+reg = (reg & ~(0x7u << 4)) | ((v & 0x7u) << 4);
+\end{lstlisting}
+
+Vendors usually describe a peripheral as a \code{struct} of \code{volatile} registers placed at the base address, so code reads \code{UART1->DR = c;}.
+
+\paragraph{Why volatile.} Without \code{volatile}, the compiler assumes memory only changes when the program writes it. It may keep a register's value in a CPU register and never reread it (so a loop waiting for a status bit spins forever), or remove a write whose value is never read back (so the hardware never sees it). \code{volatile} forces every access in the source to happen, in order. Use it for hardware registers, for variables shared with an interrupt handler, and for memory changed by DMA.
+
+\begin{trap}
+\code{volatile} does not make an operation atomic and does not stop the \emph{hardware} reordering accesses. \code{count++} on a volatile variable is still a separate read, add and write, which an interrupt can split. On processors with caches or write buffers, ordering between memory and devices also needs memory barriers (Section on memory ordering in Chapter~\ref{ch:arch}).
+\end{trap}
+
+\paragraph{Read-modify-write hazards.} \code{reg |= bit} reads the whole register, changes one bit and writes it all back. If an interrupt changes another bit of the same register between the read and the write, its change is lost. Some registers also have side effects on read (reading a UART data register removes the byte from its FIFO) or are \emph{write-1-to-clear} (writing 1 to a status bit clears it, writing 0 does nothing), so a read-modify-write can clear flags you did not mean to touch. Hardware often provides separate set and clear registers (writing 1 to bit 5 of the set register sets pin 5 and touches nothing else) precisely to avoid this.
+
+\section{Interrupts}
+
+Peripherals need the processor's attention at unpredictable times: a byte arrived, a timer expired, a button was pressed. The processor can \term{poll} (check a status bit in a loop) or let the peripheral raise an \term{interrupt}.
+
+\paragraph{What happens on an interrupt.}
+\begin{enumerate}
+  \item The peripheral sets its interrupt flag; if that interrupt is enabled, the interrupt controller signals the core.
+  \item The core finishes (or abandons) the current instruction and saves its context: on a Cortex-M, hardware pushes eight registers, including the program counter and status register, onto the stack.
+  \item It looks up the handler's address in the \term{vector table} and jumps to the \term{interrupt service routine} (ISR).
+  \item The ISR handles the event and clears the peripheral's flag (otherwise the interrupt fires again immediately).
+  \item Returning from the ISR restores the context and the interrupted code continues as if nothing happened.
+\end{enumerate}
+
+The \term{interrupt controller} (the NVIC on Cortex-M, the PLIC and CLINT on RISC-V, the GIC on larger Arm cores) assigns priorities. A higher-priority interrupt can \emph{preempt} a running lower-priority ISR, which is called nesting. \term{Interrupt latency} is the time from the event to the first instruction of the ISR; it grows when interrupts are disabled, when a higher-priority ISR is running, or when the code is in a long non-interruptible instruction.
+
+\paragraph{Rules for ISRs.}
+\begin{itemize}
+  \item Keep them short: copy the data, set a flag or put an item in a queue, clear the interrupt, return. Do the heavy work in the main loop or a task.
+  \item Do not block: no waiting loops, no \code{printf} on a slow UART, no taking a mutex.
+  \item Variables shared between an ISR and the main code must be \code{volatile}, and multi-step updates to them need protection.
+  \item Clear the interrupt source before returning, and be aware that some peripherals need a read of a data register to clear the flag.
+\end{itemize}
+
+\paragraph{Polling versus interrupts versus DMA.} Polling is simple and has the lowest latency when the processor has nothing else to do, but wastes the CPU and power. Interrupts let the CPU do other work or sleep, at the cost of a few dozen cycles per event. For streams of data (audio samples, a UART receiving a long message, an ADC sampling continuously), even an interrupt per byte is too much, so a DMA controller moves the data.
+
+\section{Shared data, race conditions and critical sections}
+
+A \term{race condition} happens when the result depends on the timing of two pieces of code that share data. In firmware, the second piece is usually an ISR or another task.
+
+\begin{lstlisting}
+volatile uint32_t ticks;           /* incremented by a timer ISR */
+
+uint32_t read_ticks(void) {
+  uint32_t t;
+  __disable_irq();                 /* critical section: the ISR cannot run here */
+  t = ticks;                       /* a 64-bit counter on a 32-bit CPU takes two loads */
+  __enable_irq();
+  return t;
+}
+\end{lstlisting}
+
+\begin{itemize}
+  \item A \term{critical section} is code that must not be interrupted. The simplest protection on a single core is to disable interrupts briefly. Keep it as short as possible, because it adds to every interrupt's latency.
+  \item An access is \term{atomic} if it cannot be split. A naturally aligned 32-bit load or store is atomic on a 32-bit core; a 64-bit value or a read-modify-write is not.
+  \item Hardware atomic instructions (load-exclusive/store-exclusive on Arm, \code{LR}/\code{SC} and \code{AMO} instructions on RISC-V) and C11 \code{\_Atomic} types build lock-free counters and flags, and are essential on multi-core chips, where disabling interrupts on one core does not stop the other.
+  \item A \term{ring buffer} with one writer (the ISR) and one reader (the main loop) is safe without locks if each side only updates its own index, and the indices are updated after the data.
+\end{itemize}
+
+\section{DMA}
+
+A \term{direct memory access} (DMA) controller copies data between peripherals and memory (or memory and memory) without the CPU. The firmware sets the source address, destination address, length and transfer size, and which peripheral request triggers each transfer, then starts the channel; the DMA raises an interrupt at the end (and often at the half-way point). With \term{circular} mode and the half-transfer interrupt, the CPU processes one half of a buffer while the DMA fills the other (double buffering).
+
+\begin{trap}
+On a processor with a data cache, the DMA writes memory directly while the CPU may still hold old copies in its cache. Before the CPU reads a buffer that DMA just filled, \emph{invalidate} those cache lines; before DMA reads a buffer the CPU just wrote, \emph{clean} (flush) them. Alternatively, put DMA buffers in a non-cacheable region. Forgetting this gives data that is sometimes stale, one of the hardest embedded bugs to find.
+\end{trap}
+
+\section{Peripherals and serial buses}
+
+\subsection*{GPIO}
+
+Each general-purpose pin is set to input, output, analog or an \emph{alternate function} (connected to a peripheral such as a UART). Outputs are \term{push-pull} (drive both high and low) or \term{open-drain} (only pull low; a resistor pulls high, so several devices can share the wire). Inputs can enable internal pull-up or pull-down resistors so they never float. Mechanical buttons bounce for a few milliseconds and must be debounced in software or hardware.
+
+\subsection*{Timers and PWM}
+
+A timer counts clock ticks after a \emph{prescaler} divides the clock. When the counter reaches the \emph{auto-reload} value, it wraps and can raise an interrupt: $f_{update} = f_{clk} / ((\text{prescaler}+1)(\text{reload}+1))$. Compare channels produce \term{PWM} (pulse-width modulation): the output is high while the counter is below the compare value, so the duty cycle is compare/(reload+1). PWM dims LEDs, drives motors through an H-bridge and makes analog voltages after a low-pass filter. Capture channels record the counter value when an input edge arrives, to measure a frequency or a pulse width.
+
+\begin{worked}{Setting up a timer}
+A timer runs from a 48 MHz clock. Choose a prescaler and reload value for a 1 kHz interrupt.
+
+We need $48\,000\,000 / 1000 = 48\,000$ ticks per period. With a prescaler of 47 (divide by 48), the timer counts at 1 MHz, so the reload value is $1000 - 1 = 999$. For a 25\% duty PWM at the same rate, set compare to 250.
+\end{worked}
+
+\subsection*{UART}
+
+A \term{UART} sends bytes one bit at a time with no clock wire. The line idles high; a frame is a start bit (0), 5 to 9 data bits (least significant first), an optional parity bit, and one or two stop bits (1). Both sides must agree on the \term{baud rate} (bits per second); the receiver samples each bit near its middle, usually oversampling at 16 times the baud rate. The clocks may differ by a few percent before bits are sampled in the wrong place.
+
+\begin{worked}{UART throughput}
+At 115\,200 baud with 8 data bits, no parity and 1 stop bit (8N1), how many bytes per second can be sent?
+
+Each byte takes 10 bits (start + 8 data + stop), so the rate is $115\,200 / 10 = 11\,520$ bytes per second, about 87 µs per byte.
+\end{worked}
+
+RS-232 and RS-485 are electrical standards for carrying UART frames further: RS-485 is differential and supports many devices on one pair.
+
+\subsection*{SPI}
+
+\term{SPI} is a synchronous, full-duplex bus with one controller (master) and several peripherals: \code{SCLK} (clock from the controller), \code{MOSI} (controller to peripheral), \code{MISO} (peripheral to controller), and one chip-select line per peripheral (active low). Each clock cycle shifts one bit out and one bit in at the same time. The four \term{SPI modes} set the clock polarity (CPOL: idle level of the clock) and phase (CPHA: sample on the first or second edge); both sides must use the same mode. SPI has no addressing, no acknowledge and no standard frame, so it is simple and fast (tens of MHz), used for flash memory, displays, ADCs and sensors. Quad SPI uses four data lines to read flash four times faster.
+
+\subsection*{I$^2$C}
+
+\term{I$^2$C} uses two open-drain wires, \code{SCL} (clock) and \code{SDA} (data), with pull-up resistors, shared by many devices. Each device has a 7-bit address.
+\begin{itemize}
+  \item A transfer starts with a \emph{START} condition (SDA falls while SCL is high) and ends with a \emph{STOP} (SDA rises while SCL is high). Data may only change while SCL is low.
+  \item The controller sends the 7-bit address plus a read/write bit; the addressed device pulls SDA low in the ninth clock to \term{acknowledge} (ACK). Every byte is followed by an ACK or NACK.
+  \item A typical register read: START, address+W, register number, \emph{repeated START}, address+R, read the byte(s), NACK the last byte, STOP.
+  \item Because the lines are open-drain, a device can hold SCL low to make the controller wait (\term{clock stretching}), and several controllers can share the bus with arbitration.
+  \item Speeds are 100 kHz (standard), 400 kHz (fast) and 1 MHz (fast-plus). The pull-up resistor value trades rise time (bus capacitance) against power.
+\end{itemize}
+
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+ & UART & SPI & I$^2$C \\
+\midrule
+Wires & 2 (TX, RX) & 3 + 1 per device & 2, shared \\
+Clock & none (agreed baud) & from the controller & from the controller \\
+Duplex & full & full & half \\
+Addressing & point to point & chip-select lines & 7-bit addresses \\
+Acknowledge & no & no & yes, every byte \\
+Typical speed & up to a few Mb/s & tens of MHz & 100 kHz to 1 MHz \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{CAN and other buses}
+
+\term{CAN} connects the electronic control units in cars and industrial machines over one differential pair. It has no addresses: every message has an identifier, and all nodes see all messages. Arbitration is built into the electrical layer: a 0 (dominant) overrides a 1 (recessive), so when two nodes start at once, the one with the lower identifier wins without either message being corrupted. Frames carry a CRC and every receiver acknowledges, which makes CAN very robust. Other buses you may meet: USB, Ethernet (Chapter~\ref{ch:wires}), LIN in cars, and 1-Wire for small sensors.
+
+\subsection*{ADC and DAC}
+
+An ADC samples an analog voltage and converts it to a number: $\text{code} = V_{in}/V_{ref} \times 2^N$. The sampling rate must be more than twice the highest frequency in the signal (the \term{Nyquist} rate), and an analog anti-aliasing filter removes higher frequencies before sampling. Each code step is one LSB, $V_{ref}/2^N$. Firmware usually triggers conversions with a timer (for an even sample rate) and collects results with DMA.
+
+\section{From reset to main: boot, linking and memory}
+
+\paragraph{What runs before main.} At reset, a Cortex-M reads the initial stack pointer from address 0 of the vector table and the reset handler's address from the next word, then jumps there. The \term{start-up code}:
+\begin{enumerate}
+  \item sets up the clocks (often switching from the internal oscillator to a PLL), and the memory system;
+  \item copies the initial values of initialized global variables (the \code{.data} section) from flash to SRAM;
+  \item zeroes the uninitialized globals (the \code{.bss} section);
+  \item calls C++ constructors for global objects, if any;
+  \item calls \code{main()}, which normally never returns.
+\end{enumerate}
+
+\paragraph{Sections and the linker script.} The compiler puts code in \code{.text}, constants in \code{.rodata}, initialized globals in \code{.data} and zero-initialized globals in \code{.bss}. The \term{linker script} places each section in a memory region (flash or SRAM), defines where the stack and heap go, and exports symbols the start-up code uses to find the start and end of \code{.data} and \code{.bss}. The \term{map file} the linker writes shows where every function and variable ended up, the first thing to read when the program is too big.
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Where it lives & What & Lifetime \\
+\midrule
+\code{.text} (flash) & code & always \\
+\code{.rodata} (flash) & \code{const} data, string literals & always \\
+\code{.data} (SRAM, copied from flash) & \code{int x = 5;} at file scope, \code{static int y = 1;} & whole program \\
+\code{.bss} (SRAM, zeroed) & \code{int z;} at file scope, \code{static int w;} & whole program \\
+stack & local variables, return addresses & one function call \\
+heap & \code{malloc} & until \code{free} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Stack and heap in small systems.} An MCU has no memory protection by default, so a stack that grows too big silently overwrites other data. Size the stack from the deepest call chain plus the worst nesting of interrupts, and check it (fill it with a pattern at start-up and see how much was overwritten). Many embedded coding standards forbid \code{malloc} after start-up, because the heap fragments over time and allocation time is unpredictable; fixed-size pools or static buffers are used instead.
+
+\paragraph{Bootloaders and updates.} A \term{bootloader} is a small program at the start of flash that runs first. It can receive a new application over UART, USB or the network, write it to flash, check its CRC or signature, and then jump to it. Products that update over the air often keep two application slots, so a failed update can fall back to the old image. \term{Secure boot} checks a cryptographic signature on each stage before running it.
+
+\section{Real-time operating systems}
+
+As firmware grows, a single loop that checks everything becomes hard to manage. A \term{real-time operating system} (RTOS) such as FreeRTOS or Zephyr splits the work into \term{tasks} (threads), each with its own stack, and a scheduler decides which task runs.
+
+\begin{itemize}
+  \item \textbf{Real-time} means predictable, not fast: a \emph{hard} real-time task must never miss its deadline (an airbag, a motor control loop); a \emph{soft} one degrades gracefully (audio).
+  \item \textbf{Preemptive priority scheduling}: the highest-priority task that is ready always runs; a higher-priority task becoming ready preempts a lower one immediately. Tasks of equal priority may share time in round-robin slices.
+  \item \textbf{Task states}: running, ready (waiting for the CPU), blocked (waiting for an event, a queue, a delay or a semaphore), suspended.
+  \item A \term{context switch} saves one task's registers and stack pointer and restores another's, triggered by the tick timer or by a task blocking.
+\end{itemize}
+
+\paragraph{Synchronization.}
+\begin{itemize}
+  \item A \term{mutex} protects a shared resource: only the task holding it may use the resource, and only the holder can release it.
+  \item A \term{semaphore} is a counter. A binary semaphore is often used for signaling, such as an ISR ``giving'' it to wake a task that ``takes'' it; a counting semaphore tracks several identical resources.
+  \item A \term{message queue} passes data between tasks, or from an ISR to a task, safely and with blocking.
+  \item ISRs must use the special ``from ISR'' versions of these calls, which never block.
+\end{itemize}
+
+\paragraph{Classic problems.}
+\begin{itemize}
+  \item \term{Deadlock}: task A holds mutex 1 and waits for mutex 2 while task B holds 2 and waits for 1. Prevent it by always taking locks in the same order, or using timeouts.
+  \item \term{Priority inversion}: a low-priority task holds a mutex that a high-priority task needs, and a medium-priority task (which needs nothing) preempts the low one, so the high-priority task waits indefinitely. The standard fix is \term{priority inheritance}: while a low-priority task holds a mutex that a higher-priority task is waiting for, it temporarily runs at the higher priority. This exact bug famously reset a Mars lander's computer until a configuration change enabled priority inheritance.
+  \item \term{Starvation}: a low-priority task never runs because higher ones are always ready.
+  \item Stack overflow in one task corrupting another; RTOSes can check stack watermarks.
+\end{itemize}
+
+\section{Reliability and low power}
+
+\paragraph{Watchdog timer.} A \term{watchdog} is a hardware counter that resets the chip if software does not ``kick'' (reload) it in time. The main loop kicks it only when everything is healthy, so a hang or a runaway program ends in a reset instead of a stuck product. A \emph{windowed} watchdog also resets if it is kicked too early, which catches loops that run wild and kick it constantly.
+
+\paragraph{Other protections.} Brown-out detection holds the chip in reset when the supply is too low to run reliably. Hard-fault handlers record the faulting address and registers for debugging. ECC on memories and CRCs on stored data and messages catch corruption. Many products log the reason for every reset.
+
+\paragraph{Low power.} Battery devices spend most of their time asleep. MCUs offer sleep modes of increasing depth: the core clock stops (wakes in microseconds), most clocks and regulators stop (RAM kept), or nearly everything is off except a real-time clock and wake-up pins (RAM lost, wakes through reset). Power is reduced by sleeping whenever there is nothing to do (the \code{WFI}, wait-for-interrupt, instruction), running fast and then sleeping (race to sleep), turning off unused peripheral clocks, and lowering the clock frequency and voltage (Chapter~\ref{ch:power} explains why $P \propto CV^2f$).
+
+\begin{worked}{Battery life}
+A sensor sleeps at 5 µA and wakes once a second for 10 ms at 8 mA. How long does a 220 mAh coin cell last?
+
+Average current $= 8\,\text{mA} \times 0.01 + 0.005\,\text{mA} \times 0.99 \approx 0.080 + 0.005 = 0.085$ mA. Life $\approx 220 / 0.085 \approx 2600$ hours, about 108 days. The active time dominates: halving it nearly doubles the battery life.
+\end{worked}
+
+\section{Debugging embedded systems}
+
+\begin{itemize}
+  \item \textbf{Debug probe.} JTAG or Arm's two-wire SWD connects a debugger (through GDB or a vendor IDE) to the chip: load the program, set breakpoints, step, and read memory and peripheral registers while the core is halted. Hardware breakpoints and \emph{watchpoints} (stop when a variable is written) are limited in number but work in flash.
+  \item \textbf{printf over UART} or a faster trace channel (such as Arm's SWO or RTT), with care: printing is slow and changes timing.
+  \item \textbf{Toggle a GPIO} at the start and end of an ISR or function and watch it on an oscilloscope or logic analyzer: the cheapest way to measure timing and latency.
+  \item A \textbf{logic analyzer} decodes UART, SPI and I$^2$C traffic, so you see exactly what was on the wire; an \textbf{oscilloscope} shows signal levels, rise times, ringing and noise.
+  \item \textbf{Hard faults}: read the stacked program counter and the fault status registers to find the instruction that failed (a bad pointer, an unaligned access, a stack overflow, a jump to an invalid address).
+  \item \textbf{When it only fails without the debugger}, suspect timing, a missing \code{volatile}, an uninitialized variable, or a watchdog that the debugger was pausing.
+\end{itemize}
+
+\section{What embedded interviews ask}
+
+\begin{itemize}
+  \item What \code{volatile} does and three places to use it; what \code{const volatile} means (a read-only status register: the program must not write it, but it can change).
+  \item Set, clear, toggle and test bits; extract and insert a bit field; check if a number is a power of two; count set bits; swap bytes for endianness.
+  \item Write a register access macro or struct; explain read-modify-write and write-1-to-clear.
+  \item What happens when an interrupt fires; what must and must not be done in an ISR; interrupt latency; nested interrupts and priorities.
+  \item Race conditions between an ISR and main code, and how to protect shared data.
+  \item Compare UART, SPI and I$^2$C; draw an I$^2$C read transaction; explain the SPI modes; compute UART throughput and timer settings.
+  \item The boot sequence; \code{.text}, \code{.data}, \code{.bss}, stack and heap; what the linker script does; why heaps are avoided.
+  \item Mutex versus semaphore; deadlock; priority inversion and priority inheritance; what real-time means.
+  \item DMA and cache coherency; watchdogs; low-power modes and a battery-life estimate.
+  \item C classics: pointers to pointers, function pointers (used for vector tables and callbacks), a ring buffer, \code{static} at file and function scope, structure padding, and what \code{sizeof} returns.
+\end{itemize}
+
+\section{Summary}
+
+\begin{itemize}
+  \item Peripherals are memory-mapped registers; access them through \code{volatile} pointers with masks and shifts, minding read-modify-write side effects.
+  \item Interrupts let hardware call software; keep ISRs short, clear their flags, and protect data they share with the main code.
+  \item DMA moves data without the CPU; with caches, clean and invalidate buffers around it.
+  \item UART (no clock, agreed baud), SPI (clock and chip selects, full duplex, fast) and I$^2$C (two shared open-drain wires, addresses and ACKs) connect most chips; CAN connects vehicles.
+  \item Start-up code copies \code{.data}, zeroes \code{.bss} and calls \code{main}; the linker script decides where everything lives.
+  \item An RTOS schedules tasks by priority; mutexes, semaphores and queues coordinate them; watch for deadlock and priority inversion.
+  \item Watchdogs, brown-out detection and sleep modes make products reliable and battery-friendly.
+\end{itemize}

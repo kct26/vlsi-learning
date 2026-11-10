@@ -124,4 +124,18 @@ DRILLS.forEach(d => {
   if (t.rand) benches.push(Object.assign({}, base, {name:`${t.rand.n} random ${t.clk ? 'cycles' : 'inputs'}`, rows:rst, rand:t.rand}));
   HIDDEN[d.id] = {kind:'v', benches};
 });
+// Interface blocks (rtl-21 to rtl-23).
+const idle = (n, row) => Array(n).fill(row);
+Object.assign(HIDDEN, {
+'rtl-21':{kind:'v', benches:[{name:'Two frames, a start while busy, and a start on the edge busy falls', top:'uart_tx', clk:'clk', in:['rst_n', 'start', 'data'],
+    rows:['0 0 0', '1 1 65', ...idle(20, '1 0 0'), '1 1 255', ...idle(18, '1 0 0'), '1 1 165', '1 0 0', '1 1 0', ...idle(44, '1 0 0'), '0 0 0', '1 1 128', ...idle(42, '1 0 0')]},
+  {name:'800 random cycles', top:'uart_tx', clk:'clk', in:['rst_n', 'start', 'data'], rows:['0 0 0'], rand:{n:800, fix:{rst_n:1}, p:{start:0.06}}}]},
+'rtl-22':{kind:'v', benches:[{name:'Duty 64, then 0, 255 and 128, changed mid-period', top:'pwm8', clk:'clk', in:['rst_n', 'duty'],
+    rows:['0 0', ...idle(300, '1 64'), ...idle(100, '1 0'), ...idle(300, '1 255'), ...idle(300, '1 128')]},
+  {name:'700 random cycles', top:'pwm8', clk:'clk', in:['rst_n', 'duty'], rows:['0 0'], rand:{n:700, fix:{rst_n:1}}}]},
+'rtl-23':{kind:'v', benches:[{name:'0xA5 out while 0x3C comes back, then a start while busy', top:'spi_master', clk:'clk', in:['rst_n', 'start', 'miso', 'tx_byte'],
+    rows:['0 0 0 0', '1 1 0 165', ...[0, 0, 1, 1, 1, 1, 0, 0].flatMap(b => [`1 0 ${b} 0`, `1 1 ${b} 90`]), '1 1 1 255', '1 0 0 0', '1 1 1 129',
+      ...[1, 0, 0, 0, 0, 0, 0, 1].flatMap(b => [`1 0 ${b} 0`, `1 0 ${b} 0`]), ...idle(4, '1 0 0 0')]},
+  {name:'900 random cycles', top:'spi_master', clk:'clk', in:['rst_n', 'start', 'miso', 'tx_byte'], rows:['0 0 0 0'], rand:{n:900, fix:{rst_n:1}, p:{start:0.15, miso:0.5}}}]},
+});
 CODING.forEach(p => { if (HIDDEN[p.id]) p.run = HIDDEN[p.id]; });

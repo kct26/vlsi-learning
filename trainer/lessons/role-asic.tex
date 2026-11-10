@@ -1,0 +1,262 @@
+% A role chapter for the Learn tab (not part of the printed book). It builds on Chapter 11 (timing),
+% Chapter 14 (power), Chapter 15 (PVT) and Chapter 17 (the design flow, scan and JTAG).
+\chapter{From RTL to Silicon: Implementation, Low Power and DFT}
+\label{ch:impl}
+
+Chapter~\ref{ch:fab} listed the steps from RTL to a layout. This chapter is for the roles that own those steps: synthesis and static timing engineers, physical design engineers, low-power engineers and design-for-test engineers. It explains what each step does, what can go wrong, and how engineers fix it. Interviews for these roles go deep on timing, so Chapter~\ref{ch:timing} is the foundation; this chapter adds what happens when real wires, real clocks and real variation enter the picture.
+
+\begin{bigidea}
+Every step from RTL to GDS trades the same three things, called PPA: \emph{performance} (meeting the clock frequency), \emph{power} and \emph{area}. A faster cell is bigger and leaks more; a smaller design has longer critical paths; a lower-power choice is slower. Implementation engineering is making those trades, path by path, until every check passes at every corner.
+\end{bigidea}
+
+\section{Synthesis}
+
+\term{Logic synthesis} turns RTL into a \term{netlist} of standard cells from a library, optimized for the constraints.
+
+\paragraph{Inputs.}
+\begin{itemize}
+  \item The RTL.
+  \item The \term{standard-cell library} in Liberty (\code{.lib}) format: for every cell (inverters, NANDs, flip-flops, ICGs, each in several sizes and threshold voltages), its function, area, pin capacitances, leakage, and tables of delay and output slew as functions of input slew and output load, characterized at each PVT corner.
+  \item The constraints in SDC: clocks, input and output delays, exceptions, and design rules such as maximum transition and maximum capacitance.
+  \item Physical information (in physically aware synthesis): the floorplan and wire parasitic estimates, so the tool's timing matches what place-and-route will see.
+\end{itemize}
+
+\paragraph{Steps.} The tool \emph{elaborates} the RTL into generic logic (adders, multiplexers, registers), optimizes it independently of any library (constant propagation, removing unused logic, sharing common terms), then \emph{maps} it onto library cells and optimizes the result against the constraints: resizing cells, restructuring logic on critical paths, choosing adder architectures, and inserting buffers.
+
+\paragraph{What synthesis reports, and what to check.}
+\begin{itemize}
+  \item Timing (worst slack per clock group), area, leakage and cell counts.
+  \item Warnings that signal RTL problems: inferred latches, multiply driven nets, unconnected ports, constant registers removed, combinational loops.
+  \item \code{check\_timing} for unconstrained endpoints, clocks that do not reach registers, and missing input delays.
+  \item Then \term{logical equivalence checking} (LEC) proves that the netlist does exactly what the RTL does. It is repeated after every netlist change.
+\end{itemize}
+
+\paragraph{Wire load and why physical synthesis exists.} Before placement, the wire lengths are unknown. Old flows guessed wire capacitance from fanout (wire-load models), which was often badly wrong at small geometries, so timing seen in synthesis did not match timing after layout. Physically aware synthesis places cells roughly during synthesis to estimate real wire lengths.
+
+\paragraph{Design-for-test insertion} (scan chains, compression and test controllers) usually happens during or right after synthesis; see the DFT section below.
+
+\section{Static timing analysis at sign-off}
+
+Chapter~\ref{ch:timing} derived the setup and hold checks. At sign-off, the same checks are done with every real effect included.
+
+\subsection*{Timing paths}
+
+STA breaks the design into paths from a \emph{start point} (an input port or a register's clock pin) to an \emph{end point} (an output port or a register's data pin): input to register, register to register, register to output, and input to output. For each path it computes:
+\begin{itemize}
+  \item the \term{arrival time}: when data gets to the end point, from the launch clock edge through clock-to-Q and every cell and wire;
+  \item the \term{required time}: when the end point needs it, from the capture clock edge, minus setup (or plus hold), with clock uncertainty;
+  \item \term{slack} $=$ required $-$ arrival for setup (arrival $-$ required for hold). Negative slack is a violation.
+\end{itemize}
+
+\subsection*{Clocks in detail}
+
+\begin{itemize}
+  \item \term{Clock latency} is the delay from the clock source to a register's clock pin: \emph{source latency} (outside the design, before the clock definition point) plus \emph{network latency} (the clock tree). Before CTS, the clock is \emph{ideal} (zero or estimated latency); after CTS, timing uses the real \emph{propagated} clock.
+  \item \term{Clock skew} is the difference in latency between the launch and capture registers. Positive skew (capture clock later) helps setup and hurts hold.
+  \item \term{Clock uncertainty} is a margin subtracted for jitter (and, before CTS, for expected skew).
+  \item Generated clocks, clock muxes and clock gating are all described in the SDC so the tool propagates the right clocks through them.
+\end{itemize}
+
+\subsection*{On-chip variation and pessimism}
+
+Even on one die, two identical cells do not have identical delays (Chapter~\ref{ch:pvt}). STA models this with \term{on-chip variation} (OCV): for a setup check it makes the launch clock path and data path slower (late) and the capture clock path faster (early); for hold it does the opposite.
+
+\begin{itemize}
+  \item \textbf{Flat derates}: multiply all late delays by, say, 1.05 and early delays by 0.95. Simple but pessimistic.
+  \item \textbf{AOCV} (advanced OCV) makes the derate depend on path depth and distance, since random variation averages out along a long path.
+  \item \textbf{POCV/SOCV} (parametric or statistical OCV) gives every cell a delay mean and standard deviation, and combines them statistically along the path, usually checking at 3 sigma. This is the standard at advanced nodes.
+\end{itemize}
+
+\paragraph{CRPR.} The launch and capture clock paths usually share the start of the clock tree. A single buffer cannot be both slow (for the launch path) and fast (for the capture path) at the same moment, so applying both derates to the shared part is impossible pessimism. \term{Clock reconvergence pessimism removal} (CRPR, also called CPPR) adds that false difference back to the slack.
+
+\subsection*{Signal integrity}
+
+When a neighbouring wire (the aggressor) switches at the same time as the victim, the coupling capacitance (Chapter~\ref{ch:wires}) can slow the victim down (switching in opposite directions) or speed it up (same direction). SI-aware STA adds these \emph{delta delays}: slow-down for setup, speed-up for hold, using timing windows to judge whether the aggressor can actually switch at the same time. A quiet victim can also see a \emph{noise glitch}; noise analysis checks that no glitch is big enough to flip a register.
+
+\subsection*{Corners and modes}
+
+A chip must work in several \emph{modes} (functional, test, sleep, each with its own clocks and constraints) at many \emph{corners} (process, voltage and temperature combinations, plus parasitic extraction corners such as worst-capacitance and worst-RC). \term{MCMM} (multi-corner multi-mode) analysis checks every needed combination. Setup is usually worst at the slow process, low voltage corner; hold at the fast process, high voltage corner; and at advanced nodes temperature inversion (Chapter~\ref{ch:pvt}) means the slow corner may be the \emph{cold} one.
+
+\subsection*{Fixing violations}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Setup violation (path too slow) & Hold violation (path too fast) \\
+\midrule
+Upsize cells on the path (more drive) & Insert delay cells or buffers on the data path \\
+Swap to lower-$V_t$ cells (faster, leakier) & Swap to higher-$V_t$ or smaller cells \\
+Buffer long wires; split high fanout & Route the data path longer (rarely) \\
+Restructure logic; pull the critical signal later in the cone & Reduce skew where capture clock is late \\
+Useful skew: delay the capture clock a little & \\
+Move cells closer; use wider or higher metal layers & \\
+Pipeline (an RTL change) & \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Hold must be fixed at the fast corner without breaking setup at the slow corner, so hold buffers go where the path has setup margin to spare. Late in the project, fixes are applied as small \term{ECOs} (engineering change orders) to the routed design instead of re-running the whole flow.
+
+\begin{remember}
+A setup violation can be fixed by slowing the clock; a hold violation cannot, because hold does not depend on the clock period. That is why hold violations are treated as fatal, and why hold is checked at the fastest corner.
+\end{remember}
+
+\section{Physical design}
+
+\subsection*{Floorplanning}
+
+The floorplan sets the stage for everything after it:
+\begin{itemize}
+  \item \textbf{Die or block size and shape}, from the cell area and a target \term{utilization} (cell area divided by placeable area, often 60--75\% to leave room for buffers and routing).
+  \item \textbf{Macro placement}: memories and hard IP are placed first, usually near the edges and oriented so their pins face the logic they talk to, with \emph{halos} (keep-out margins) and channels between them for routing.
+  \item \textbf{I/O and pin placement}, matching the package or the surrounding blocks.
+  \item \textbf{Placement blockages} where cells must not go, and regions to keep related logic together.
+  \item \textbf{Power planning}: the power grid (next section) and, for low-power designs, the power domains' areas.
+\end{itemize}
+
+\subsection*{The power grid}
+
+Power reaches the cells through a mesh: rings around the core, wide \emph{straps} on the thick upper metal layers, and \emph{rails} along each row of standard cells on the lowest metal, joined by stacks of vias. The grid must be dense enough that:
+\begin{itemize}
+  \item \textbf{static IR drop} (average current through the grid's resistance) and \textbf{dynamic IR drop} (sudden local current when many cells switch at once) keep the supply at every cell within a few percent of nominal. Low voltage slows cells and can cause timing failures that STA did not see. Decoupling capacitor cells placed near busy logic supply the sudden current;
+  \item \textbf{electromigration} limits are met: the current density in every wire and via stays below the limit for the chip's lifetime (Chapter~\ref{ch:fab}).
+\end{itemize}
+
+\subsection*{Placement}
+
+Placement assigns every standard cell a legal location in the rows. A \emph{global placement} spreads cells to minimize wire length and congestion while respecting timing; \emph{legalization} snaps them onto rows without overlap; then optimization resizes, buffers and moves cells to fix timing. Special cells are added: \emph{tap cells} (tie the wells to the supply, preventing latch-up), \emph{end caps} at row ends, and \emph{tie cells} (constant 0 or 1, so gate inputs are never connected straight to the power rails). Scan chains are re-ordered by location to shorten their wires. \term{Congestion} maps show where more wires are needed than routing tracks exist; hot spots are fixed by spreading cells, adding blockages or changing the floorplan.
+
+\subsection*{Clock tree synthesis}
+
+Before \term{CTS}, one clock net drives thousands of flip-flops in theory. CTS builds the real network of clock buffers or inverters that delivers the clock to every sink:
+\begin{itemize}
+  \item \textbf{Goals}: small skew between sinks that talk to each other, low and balanced insertion delay (latency), sharp transitions (slew limits), and low power, since the clock tree toggles every cycle and is often a third or more of dynamic power.
+  \item \textbf{Structures}: a balanced tree (often an H-tree near the root), or a clock mesh (a grid driven at many points, very low skew and robust to variation, but power hungry), or a mix.
+  \item Clock nets get \term{non-default rules} (NDRs): wider wires and double spacing, sometimes shielding with ground wires, to cut resistance, crosstalk and variation.
+  \item Inverters are often used instead of buffers to keep the duty cycle balanced.
+  \item After CTS, timing uses propagated clocks, and hold violations appear for real, so hold fixing starts here.
+\end{itemize}
+
+\subsection*{Routing}
+
+Routing connects every net with metal wires and vias: \emph{global routing} assigns nets to regions, \emph{track assignment} to tracks, and \emph{detailed routing} draws the exact shapes, fixing design-rule violations. Critical nets can be routed first or on upper (thicker, faster) layers. After routing, \term{parasitic extraction} computes each wire's resistance and capacitance (in a SPEF file) for sign-off timing. Antenna violations are fixed by jumping to a higher layer or adding diodes; \emph{filler} cells fill gaps in the rows, and metal fill brings density within the factory's limits.
+
+\subsection*{Sign-off}
+
+Before tape-out, every check must pass:
+\begin{itemize}
+  \item STA at all MCMM scenarios with SI;
+  \item IR drop and electromigration;
+  \item physical verification: DRC, LVS, antenna, ERC and density;
+  \item LEC between the final netlist and the RTL;
+  \item power analysis against the budget;
+  \item for low-power designs, a check that isolation, level shifting and power switches match the power intent.
+\end{itemize}
+The final layout is written as GDSII or OASIS and sent to the foundry.
+
+\section{Low-power implementation}
+
+Chapter~\ref{ch:power} explained dynamic and leakage power. Implementation teams use these techniques:
+
+\begin{itemize}
+  \item \textbf{Multi-$V_t$ cells}: low-threshold (fast, leaky) cells only on critical paths, high-threshold (slow, low leakage) everywhere else. The tools swap them automatically, path by path.
+  \item \textbf{Clock gating}: an \term{integrated clock gating} cell (ICG: a latch plus an AND gate, so the enable cannot glitch the clock) stops the clock to registers that are not changing. Synthesis inserts ICGs automatically wherever registers have an enable, often removing the enable mux too. It saves the clock-tree and flip-flop power, usually the largest share.
+  \item \textbf{Operand isolation}: hold the inputs of an idle datapath steady so it does not toggle.
+  \item \textbf{Power gating}: switch off the supply of an idle block with header (PMOS, on VDD) or footer (NMOS, on ground) \emph{power switch} cells, removing its leakage. This needs:
+  \begin{itemize}
+    \item \term{isolation cells} on the block's outputs, which clamp them to a known 0 or 1 while it is off, so floating outputs do not upset the blocks still on;
+    \item \term{retention registers} (with a small always-on shadow latch) for state that must survive power-down, or a save-and-restore by software;
+    \item a power controller that sequences: stop clocks, isolate, save state, switch off; and the reverse order on wake-up, turning switches on gradually to limit the inrush current.
+  \end{itemize}
+  \item \textbf{Multiple voltage domains}: blocks that need less speed run at a lower supply. Signals crossing between domains need \term{level shifters}.
+  \item \textbf{DVFS} (dynamic voltage and frequency scaling): lower the voltage and frequency together when the workload is light; since $P \propto CV^2f$, this saves power roughly cubically.
+\end{itemize}
+
+The \term{power intent} (which domains exist, which can be off, where isolation, retention and level shifting go) is written in a separate file in UPF (Unified Power Format), so the RTL stays clean. Simulation, synthesis, place-and-route and sign-off all read the same UPF.
+
+\section{Design for test}
+
+Factory test finds manufacturing defects, not design bugs (Chapter~\ref{ch:fab}). DFT engineers add the logic that makes every part of the chip testable in seconds on a tester.
+
+\subsection*{Fault models}
+
+\begin{itemize}
+  \item \term{Stuck-at}: a node stuck at 0 or 1. The basic model; testing it catches most hard defects.
+  \item \term{Transition} (delay) faults: a node that switches, but too slowly (slow-to-rise or slow-to-fall). Needs at-speed testing. At advanced nodes many defects are of this kind.
+  \item \textbf{Path delay}: a whole path is too slow, from small delays adding up.
+  \item \textbf{Bridging}: two nodes shorted together.
+  \item \textbf{Cell-aware} faults: defects inside a standard cell, modeled from the cell's transistor layout.
+  \item \textbf{IDDQ}: measure the quiescent supply current; a defect often causes a leakage current far above normal.
+\end{itemize}
+
+\subsection*{Scan}
+
+\begin{itemize}
+  \item \textbf{Scan insertion} replaces each flip-flop with a \emph{scan flip-flop} (a mux in front of D) and stitches them into chains. In shift mode the chains form shift registers; in capture mode the flip-flops capture the logic's response (Figure~\ref{fig:scanchain}).
+  \item \term{ATPG} (automatic test pattern generation) computes patterns that make each fault's effect visible at a flip-flop or output. \term{Fault coverage} is the percentage of modeled faults detected; production targets are often above 98--99\% for stuck-at.
+  \item \textbf{Test time} is dominated by shifting: a design with 1 million flip-flops in 100 chains needs 10\,000 shift cycles per pattern. \term{Scan compression} drives hundreds of short internal chains from a few tester pins through a decompressor and compactor, cutting test time and tester memory by 10 to 100 times.
+  \item Scan design rules: every flip-flop clock must be controllable from a test pin; asynchronous resets must be controllable; no combinational loops; latches made transparent in test; internally generated clocks bypassed.
+\end{itemize}
+
+\subsection*{At-speed testing}
+
+Transition faults need a launch and a capture at the real clock speed. Two methods: \term{launch-on-capture} (LOC, also called broadside: shift slowly, then two fast functional clock pulses) and \term{launch-on-shift} (LOS: the last shift is the launch, needing a fast scan-enable signal). The fast pulses come from the chip's own PLL through an \term{on-chip clock controller} (OCC), because the tester cannot supply GHz clocks.
+
+\subsection*{Memories and logic BIST}
+
+\begin{itemize}
+  \item \term{MBIST} (memory built-in self-test): a small controller next to each memory runs march algorithms (for example, write 0s ascending; read 0, write 1 ascending; read 1, write 0 descending) that detect stuck cells, coupling between cells and address decoder faults. Memories are often the largest share of the die and the most defect-prone.
+  \item \textbf{Memory repair}: memories include spare rows or columns; when MBIST finds a failing cell, the address is remapped to a spare, and the repair information is stored in fuses. This raises yield significantly.
+  \item \term{LBIST} (logic BIST): a pseudo-random pattern generator (an LFSR) drives the scan chains and a signature register (a MISR) compresses the responses; comparing the signature with the expected one tests the logic without a tester. Used for in-field self-test in cars and other safety-critical products.
+  \item \textbf{Boundary scan} through JTAG tests the board connections between chips (Chapter~\ref{ch:fab}).
+\end{itemize}
+
+\subsection*{The cost of DFT}
+
+Scan muxes add area (a few percent) and a little delay on every flip-flop's D path; test mode creates new timing modes to close (shift, capture); test power can be far higher than functional power because so many flip-flops toggle at once during shift, which can cause IR-drop failures on the tester, so patterns are often power-aware.
+
+\section{Scripting and flows}
+
+All of these tools are driven by Tcl scripts, and flows tie them together with Makefiles, Python and shell scripts. Implementation engineers write Tcl to query the design database (\code{get\_cells}, \code{get\_nets}, \code{report\_timing -from ... -to ...}), apply fixes in bulk and parse reports; Python and shell scripts summarize results across runs. Being fluent at the command line and in Tcl is expected for every role in this chapter (the Coding tab has Tcl, Linux and Python problems).
+
+\section{What implementation interviews ask}
+
+\begin{itemize}
+  \item Setup and hold equations with skew and uncertainty; why hold cannot be fixed by the clock; which corner is worst for each.
+  \item What OCV, AOCV/POCV and CRPR are, and why CRPR adds slack back.
+  \item How crosstalk changes delay for setup and for hold.
+  \item The flow from RTL to GDS, what each step needs and produces, and which checks are run at sign-off.
+  \item How to fix a setup violation and a hold violation; what useful skew is; what an ECO is.
+  \item Floorplanning choices: utilization, macro placement, halos, pin placement; congestion and how to fix it.
+  \item CTS goals; tree versus mesh; why clock nets get NDRs; why clock power is so large.
+  \item IR drop (static and dynamic) and electromigration; decap cells; how the power grid is built.
+  \item Clock gating and the ICG cell (why a latch); power gating with isolation, retention and level shifters; what UPF describes; DVFS.
+  \item Stuck-at versus transition faults; scan insertion and its rules; ATPG and fault coverage; LOC versus LOS; MBIST, memory repair and LBIST; boundary scan.
+  \item Liberty, SDC, SPEF, LEF/DEF, GDS and UPF: what each file holds.
+\end{itemize}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+File & Holds \\
+\midrule
+Liberty (\code{.lib}) & Cell timing, power and function at one PVT corner \\
+SDC & Timing constraints: clocks, I/O delays, exceptions \\
+LEF & Abstract physical view of cells and macros: size, pins, blockages, plus routing layer rules \\
+DEF & The placed and routed design: where every cell and wire is \\
+SPEF & Extracted parasitic resistance and capacitance of every net \\
+UPF & Power intent: domains, switches, isolation, retention, level shifters \\
+GDSII / OASIS & The final layout shapes sent to the foundry \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Summary}
+
+\begin{itemize}
+  \item Synthesis maps RTL onto library cells under SDC constraints; LEC proves the netlist matches the RTL.
+  \item Sign-off STA adds real clocks (latency, skew, uncertainty), on-chip variation with CRPR, crosstalk and every mode and corner. Fix setup with faster or larger cells, buffering, restructuring or useful skew; fix hold with delay cells at the fast corner.
+  \item Physical design: floorplan, power grid, placement, CTS, routing, extraction and sign-off checks, trading performance, power and area.
+  \item Low power: multi-$V_t$, clock gating with ICGs, power gating with isolation and retention, voltage domains with level shifters, DVFS, all described in UPF.
+  \item DFT: scan chains and ATPG for stuck-at and transition faults, compression, at-speed testing with OCCs, MBIST with repair, LBIST and boundary scan.
+\end{itemize}

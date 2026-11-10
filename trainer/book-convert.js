@@ -10,6 +10,11 @@ const FIGS = path.join(__dirname, '..', 'docs', 'book', 'figures.json');
 // n is the page id; label and badge are what the Learn pages show.
 const EXTRA = [
   {dir:path.join(__dirname, 'lessons'), file:'oa-c-cpp.tex', n:27, label:'Extra chapter', badge:'C++'},
+  {dir:path.join(__dirname, 'lessons'), file:'role-dv.tex', n:28, label:'Role chapter', badge:'DV'},
+  {dir:path.join(__dirname, 'lessons'), file:'role-fpga.tex', n:29, label:'Role chapter', badge:'FPGA'},
+  {dir:path.join(__dirname, 'lessons'), file:'role-embedded.tex', n:30, label:'Role chapter', badge:'FW'},
+  {dir:path.join(__dirname, 'lessons'), file:'role-asic.tex', n:31, label:'Role chapter', badge:'PD'},
+  {dir:path.join(__dirname, 'lessons'), file:'role-validation.tex', n:32, label:'Role chapter', badge:'VAL'},
   {dir:BOOK, file:'25-practice-exam.tex', n:25, label:'Chapter 25', badge:'25'},
   {dir:BOOK, file:'A-formulas.tex', n:26, label:'Appendix A', badge:'A'},
 ];
