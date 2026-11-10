@@ -6016,9 +6016,9 @@ function record(Q, choice){
   return ok;
 }
 function logSubmit(id, ok){ state.log.push([Date.now(), id, ok ? 1 : 0]); if (state.log.length > LOG_MAX) state.log.splice(0, state.log.length - LOG_MAX); }
-function unitPassed(u){ return !!(state.learn.units[u] && state.learn.units[u].passed); }
-function unitUnlocked(u){ return u === 1 || unitPassed(u - 1) || unitPassed(u); }
 function cardsDone(U){ return U.cards.filter((c, i) => state.learn.cards['u' + U.id + 'c' + i]).length; }
+function unitPassed(u){ const U = UNITS[u - 1]; return !!(state.learn.units[u] && state.learn.units[u].passed) || !!(U && cardsDone(U) === U.cards.length); }
+function unitUnlocked(){ return true; }
 function nextUnit(){ return UNITS.find(U => !unitPassed(U.id) && unitUnlocked(U.id)); }
 function toast(text){
   const box = $('#toasts'); if (!box) return;
@@ -6149,6 +6149,11 @@ function render(){
     const f = ui.settingsFrom, label = f && f.view === 'tab' ? TAB_LABEL[f.tab] || 'Home' : f ? 'previous page' : 'Home';
     m.insertAdjacentHTML('afterbegin', `<div class="pvbar setback"><button type="button" class="btn ghost small" data-act="settings-back">← Back to ${esc(label)}</button></div>`);
   }
+  // Every page you open from a list gets a Back button at the top, like the settings pages.
+  const back = (act, label, v) => m.insertAdjacentHTML('afterbegin', `<div class="pvbar setback"><button type="button" class="btn ghost small" data-act="${act}"${v ? ` data-v="${v}"` : ''}>← ${label}</button></div>`);
+  if (ui.view === 'lesson') back('learn-home', 'Back to Learn');
+  else if (ui.view === 'unit') { const uf = ui.unitFrom && ui.unit && ui.unitFrom.ch === ui.unit.id ? ui.unitFrom : null; if (uf) back('learn-go', 'Back to the lesson', `${uf.ch}-${uf.sec}`); else back('learn-home', 'Back to Learn'); }
+  else if (ui.view === 'results') back('done-results', 'Back');
 }
 
 // A quest opens at its first unfinished lesson (or the start, once passed).
@@ -6171,28 +6176,25 @@ function viewUnit(){
   const ids = CH_IDS[U.id], sv = solvedIn(ids);
   const uf = ui.unitFrom && ui.unitFrom.ch === U.id ? ui.unitFrom : null;
   let html = `<div class="unitv"><nav class="crumbs" aria-label="Breadcrumb"><button type="button" class="linkbtn" data-act="learn-home">Learn</button><span>/</span><span>Quest ${U.id}</span>
-      <span class="spacer"></span>${uf ? `<button type="button" class="btn small ghost" data-act="learn-go" data-v="${uf.ch}-${uf.sec}">← Back to the lesson</button>` : ''}${bookCh(U.id) ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${U.id}">Read Chapter ${U.id} in full →</button>` : ''}</nav>
+      <span class="spacer"></span>${bookCh(U.id) ? `<button type="button" class="btn small ghost" data-act="learn-open" data-v="${U.id}">Read Chapter ${U.id} in full →</button>` : ''}</nav>
     <header class="unithead"><div><p class="eyebrow">Quest ${String(U.id).padStart(2, '0')} · Chapter ${U.id}</p><h1>${esc(U.title)}</h1><p class="muted">${esc(U.goal)}</p></div>
-    <dl class="ustats"><div><dt>Lessons</dt><dd>${cardsDone(U)}/${n}</dd></div><div><dt>Checkpoint</dt><dd>${unitPassed(U.id) ? 'Passed' : (best !== undefined ? `Best ${best}/${UNIT_N}` : 'Not yet')}</dd></div><div><dt>Solved</dt><dd>${sv}/${ids.length}</dd></div></dl></header>`;
-  if (!open) {
-    html += `<section class="card locked"><div class="lockline">${ICON.lock}<div><h2>Quest ${U.id} is locked</h2><p class="muted">Pass Quest ${U.id - 1}'s checkpoint to unlock it, or test out now: get ${UNIT_PASS} of ${UNIT_N} problems from Chapter ${U.id} right.</p></div></div>
-      <div class="row"><button type="button" class="btn primary" data-act="unit-quiz" data-u="${U.id}">Test out of Quest ${U.id}</button><button type="button" class="btn" data-act="open-unit" data-u="${U.id - 1}">Go to Quest ${U.id - 1}</button></div></section>`;
-  } else {
+    <dl class="ustats"><div><dt>Lessons</dt><dd>${cardsDone(U)}/${n}</dd></div><div><dt>Solved</dt><dd>${sv}/${ids.length}</dd></div></dl></header>`;
+  {
     html += '<ol class="steps" aria-label="Quest steps">' + U.cards.map((c, i) => {
       const done = !!state.learn.cards['u' + U.id + 'c' + i];
       return `<li><button type="button" class="step${done ? ' done' : ''}${i === step ? ' cur' : ''}" data-act="step" data-i="${i}"${i > ms ? ' disabled' : ''} aria-label="Lesson ${i + 1}${done ? ', done' : ''}">${done ? ICON.solved : i + 1}</button></li>`;
-    }).join('') + `<li><button type="button" class="step check${unitPassed(U.id) ? ' done' : ''}${step === n ? ' cur' : ''}" data-act="step" data-i="${n}"${ms < n ? ' disabled' : ''} aria-label="Checkpoint">${unitPassed(U.id) ? ICON.solved : ICON.flag}</button></li></ol>`;
+    }).join('') + '</ol>';
     if (step < n) {
       const c = U.cards[step], key = 'u' + U.id + 'c' + step;
       html += `<section class="card lessoncard"><p class="eyebrow">Lesson ${step + 1} of ${n}</p><h2>${esc(c.t)}</h2><div class="body">${c.b.map(p => `<p>${esc(p)}</p>`).join('')}</div>
         ${c.w ? '<div class="widget"><span class="wlabel">Try it</span><div id="widget-host"></div></div>' : ''}
         ${c.q ? '<div id="card-check"></div>' : ''}
         <div class="row between"><button type="button" class="btn" data-act="card-prev" ${step === 0 ? 'disabled' : ''}>Back</button>
-        <button type="button" class="btn primary" id="card-next" data-act="card-next" data-key="${key}">${step === n - 1 ? 'Go to checkpoint' : 'Next lesson'}</button></div></section>`;
+        <button type="button" class="btn primary" id="card-next" data-act="card-next" data-key="${key}">${step === n - 1 ? 'Finish the quest' : 'Next lesson'}</button></div></section>`;
     } else {
-      html += `<section class="card"><p class="eyebrow">Checkpoint</p><h2>${unitPassed(U.id) ? 'Quest complete' : 'Ready for the checkpoint?'}</h2>
-        <p>${UNIT_N} problems from Chapter ${U.id}, with feedback after each. Get ${UNIT_PASS} or more right to complete the quest${U.id < UNITS.length ? ' and unlock Quest ' + (U.id + 1) : ''}.${best !== undefined ? ` Your best so far: ${best}/${UNIT_N}.` : ''}</p>
-        <div class="row"><button type="button" class="btn primary" data-act="unit-quiz" data-u="${U.id}">${best !== undefined ? 'Take it again' : 'Start the checkpoint'}</button><button type="button" class="btn" data-act="card-prev">Back to the lessons</button></div></section>`;
+      const nx = UNITS[U.id];
+      html += `<section class="card"><h2>Quest complete</h2><p class="muted">You finished every lesson in this quest. Practice the chapter's problems below, or go on to the next quest.</p>
+        <div class="row">${nx ? `<button type="button" class="btn primary" data-act="open-unit" data-u="${nx.id}">Quest ${nx.id}: ${esc(nx.title)} →</button>` : ''}<button type="button" class="btn" data-act="card-prev">Back to the lessons</button></div></section>`;
     }
   }
   html += `<section class="card"><div class="row between"><div><h2>Problems in this quest</h2><p class="muted">${sv} of ${ids.length} solved</p></div><button type="button" class="btn" data-act="topic" data-ch="${U.id}">Practice 10</button></div>${tableHTML(ids, 'compact')}</section>`;
@@ -7319,7 +7321,6 @@ function viewLearn(){
   const all = B.filter(core).map(c => chapterProgress(c.n)), lessons = all.reduce((n, x) => n + x.lessons, 0), read = all.reduce((n, x) => n + x.read, 0);
   const probs = all.reduce((n, x) => n + x.probs, 0), solved = all.reduce((n, x) => n + x.solved, 0), done = read + solved, total = lessons + probs;
   const quests = UNITS.filter(U => unitPassed(U.id)).length;
-  const next = B.filter(core).find(c => { const P = chapterProgress(c.n); return P.read < P.lessons; });
   const quest = n => {
     const U = UNITS[n - 1]; if (!U || n > 23) return '';
     const passed = unitPassed(n), open = unitUnlocked(n), cd = cardsDone(U);
@@ -7329,8 +7330,7 @@ function viewLearn(){
       <span class="lbody"><button type="button" class="lopen" data-act="learn-open" data-v="${c.n}">${esc(c.title)}</button><small>${P.lessons} ${P.lessons === 1 ? 'page' : 'lessons'}${P.probs ? ` · ${P.probs} problems` : ''}</small><span class="cobar"><i style="width:${pct(P.done, P.total)}%"></i></span>
       <span class="lfoot"><small class="mono">${P.done}/${P.total} done</small>${quest(c.n)}</span></span></div>`; };
   return `<h1 class="sr-only">Learn</h1><section class="card lhero"><div>
-      <div class="lstats"><span><b>${read}</b>/${lessons} lessons</span><span><b>${solved}</b>/${probs} problems</span><span><b>${quests}</b>/${UNITS.length} quests</span></div>
-      <div class="row">${next ? `<button type="button" class="btn primary" data-act="learn-open" data-v="${next.n}">${read ? 'Continue' : 'Start'}: Chapter ${next.n} →</button>` : ''}${nu ? `<button type="button" class="btn" data-act="open-unit" data-u="${nu.id}">Quest ${nu.id}: ${esc(nu.title)}</button>` : ''}</div></div>
+      <div class="lstats"><span><b>${read}</b>/${lessons} lessons</span><span><b>${solved}</b>/${probs} problems</span><span><b>${quests}</b>/${UNITS.length} quests</span></div></div>
       <div class="herostat">${ring(total ? done / total : 0, 76, 7, `${done} of ${total} done`)}<div><b>${pct(done, total).replace(/\.0$/, '')}%</b><span>complete</span></div></div></section>
     ${LEARN_PARTS.map(part => `<section class="lpart"><h2 class="lparth"><span class="mono">Part ${part.n}</span> ${esc(part.name)}</h2><div class="lgrid">${part.units.map(n => bookCh(n)).filter(Boolean).map(card).join('')}</div></section>`).join('')}
     <section class="lpart" id="rmmap"><h2 class="lparth">Topic map</h2>${roadmapHTML()}</section>`;
@@ -7396,7 +7396,7 @@ function subSymbols(n){
 const HERO_WORDS =['digital logic', 'CMOS circuits', 'Verilog RTL', 'static timing', 'GPU architecture', 'computer arithmetic'];
 const HOME_TABS = [
   {name:'Learn circuits from zero', file:'quest_05.md', go:'quest', link:'Start the quest',
-    code:'Quest 5 · The MOSFET\n\n  Vgs < Vth   off: no channel\n  Vgs > Vth   on:  channel forms\n\n  Id = k (Vgs − Vth)²   saturation\n\n✓ 4 lessons with widgets\n✓ 5-problem checkpoint', vis:'mosfet', cap:'drag Vgs past Vth'},
+    code:'Quest 5 · The MOSFET\n\n  Vgs < Vth   off: no channel\n  Vgs > Vth   on:  channel forms\n\n  Id = k (Vgs − Vth)²   saturation\n\n✓ 4 lessons with widgets\n✓ practice problems', vis:'mosfet', cap:'drag Vgs past Vth'},
   {name:'Write and judge RTL', file:'counter4.v', go:'coding', link:'Browse RTL problems',
     code:'module counter4 (\n  input  wire       clk, rst, en,\n  output reg  [3:0] q\n);\n  always @(posedge clk)\n    if (rst)     q <= 0;\n    else if (en) q <= q + 1;\nendmodule', vis:'wave', cap:'Yosys + gate simulator · Accepted'},
   {name:'Code in C, C++ and Python', file:'reverse.c', go:'coding', link:'Browse coding problems',
@@ -7771,9 +7771,9 @@ function rmPanelHTML(){
   let body = '', btn = '';
   if (n.u) {
     const U = UNITS[n.u - 1], ids = CH_IDS[n.u];
-    body = `<p class="muted small">${esc(U.goal || '')}</p><ol class="rmlessons">${U.cards.map((c, i) => `<li class="${state.learn.cards['u' + n.u + 'c' + i] ? 'ok' : ''}">${esc(c.t)}</li>`).join('')}<li class="${unitPassed(n.u) ? 'ok' : ''}">Checkpoint: ${UNIT_PASS} of ${UNIT_N} right</li></ol>
+    body = `<p class="muted small">${esc(U.goal || '')}</p><ol class="rmlessons">${U.cards.map((c, i) => `<li class="${state.learn.cards['u' + n.u + 'c' + i] ? 'ok' : ''}">${esc(c.t)}</li>`).join('')}</ol>
       <p class="muted small">${solvedIn(ids)}/${ids.length} theory problems solved in this topic.</p>`;
-    btn = `<button type="button" class="btn primary" data-act="open-unit" data-u="${n.u}">${unitPassed(n.u) ? 'Review quest' : unitUnlocked(n.u) ? (cardsDone(U) ? 'Continue quest' : 'Start quest') : 'Open (test out)'} →</button><button type="button" class="btn" data-act="topic-filter" data-ch="${n.u}">Practice problems</button>`;
+    btn = `<button type="button" class="btn primary" data-act="open-unit" data-u="${n.u}">${unitPassed(n.u) ? 'Review quest' : unitUnlocked(n.u) ? (cardsDone(U) ? 'Continue quest' : 'Start quest') : 'Start quest'} →</button><button type="button" class="btn" data-act="topic-filter" data-ch="${n.u}">Practice problems</button>`;
   } else if (n.area) {
     body = `<p class="muted small">Write real ${esc(n.area === 'RTL design' ? 'Verilog' : n.area)} code. ${CODING.filter(p => p.area === n.area && p.run).length} of these problems are judged right in your browser.</p><p class="small"><b>${esc(I.count)}</b></p>`;
     btn = `<button type="button" class="btn primary" data-act="c-area-go" data-v="${esc(n.area)}">Open coding problems →</button>`;

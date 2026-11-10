@@ -89,23 +89,20 @@ async function phase1(){
   ok(document.documentElement.dataset.theme === 'light', 'and back to light (the default)');
   ok(!/\bXP\b|\bLV\b|Level \d|[Bb]adge|Achievement|streak/.test(visible()), 'no XP, levels, badges, streaks or achievements on the quest map');
   ok($$('.lquest').length === UNITS.length, UNITS.length + ' quest buttons on Learn');
-  ok($$('.lquest.lock').length === UNITS.length - 1, 'only quest 1 is open at the start');
+  ok(!$('.lquest.lock'), 'every quest is open from the start, with no locks');
   ok(new RegExp('0/' + RAW.length).test($('#solved').textContent), 'header shows solved/total: ' + $('#solved').textContent.trim());
   click('[data-act="open-unit"][data-u="1"]');
   ok(/Charge, current and voltage/.test(h1()), 'quest 1 page opens');
-  ok($$('.steps .step').length >= 4, 'step pills for lessons + checkpoint');
+  ok($$('.steps .step').length === UNITS[0].cards.length && !/checkpoint/i.test($('#main').textContent), 'one step pill per lesson, and no checkpoint anywhere on the quest page');
   const w = walkCards(false);
   ok(w.cards >= 3, 'quest 1 has ' + w.cards + ' lessons');
-  ok($('[data-act="unit-quiz"]'), 'checkpoint panel after the lessons');
+  ok(/Quest complete/.test($('#main').textContent) && $('[data-act="open-unit"][data-u="2"]') && !$('[data-act="unit-quiz"]'), 'finishing the lessons completes the quest and offers the next one');
   ok($$('.ptable.compact tbody tr').length > 10, 'quest page lists its chapter problems');
-  click('[data-act="unit-quiz"]');
-  for (let i = 0; i < 5; i++) { answer('quiz', true); ok($('.verdict.ok'), 'checkpoint q' + (i + 1) + ' Accepted'); click('[data-act="next"]'); }
-  ok($('.big') && $('.big').textContent.replace(/\s/g, '') === '5/5', 'checkpoint result 5/5');
-  ok(st().learn.units['1'].passed, 'quest 1 saved as passed');
+  click('.setback [data-act="learn-home"]');
+  ok($('.lquest.ok[data-u="1"]'), 'quest 1 shows as complete on Learn');
+  click('.lquest[data-u="1"]'); click('[data-act="topic"][data-ch="1"]');
+  for (let i = 0; i < 10 && !$('[data-act="done-results"]'); i++) { answer('quiz', true); click('[data-act="next"]'); }
   click('[data-act="done-results"]');
-  ok(/Charge, current/.test(h1()), 'done returns to the quest page');
-  click('[data-act="learn-home"]');
-  ok($$('.lquest.lock').length === UNITS.length - 2 && !$('.lquest[data-u="2"]').classList.contains('lock'), 'quest 2 unlocked');
   const sh = solvedHeader();
   ok(sh >= 5, 'header solved count went up to ' + sh);
 
@@ -302,7 +299,16 @@ async function phase1(){
   ok(/2/.test($('.lstats').textContent) && $('.lcard .cobar i').style.width !== '0%' || true, 'progress shows on the chapter cards');
   // Learn is one page: chapters with their quests, then the topic map
   ok(!$('.navlinks button[data-tab="quest"]') && !$('.learnseg') && $$('.lcard .lquest').length === 23 && $('#rmmap .rmnode'), 'Learn shows every chapter with its quest and the topic map on one page');
-  ok(!$('.lhero .eyebrow') && !$('.lhero p.muted'), 'Learn has no extra title or description');
+  ok(!$('.lhero .eyebrow') && !$('.lhero p.muted') && !$('.lhero .btn'), 'Learn has no extra title, description or continue buttons');
+  ok(!/Checkpoint:/.test($('#rmdetail').textContent), 'the topic map details have no checkpoint line');
+  click('.lcard .lopen[data-v="3"]');
+  ok($('.setback [data-act="learn-home"]'), 'a lesson has a Back button at the top');
+  click('.setback [data-act="learn-home"]');
+  ok($('.lhero') && $$('.lcard').length === 31, 'Back from a lesson returns to Learn');
+  click('.lquest[data-u="1"]');
+  ok($('.setback [data-act="learn-home"]'), 'a quest page has a Back button at the top');
+  click('.setback [data-act="learn-home"]');
+  ok($('.lhero'), 'Back from a quest returns to Learn');
   click('.lcard .lopen[data-v="5"]');
   ok($('.lx') && /Chapter 5/.test($('.lside-h').textContent) && !$('.litem.lquest'), 'a chapter card opens its lessons, whose sidebar has no quest card');
   tab('learn'); click('.lquest[data-u="5"]');
@@ -437,15 +443,10 @@ async function phase1(){
   click('[data-act="co-open"][data-v="amazon"]'); click('[data-act="co-tab"][data-v="rep"]');
   ok(/Lab126/.test($('.coreports').textContent) && /no public reports for Annapurna/.test($('.coreports').textContent), 'Amazon says its reports are from Lab126, not Annapurna');
 
-  // Test out of a locked quest
+  // Any quest opens straight to its lessons
   tab('quest');
   click('.lquest[data-u="5"]');
-  ok(/locked/.test($('#main').textContent), 'locked quest page explains the lock');
-  click('[data-act="unit-quiz"]');
-  for (let i = 0; i < 5; i++) { answer('quiz', true); click('[data-act="next"]'); }
-  ok(st().learn.units['5'].passed, 'test-out passes quest 5');
-  click('[data-act="done-results"]');
-  ok($('.steps'), 'quest 5 now shows its lessons');
+  ok($('.steps') && $('.lessoncard') && !/locked/i.test($('#main').textContent), 'quest 5 opens to its lessons with no lock');
 
   // Reset with an in-page confirm
   tab('profile');
@@ -472,7 +473,7 @@ function phase2(){
     }
     const w = walkCards(true);
     total += w.cards; widgets += w.widgets;
-    ok($('[data-act="unit-quiz"]'), 'quest ' + u + ' ends at its checkpoint');
+    ok(/Quest complete/.test($('#main').textContent), 'quest ' + u + ' is complete after its lessons');
   }
   ok(total === UNITS.reduce((n, U) => n + U.cards.length, 0), 'walked all ' + total + ' lessons');
   ok(widgets === UNITS.reduce((n, U) => n + U.cards.filter(c => c.w).length, 0), 'mounted all ' + widgets + ' widgets');
