@@ -1,6 +1,6 @@
 # HardCode (Ground Up Hardware)
 
-A study kit for hardware engineering online assessments (built while preparing for the NVIDIA Ignite hardware internship). It has two parts:
+A study kit for hardware engineering online assessments. It has two parts:
 
 - **Hardware from the Ground Up**: a 233-page beginner's book, written in LaTeX, that builds hardware from electricity to GPUs: transistors, CMOS gates, timing, power, PVT, manufacturing, memory, Verilog and verification, architecture, GPUs and computer arithmetic. Every chapter ends with exercises and answers.
 - **HardCode**, the trainer: a single-page web app for practicing it:
